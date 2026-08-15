@@ -18,6 +18,7 @@ import {
   X,
   Loader2
 } from 'lucide-react';
+import InstallAppButton from '@/components/pwa/InstallAppButton';
 import { UserRole } from '@/types';
 import { isUnsaved, markUnsaved, requestSave } from '@/lib/unsavedChanges';
 
@@ -240,6 +241,14 @@ export default function Sidebar({
               );
             })}
           </div>
+        </div>
+
+        {/* Install App Button */}
+        <div className="pt-4 mt-4 border-t border-white/10">
+          <InstallAppButton
+            className="w-full"
+            buttonClassName="w-full justify-center px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/90 hover:text-white text-xs font-bold transition-all border border-white/10"
+          />
         </div>
       </aside>
 
