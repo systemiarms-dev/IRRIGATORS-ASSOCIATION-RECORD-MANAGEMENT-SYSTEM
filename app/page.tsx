@@ -7,7 +7,7 @@ import InstallAppButton from '@/components/pwa/InstallAppButton';
 
 export default function LandingPage() {
   return (
-    <div className="lg:h-[100dvh] lg:overflow-hidden relative flex flex-col text-white selection:bg-[#00843D] selection:text-white bg-[#002b13]">
+    <div className="lg:h-[100dvh] lg:overflow-hidden relative flex flex-col text-white selection:bg-[#00843D] selection:text-white bg-[#002b13] min-h-screen">
       {/* High-Visibility Scenic Background Image */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-85"
