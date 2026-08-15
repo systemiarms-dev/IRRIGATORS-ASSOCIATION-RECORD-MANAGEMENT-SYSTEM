@@ -60,7 +60,7 @@ function LoginContent() {
       {/* High-Visibility Scenic Background Image */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-85"
-        style={{ backgroundImage: `url('/api/bg?v=latest')` }}
+        style={{ backgroundImage: `url('/bg.png')` }}
       />
       {/* Light Glassy Tint Overlay so Background Remains Clearly Visible */}
       <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#003619]/45 via-[#005C2B]/25 to-[#002410]/55 pointer-events-none backdrop-blur-[0.5px]" />

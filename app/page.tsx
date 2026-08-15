@@ -11,7 +11,7 @@ export default function LandingPage() {
       {/* High-Visibility Scenic Background Image */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-85"
-        style={{ backgroundImage: `url('/api/bg?v=latest')` }}
+        style={{ backgroundImage: `url('/bg.png')` }}
       />
       {/* Soft Translucent Glass Tint - NIA Emerald Tone */}
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#003619]/55 via-[#005C2B]/35 to-[#002410]/65 pointer-events-none" />

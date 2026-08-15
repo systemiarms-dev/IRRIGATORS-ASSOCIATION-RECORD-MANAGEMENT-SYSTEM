@@ -30,6 +30,5 @@ public/uploads/
 storage/
 
 # root-level images (use public/ instead)
-bg.png
-logo.png
-Iarmslogo.png
+/bg.png
+/logo.png
