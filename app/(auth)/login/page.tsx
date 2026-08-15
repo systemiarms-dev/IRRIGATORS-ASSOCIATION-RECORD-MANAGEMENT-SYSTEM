@@ -56,7 +56,7 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-[#002b13] text-slate-900 relative flex flex-col justify-between select-none">
+    <div className="min-h-[100dvh] lg:h-[100dvh] lg:overflow-hidden bg-[#002b13] text-slate-900 relative flex flex-col justify-between select-none">
       {/* High-Visibility Scenic Background Image */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-85"
