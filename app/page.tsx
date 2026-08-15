@@ -69,6 +69,14 @@ export default function LandingPage() {
             <span>Sign In to Portal</span>
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
+
+          {/* Install App Button */}
+          <div className="mt-2 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-500">
+            <InstallAppButton
+              className="w-full"
+              buttonClassName="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all"
+            />
+          </div>
         </div>
       </main>
 
@@ -78,12 +86,6 @@ export default function LandingPage() {
           <span className="font-medium">
             IRRIGATORS ASSOCIATION RECORD MANAGEMENT SYSTEM &bull; National Irrigation Administration (NIA) &bull; Region 02
           </span>
-        </div>
-        <div className="w-full flex justify-center mt-2">
-          <InstallAppButton
-            className="w-full max-w-xs"
-            buttonClassName="w-full justify-center px-3 py-2 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white text-[11px] shadow-md"
-          />
         </div>
       </footer>
     </div>
