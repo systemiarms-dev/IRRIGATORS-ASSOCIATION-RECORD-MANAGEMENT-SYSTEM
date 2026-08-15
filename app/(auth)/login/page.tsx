@@ -56,7 +56,7 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-[100dvh] lg:h-[100dvh] lg:overflow-hidden bg-[#002b13] text-slate-900 relative flex flex-col justify-between select-none">
+    <div className="lg:h-[100dvh] lg:overflow-hidden bg-[#002b13] text-slate-900 relative flex flex-col select-none">
       {/* High-Visibility Scenic Background Image */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-85"
@@ -92,7 +92,7 @@ function LoginContent() {
       </header>
 
       {/* 2. Centered Login Card */}
-      <main className="relative z-10 flex-1 max-w-sm mx-auto w-full px-4 py-8 flex flex-col justify-center items-center min-h-0">
+      <main className="relative z-10 flex-1 max-w-sm mx-auto w-full px-4 py-6 sm:py-8 flex flex-col justify-center items-center lg:min-h-0">
         <div className="w-full">
           <div className="rounded-3xl bg-white/95 backdrop-blur-2xl border border-white/35 shadow-2xl overflow-hidden animate-in fade-in zoom-in-92 duration-500 ease-out">
             {/* Accent Bar */}
@@ -232,7 +232,7 @@ function LoginContent() {
       </Dialog>
 
       {/* 3. Centered Footer */}
-      <footer className="relative z-10 w-full text-emerald-200 px-4 sm:px-8 py-2.5 text-center text-[10px] sm:text-[10.5px] border-t border-[#00A84D]/30 bg-[#004721]/95 backdrop-blur-md shrink-0 shadow-lg">
+      <footer className="relative z-10 w-full text-emerald-200 px-4 sm:px-8 py-2.5 text-center text-[10px] sm:text-[10.5px] border-t border-[#00A84D]/30 bg-[#004721]/95 backdrop-blur-md lg:shrink-0 shadow-lg mt-auto">
         <div className="max-w-6xl mx-auto flex items-center justify-center">
           <span className="font-medium">IRRIGATORS ASSOCIATION RECORD MANAGEMENT SYSTEM &bull; National Irrigation Administration (NIA)</span>
         </div>

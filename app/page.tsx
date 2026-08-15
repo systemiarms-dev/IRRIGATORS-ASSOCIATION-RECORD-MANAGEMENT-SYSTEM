@@ -7,7 +7,7 @@ import InstallAppButton from '@/components/pwa/InstallAppButton';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-[100dvh] lg:h-[100dvh] lg:overflow-hidden relative flex flex-col justify-between text-white selection:bg-[#00843D] selection:text-white bg-[#002b13]">
+    <div className="lg:h-[100dvh] lg:overflow-hidden relative flex flex-col text-white selection:bg-[#00843D] selection:text-white bg-[#002b13]">
       {/* High-Visibility Scenic Background Image */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-85"
@@ -81,7 +81,7 @@ export default function LandingPage() {
       </main>
 
       {/* 3. Centered Footer */}
-      <footer className="relative z-10 shrink-0 bg-[#004721]/95 border-t border-[#00A84D]/30 px-4 sm:px-8 py-2.5 text-[10px] sm:text-[10.5px] text-emerald-200">
+      <footer className="relative z-10 shrink-0 bg-[#004721]/95 border-t border-[#00A84D]/30 px-4 sm:px-8 py-2.5 text-[10px] sm:text-[10.5px] text-emerald-200 mt-auto">
         <div className="w-full flex justify-center text-center">
           <span className="font-medium">
             IRRIGATORS ASSOCIATION RECORD MANAGEMENT SYSTEM &bull; National Irrigation Administration (NIA) &bull; Region 02
