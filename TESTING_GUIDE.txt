@@ -1,0 +1,244 @@
+============================================================
+  IARMS TESTING GUIDE  -  SIMPLE EDITION
+============================================================
+
+SIMPLE WORDS USED HERE
+  - Collection     = money coming IN (receipt)
+  - Disbursement   = money going OUT (expense)
+  - Prior year     = last year (used for comparison)
+  - Fund balance   = total cash left
+  - FS1/FS2/FS3/FS4 = the four financial report pages
+
+TABS (left menu)
+  - Overview Dashboard      (everyone)
+  - Collections & Expenses  (admin, treasurer) - enter money here
+  - Verification & Audit Queue (admin, auditor)
+  - Financial Statements     (everyone) - generate reports here
+  - User Account Manager     (admin only)
+  - My Account Settings      (everyone)
+
+HOW TO USE THIS FILE
+  - Do one part at a time.
+  - Type the sample data, then check the numbers on screen.
+  - If screen matches the guide -> correct.
+  - Mark each box with a check (/) when done.
+
+
+============================================================
+PART 1 - LOGIN
+============================================================
+Accounts you can use:
+   Admin:     admin@iarms.org     /  admin123
+   Treasurer: treasurer@iarms.org /  treasurer123
+   Auditor:   auditor@iarms.org   /  auditor123
+
+   [ ] 1. Login page opens.
+   [ ] 2. Wrong password -> error, stays out.
+   [ ] 3. Admin logs in -> Dashboard.
+   [ ] 4. Treasurer logs in -> Dashboard.
+   [ ] 5. Auditor logs in -> Dashboard.
+   [ ] 6. Refresh page -> still logged in.
+   [ ] 7. Logout -> back to login.
+
+
+============================================================
+PART 2 - SAMPLE DATA (type this in)
+============================================================
+Go to the "Collections & Expenses" tab (left menu) and add these
+11 transactions (year 2025):
+
+   DATE        TYPE         CATEGORY         AMOUNT
+   ----------  -----------  ---------------  ------
+   2025-02-01  Collection   REC-ISF          25,000
+   2025-03-05  Collection   REC-MEM          12,000
+   2025-04-10  Collection   REC-SUB          40,000
+   2025-05-15  Collection   REC-FIN           3,500
+   2025-06-20  Collection   REC-MEM           8,000
+   2025-07-01  Disbursement DISB-CLEAR       15,000
+   2025-08-02  Disbursement DISB-SUPP         7,500
+   2025-09-03  Disbursement DISB-HON         20,000
+   2025-10-04  Disbursement DISB-TRAV         6,000
+   2025-11-05  Disbursement DISB-TAX         12,000
+   2025-12-06  Disbursement DISB-SHARE        5,000
+
+Then add these 5 OLD transactions (year 2024, for comparison):
+
+   2024-03-01  Collection   REC-ISF          20,000
+   2024-05-02  Collection   REC-MEM          10,000
+   2024-09-01  Disbursement DISB-CLEAR       12,000
+   2024-11-01  Disbursement DISB-SUPP         6,000
+   2024-12-01  Disbursement DISB-HON         18,000
+
+   [ ] All 16 transactions are in the list.
+
+
+============================================================
+PART 3 - CHECK THE ANSWER SHEET
+============================================================
+THE SIMPLE MATH
+   2025 money in  = 88,500
+   2025 money out = 65,500
+   2025 left      = 23,000
+
+   2024 money in  = 30,000
+   2024 money out = 36,000
+   2024 left      = -6,000   (spent more than collected)
+
+   Total cash at end of 2025 = 17,000
+
+NOW CHECK THE REPORTS
+"Financial Statements" tab -> Generate -> year 2025 -> Compile.
+
+FS1 (Receipts and Expenses)
+   [ ] Receipts total  = 88,500
+   [ ] Membership      = 20,000
+   [ ] Subsidy/ISF     = 65,000
+   [ ] Fines           = 3,500
+   [ ] Expenses total  = 65,500
+   [ ] Canal           = 15,000
+   [ ] Supplies        = 7,500
+   [ ] Salaries        = 20,000
+   [ ] Travel          = 6,000
+   [ ] Registration    = 12,000
+   [ ] IA Share        = 5,000
+   [ ] Surplus         = 23,000
+
+FS2 (Cash Flow)
+   [ ] Surplus 23,000          (last year: -6,000)
+   [ ] Beginning balance -6,000
+   [ ] Ending balance 17,000
+
+FS3 (Cash Statement - automatic split of 17,000)
+   [ ] Petty cash  = 2,550
+   [ ] Bank fund   = 9,350
+   [ ] Bank CBU    = 5,100
+   [ ] Total       = 17,000
+
+FS4 (Balance Sheet)
+   [ ] Cash on hand = 2,550
+   [ ] Cash in bank = 14,450
+   [ ] Total assets = 17,000
+   [ ] Net worth    = 17,000
+
+
+============================================================
+PART 4 - THE MOST IMPORTANT TEST (does it update?)
+============================================================
+============================================================
+PART 4 - THE MOST IMPORTANT TEST (does it update?)
+============================================================
+   Generate one 2025 statement first (with the sample data).
+   End balance must be 17,000 at this point.
+
+   [ ] 1. Now log ONE more collection, filling the form like this:
+   COLLECTION #6 (2025-12-10):
+      Type            = Collection
+      Amount          = 5,000
+      Budget Category = REC-MEM (or any REC-* category)
+      Payer Member    = LEAVE BLANK (optional - this is for a
+                        member/irrigator farmer if known)
+      Payment Method  = Cash (fixed, cannot be changed)
+      Transaction Date= 2025-12-10
+      Ref / OR #      = LEAVE BLANK (optional), but you may
+                        type any number e.g. "OR-EXTRA-001"
+      Receipt Image   = no file needed (optional)
+      Notes           = LEAVE BLANK (optional)
+
+   [ ] 2. Log ONE more expense, filling the form like this:
+   EXPENSE #7 (2025-12-11):
+      Type            = Disbursement
+      Amount          = 2,000
+      Budget Category = DISB-SUPP (or any DISB-* category)
+      Payment Method  = Cash (fixed)
+      Date            = 2025-12-11
+      Reference / OR #= LEAVE BLANK (optional)
+      Receipt Image   = none (optional)
+      Notes           = LEAVE BLANK (optional)
+
+   All the optional fields (Payer Member, Reference #, Receipt
+   Image, Notes) can be left empty - the entry is still saved.
+
+   [ ] 3. Generate a NEW 2025 statement. It must show:
+      Collections = 93,500
+      Expenses    = 67,500
+      Net         = 26,000
+      End balance = 20,000
+
+   [ ] 4. Delete those 2 extra entries, generate again.
+         Back to 23,000 and 17,000.
+
+   PASS = the reports always use the latest data.
+
+
+============================================================
+PART 5 - CASH AND ASSET INPUTS (optional fields)
+============================================================
+Generate again with the same data, and fill these optional fields:
+   Cash on hand (petty)   = 4,000
+   Cash in bank (regular) = 10,000
+   Cash in bank (CBU)     = 3,000
+   Receivables            = 8,000
+   Materials & supplies   = 1,500
+   Liabilities            = 2,000
+
+Check FS4:
+   [ ] Cash on hand = 4,000
+   [ ] Cash in bank = 13,000
+   [ ] Receivables  = 8,000
+   [ ] Materials    = 1,500
+   [ ] Total assets = 26,500
+   [ ] Total liab   = 2,000
+   [ ] Net worth    = 24,500
+
+Safety check:
+   [ ] Type cash that adds to 16,000 instead of 17,000.
+   [ ] App refuses with: "Cash composition must total the fund balance..."
+       This is correct behavior.
+
+
+============================================================
+PART 6 - EDIT A REPORT
+============================================================
+   [ ] Click the pencil icon on a statement.
+   [ ] Change the President's name, Save.
+   [ ] Name updates on all pages FS1-FS4.
+   [ ] Change a cash amount, Save, FS4 updates.
+
+
+============================================================
+PART 7 - WHO CAN DO WHAT
+============================================================
+   [ ] Member cannot open the "Collections & Expenses" tab
+       or the "User Account Manager" tab.
+   [ ] Treasurer can create reports; only Admin can delete.
+   [ ] Only Admin/Treasurer see the Generate button.
+
+
+============================================================
+PART 8 - RECEIPTS (AUDIT)
+============================================================
+   [ ] Attach a picture to a transaction (Collections & Expenses tab).
+   [ ] It shows in the "Verification & Audit Queue" tab.
+   [ ] Auditor marks Verified / Flagged / Rejected.
+   [ ] Status stays after refresh.
+
+
+============================================================
+PART 9 - PRINTING
+============================================================
+   [ ] Print PDF prints the current FS report alone, on its own page (A4).
+
+
+============================================================
+PART 10 - THINGS THAT SHOULD FAIL (errors)
+============================================================
+These MUST show an error. If not, there is a problem.
+   [ ] Start date later than end date.
+   [ ] Start and end in different years.
+   [ ] Wrong password at login.
+   [ ] Uploading files while not logged in.
+
+
+============================================================
+END OF GUIDE
+============================================================

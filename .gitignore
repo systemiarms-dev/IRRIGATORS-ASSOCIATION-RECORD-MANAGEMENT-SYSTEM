@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+build/
+
+# local database & private data (contains account data - NEVER commit)
+iarms_local_data.json
+iarms_local_data.json.bak
+iarms_local_data.json.tmp
+.data/
+
+# environment files - never commit secrets
+.env
+.env*.local
+
+# misc
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# uploaded files kept in the old public location
+public/uploads/
+
+# uploaded receipts
+storage/
+
+# root-level images (use public/ instead)
+bg.png
+logo.png
+Iarmslogo.png
