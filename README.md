@@ -36,33 +36,119 @@ IARMS is a **progressive web application (PWA)** designed to digitize and stream
 
 ## Features
 
-### Financial Suite
+### Authentication & Security
 | Feature | Description |
 |---------|-------------|
-| **FS1** | Receipts & Expenses Statement |
-| **FS2** | Financial Condition Statement |
-| **FS3** | Cash Composition Statement |
-| **FS4** | Balance Sheet |
+| **Secure Login** | Username/password authentication with scrypt hashing |
+| **Session Management** | HMAC-SHA256 signed HttpOnly cookies |
+| **Rate Limiting** | Anti-brute-force: 5 failures = 60-second lockout |
+| **Password Policy** | Minimum 6 characters, auto-generated for new accounts |
+| **Forgot Password** | Dialog directing users to contact Head Admin |
+
+### Dashboard
+| Feature | Description |
+|---------|-------------|
+| **KPI Cards** | Total Collections, Total Disbursements, Ending Net Cash, Pending Vouchers |
+| **Association Selector** | Filter by individual IA or "All Associations" (Super Admin) |
+| **Summary Table** | Per-association financial breakdown (consolidated view) |
+| **Monthly Chart** | 12-month Cash Inflow vs. Outflow (bar/line chart) |
+| **Expense Breakdown** | Pie chart of expenses by NIA category |
+| **Quick Actions** | Log Payment / Open Auditor Queue shortcuts |
+
+### Financial Suite (FS1–FS4)
+| Feature | Description |
+|---------|-------------|
+| **FS1 — Receipts & Expenses** | Membership fees, ISF, subsidies, canal remuneration, fines, donations, all disbursement categories, members' equity |
+| **FS2 — Financial Condition** | Assets, liabilities, net worth, cash flows, depreciation |
+| **FS3 — Cash Composition** | Cash on hand, undeposited collections, cash in bank, savings |
+| **FS4 — Balance Sheet** | Assets breakdown, liabilities, net worth, notary block |
 | **Comparative Years** | Side-by-side current vs. prior year analysis |
-| **Inline Editing** | Edit line items with auto-recompute of totals |
+| **Inline Editing** | Click any editable line item, totals auto-recompute |
+| **Pin/Unpin** | Track manual overrides with amber highlight, revert to computed values |
+| **Custom Rows** | Add extra receipt/disbursement line items |
+| **Generate Report** | Select IA, period, signatories, and compile from live ledger |
+| **Rename Statements** | Inline rename with pencil icon |
+| **Unsaved Changes Guard** | Save/Discard/Cancel dialog on navigation |
 
-### Operations
+### Transaction Ledger
 | Feature | Description |
 |---------|-------------|
-| **Transaction Ledger** | Log collections and disbursements with categories |
-| **Voucher Upload** | Attach receipt images/PDFs to transactions |
-| **Audit Queue** | Review, verify, flag, or reject uploaded vouchers |
-| **CSV Export** | Export filtered ledgers to Excel-compatible CSV |
-| **PDF Print** | Print financial statements and user directories |
+| **Log Collections** | Member ISF, subsidies, fines, donations, other income |
+| **Log Disbursements** | Travel, canal clearing, salaries, repairs, federation share, etc. |
+| **Budget Categories** | NIA Chart of Accounts + custom categories per IA |
+| **Voucher & Particular Details** | Voucher #, payee, TSAG, check/deposit reference, description |
+| **Receipt Attachment** | Upload JPG/PNG/WebP/PDF (max 10MB) with custom naming |
+| **File Validation** | Magic byte sniffing to prevent extension spoofing |
+| **Search & Filter** | Free-text search across 8 fields + date range filter |
+| **Export to CSV** | Excel-compatible CSV with association header and timestamped filename |
 
-### Administration
+### Receipt & Voucher Management
 | Feature | Description |
 |---------|-------------|
-| **Association Registry** | Manage multiple Irrigators Associations |
-| **Officer Accounts** | Create and manage Head Admin, Treasurer, Auditor accounts |
-| **One Role Per IA** | Enforced uniqueness — one Head Admin, one Treasurer, one Auditor per association |
-| **Password Reset** | Admin can reset officer passwords |
-| **Audit Logs** | Track all user actions with timestamps |
+| **Status Tracking** | No Receipt, Pending Review, Verified, Flagged, Rejected |
+| **Audit Queue** | Filter by status with live counts per status tab |
+| **Voucher Preview** | Image lightbox or embedded PDF viewer |
+| **Verify** | Approve receipt with optional auditor notes |
+| **Flag** | Mark receipt for follow-up with notes |
+| **Reject** | Reject receipt with reason |
+| **Bulk Verify** | One-click "Verify All Pending" with confirmation |
+| **Association Scope** | Super Admin can filter queue by IA |
+
+### User Management
+| Feature | Description |
+|---------|-------------|
+| **Create Accounts** | Create Head Admin, Treasurer, Auditor with auto-generated usernames |
+| **Edit Profiles** | Full name, contact number, farm size, farm location |
+| **Reset Password** | Admin-initiated password reset with new password |
+| **Role Reassignment** | Change officer roles (one officer per role per IA enforced) |
+| **Delete Accounts** | Remove officer accounts with confirmation |
+| **Print Directory** | PDF print of all officer accounts |
+| **Role Filter** | Filter by All / Head Admins / Treasurers / Auditors |
+| **Association Filter** | Super Admin filters officers by IA |
+
+### Association Management
+| Feature | Description |
+|---------|-------------|
+| **Register IA** | Create new association with full profile |
+| **Edit Profile** | Name, address, president, TIN, SEC #, service area, TSAG, contract type |
+| **Delete IA** | Remove association + purge all receipts and records |
+| **Auto-Seeding** | Creating an IA auto-generates 3 default officer accounts |
+| **Card Grid** | Responsive 1/2/3 column display of all IAs |
+
+### Account Settings
+| Feature | Description |
+|---------|-------------|
+| **Profile Form** | Edit full name, mobile, farm sector, farm size |
+| **Password Change** | Current + new password with show/hide toggles |
+| **Role Summary** | Visual card showing role-specific permission summary |
+| **Auto-Logout** | Session ends after password change |
+
+### Export & Print
+| Feature | Description |
+|---------|-------------|
+| **CSV Export** | UTF-8 BOM for Excel, timestamped filenames |
+| **PDF Print** | Browser print dialog with custom PDF filename |
+| **Print Directory** | Officer accounts directory (Admin page) |
+| **FS Print** | Print individual FS tabs (FS1–FS4) |
+| **Timestamped Names** | `IARMS_LABEL_YYYYMMDD_HHMMSS` format |
+
+### PWA (Progressive Web App)
+| Feature | Description |
+|---------|-------------|
+| **Installable** | Chrome, Edge, Safari (Add to Home Screen) |
+| **Offline Support** | Service Worker pre-caching |
+| **Mobile Optimized** | Responsive layout with mobile drawer |
+| **Install Button** | Auto-hides when running in standalone mode |
+
+### UI & UX
+| Feature | Description |
+|---------|-------------|
+| **Responsive Design** | Mobile-first with sm/md/lg breakpoints |
+| **Loading States** | Spinner animations on every data-fetching page |
+| **Banner Notifications** | Auto-dismiss success/error banners (6s timeout) |
+| **Animated Transitions** | Fade-in on page loads |
+| **Philippine Phone Input** | Dedicated component with 09xx validation |
+| **Role-Aware Sidebar** | Sections change based on user role |
 
 ---
 
@@ -133,6 +219,22 @@ NEXT_PUBLIC_NIS_NAME="Baua River Irrigation System"
 NEXT_PUBLIC_REGION="Region 02"
 ```
 
+#### Environment Variable Guide
+
+| Variable | Local Development | Production (Vercel) | Description |
+|----------|-------------------|---------------------|-------------|
+| `IARMS_SESSION_SECRET` | Any 64-char hex string | **Generate a new one** | Secret key for signing session cookies. Never use the same key in dev and production. |
+| `IARMS_COOKIE_SECURE` | `false` | `true` | Set to `true` in production so cookies are only sent over HTTPS. |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | `https://your-app.vercel.app` | The full URL of your deployed site. Vercel provides this in **Settings → Domains** after deployment. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Same as production | `https://hbsdofevepvnnngzmjry.supabase.co` | Your Supabase project URL. Same across all environments. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same as production | From Supabase Dashboard | Your Supabase anonymous/public key. Same across all environments. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Same as production | From Supabase Dashboard | Your Supabase service role key. Same across all environments. **Never expose this client-side.** |
+| `NEXT_PUBLIC_SYSTEM_TITLE` | `"Irrigators Association Record Management System"` | Same | Displayed in the browser tab and UI header. |
+| `NEXT_PUBLIC_NIS_NAME` | `"Baua River Irrigation System"` | Same | NIS name shown in FS reports. Change to your NIS name. |
+| `NEXT_PUBLIC_REGION` | `"Region 02"` | Same | NIA region shown in FS reports. Change to your region. |
+
+> **Note:** After deploying to Vercel, update `NEXT_PUBLIC_APP_URL` to your production URL (e.g. `https://iarms.vercel.app`) and set `IARMS_COOKIE_SECURE=true`.
+
 ### 4. Set Up the Database
 
 1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
@@ -151,40 +253,47 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## User Roles & Permissions
 
-### Super Admin
-- Full system access across all Irrigators Associations
-- Create, edit, and delete association profiles
-- Create and manage officer accounts (Head Admin, Treasurer, Auditor)
-- Assign and change officer roles
-- Reset any officer's password
-- View consolidated financial statements across all IAs
-- Purge all financial records and uploaded receipts
-- Access the Overview Dashboard with cross-IA analytics
+| Permission | Super Admin | Head Admin | Treasurer | Auditor |
+|:-----------|:----------:|:----------:|:---------:|:-------:|
+| **Association Management** | | | | |
+| Create / Edit / Delete IAs | ✅ | ❌ | ❌ | ❌ |
+| View All IAs | ✅ | ❌ | ❌ | ❌ |
+| View Own IA Only | ✅ | ✅ | ✅ | ✅ |
+| **User Management** | | | | |
+| Create Officer Accounts | ✅ | ✅* | ❌ | ❌ |
+| Edit Officer Profiles | ✅ | ✅* | ❌ | ❌ |
+| Reset Officer Passwords | ✅ | ✅* | ❌ | ❌ |
+| Reassign Roles | ✅ | ❌ | ❌ | ❌ |
+| Delete Officer Accounts | ✅ | ✅* | ❌ | ❌ |
+| Print Officer Directory | ✅ | ❌ | ❌ | ❌ |
+| **Financial Statements** | | | | |
+| Generate FS1–FS4 | ✅ | ✅ | ✅ | ❌ |
+| View FS1–FS4 | ✅ | ✅ | ✅ | ✅ |
+| Edit FS Line Items | ✅ | ✅ | ✅ | ❌ |
+| Rename / Delete Statements | ✅ | ✅ | ✅ | ❌ |
+| **Transaction Ledger** | | | | |
+| Log Collections | ✅ | ❌ | ✅ | ❌ |
+| Log Disbursements | ✅ | ❌ | ✅ | ❌ |
+| Delete Transactions | ✅ | ❌ | ✅ | ❌ |
+| View Ledger | ✅ | ✅ | ✅ | ✅ |
+| Search & Filter Ledger | ✅ | ✅ | ✅ | ✅ |
+| Export Ledger to CSV | ✅ | ✅ | ✅ | ✅ |
+| **Receipt / Voucher Management** | | | | |
+| Upload Receipts | ✅ | ❌ | ✅ | ❌ |
+| Review Audit Queue | ✅ | ❌ | ❌ | ✅ |
+| Verify / Flag / Reject | ✅ | ❌ | ❌ | ✅ |
+| Bulk Verify All Pending | ✅ | ❌ | ❌ | ✅ |
+| **Dashboard** | | | | |
+| View KPI Cards | ✅ | ✅ | ✅ | ✅ |
+| View Consolidated Overview | ✅ | ❌ | ❌ | ❌ |
+| View Monthly Charts | ✅ | ✅ | ✅ | ✅ |
+| **Administration** | | | | |
+| Purge All Financial Records | ✅ | ❌ | ❌ | ❌ |
+| Edit Own Profile | ✅ | ✅ | ✅ | ✅ |
+| Change Own Password | ✅ | ✅ | ✅ | ✅ |
+| View Role Summary | ✅ | ✅ | ✅ | ✅ |
 
-### Head Admin
-- Manage officer accounts within own association only (Treasurer, Auditor)
-- Edit own association profile (name, address, TIN, service area, etc.)
-- View and print financial statements (FS1–FS4)
-- View the transaction ledger
-- Cannot create other Head Admin accounts
-- Cannot modify Super Admin accounts
-
-### Treasurer
-- Log collection and disbursement transactions
-- Upload receipt/voucher files (images, PDFs)
-- Create custom budget categories
-- View and edit financial statements (FS1–FS4)
-- Export transaction ledger to CSV
-- Print financial reports
-- View own association's transaction history
-
-### Auditor
-- View and verify uploaded receipts/vouchers
-- Approve, flag, or reject vouchers with notes
-- View financial statements (FS1–FS4)
-- View the transaction ledger (read-only)
-- Cannot create or modify transactions
-- Cannot edit financial statements
+> \* Head Admin can only manage Treasurer and Auditor within their own association. Cannot create other Head Admins.
 
 ---
 
