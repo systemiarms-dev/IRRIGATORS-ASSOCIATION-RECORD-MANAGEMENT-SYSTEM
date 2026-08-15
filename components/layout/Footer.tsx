@@ -16,7 +16,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="text-slate-500 font-medium text-[10px] sm:text-[11px] whitespace-nowrap shrink-0 order-3 lg:order-2 self-center lg:self-auto">
-          &copy; 2023&ndash;2026 IARMS System. All rights reserved.
+          Developed by CBEA Students &bull; NIA Region 02
         </div>
         <div className="flex items-center justify-start lg:justify-end min-w-0 order-2 lg:order-3">
           <InstallAppButton

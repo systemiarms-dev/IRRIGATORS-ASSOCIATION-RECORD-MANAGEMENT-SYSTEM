@@ -104,16 +104,33 @@ npm install
 
 ### 3. Set Up Environment Variables
 
-Create a `.env.local` file in the root directory:
+Create a `.env.local` file in the root directory with the following variables:
 
 ```env
-# Supabase
+# ==============================================================================
+# IARMS - Environment Configuration
+# ==============================================================================
+
+# 1. CORE APPLICATION & AUTHENTICATION SECURITY
+# 64-character hex secret for signing session cookies
+IARMS_SESSION_SECRET=your-64-char-hex-secret
+
+# Set to true in production (HTTPS), false for localhost (HTTP)
+IARMS_COOKIE_SECURE=false
+
+# Root URL for the application
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# 2. SUPABASE CLOUD DATABASE & STORAGE
+# Obtain from Supabase Dashboard → Project Settings → API
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# App
+# 3. SYSTEM BRANDING & JURISDICTION
 NEXT_PUBLIC_SYSTEM_TITLE="Irrigators Association Record Management System"
+NEXT_PUBLIC_NIS_NAME="Baua River Irrigation System"
+NEXT_PUBLIC_REGION="Region 02"
 ```
 
 ### 4. Set Up the Database
@@ -132,18 +149,42 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## Default Accounts
+## User Roles & Permissions
 
-After seeding the database, these accounts are created:
+### Super Admin
+- Full system access across all Irrigators Associations
+- Create, edit, and delete association profiles
+- Create and manage officer accounts (Head Admin, Treasurer, Auditor)
+- Assign and change officer roles
+- Reset any officer's password
+- View consolidated financial statements across all IAs
+- Purge all financial records and uploaded receipts
+- Access the Overview Dashboard with cross-IA analytics
 
-| Role | Username | Password |
-|------|----------|----------|
-| Super Admin | `superadmin` | `admin123` |
-| Head Admin | `admin_nlfia` | `admin123` |
-| Treasurer | `treasurer_nlfia` | `admin123` |
-| Auditor | `auditor_nlfia` | `admin123` |
+### Head Admin
+- Manage officer accounts within own association only (Treasurer, Auditor)
+- Edit own association profile (name, address, TIN, service area, etc.)
+- View and print financial statements (FS1–FS4)
+- View the transaction ledger
+- Cannot create other Head Admin accounts
+- Cannot modify Super Admin accounts
 
-> **Important:** Change all passwords after first login.
+### Treasurer
+- Log collection and disbursement transactions
+- Upload receipt/voucher files (images, PDFs)
+- Create custom budget categories
+- View and edit financial statements (FS1–FS4)
+- Export transaction ledger to CSV
+- Print financial reports
+- View own association's transaction history
+
+### Auditor
+- View and verify uploaded receipts/vouchers
+- Approve, flag, or reject vouchers with notes
+- View financial statements (FS1–FS4)
+- View the transaction ledger (read-only)
+- Cannot create or modify transactions
+- Cannot edit financial statements
 
 ---
 
@@ -212,17 +253,6 @@ git push
 
 ---
 
-## User Roles
-
-| Role | Permissions |
-|------|-------------|
-| **Super Admin** | Full system access, manage all IAs, create officers, purge records |
-| **Head Admin** | Manage own IA officers, edit association profile, view statements |
-| **Treasurer** | Log transactions, upload vouchers, view/edit FS reports |
-| **Auditor** | Verify/reject vouchers, view statements, audit queue |
-
----
-
 ## Browser Support
 
 | Browser | Support |
@@ -237,13 +267,13 @@ git push
 
 ## License
 
-This project is proprietary software developed for the **National Irrigation Administration (NIA)**.
+Developed by CBEA Students for the **National Irrigation Administration (NIA)**.
 
 ---
 
 <div align="center">
 
-  **Built with care for Filipino Irrigators Associations**
+  **IARMS** — Irrigators Association Record Management System
 
   National Irrigation Administration • Region 02 • Gonzaga, Cagayan
 
