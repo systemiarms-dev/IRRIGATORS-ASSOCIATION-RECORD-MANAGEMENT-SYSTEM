@@ -17,7 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div
-      className="h-screen supports-[height:100dvh]:h-dvh overflow-hidden flex flex-col bg-cover bg-center bg-no-repeat bg-fixed text-slate-900 print:h-auto print:overflow-visible print:bg-none print:block"
+      className="h-[100dvh] overflow-hidden flex flex-col bg-cover bg-center bg-no-repeat bg-fixed text-slate-900 print:h-auto print:overflow-visible print:bg-none print:block"
       style={{ backgroundImage: `linear-gradient(rgba(248, 250, 252, 0.83), rgba(248, 250, 252, 0.83)), url('/bg.png')` }}
     >
       <div className="shrink-0 print:hidden">
