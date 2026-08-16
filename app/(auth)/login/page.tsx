@@ -70,7 +70,7 @@ function LoginContent() {
         <div className="w-full flex items-center justify-between gap-3 min-w-0">
           <div className="flex items-center gap-3 min-w-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/api/logo?v=latest" alt="IARMS Logo" className="w-9 h-9 sm:w-10 sm:h-10 object-contain drop-shadow-md shrink-0" />
+            <img src="/Iarmslogo.png" alt="IARMS Logo" className="w-9 h-9 sm:w-10 sm:h-10 object-contain drop-shadow-md shrink-0" loading="lazy" decoding="async" />
             <div className="min-w-0">
               <span className="text-xs sm:text-[13px] font-black tracking-tight text-white uppercase block leading-tight">
                 IRRIGATORS ASSOCIATION RECORD MANAGEMENT SYSTEM

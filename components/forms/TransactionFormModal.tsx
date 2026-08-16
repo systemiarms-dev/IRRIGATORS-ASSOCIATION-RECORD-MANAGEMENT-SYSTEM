@@ -8,7 +8,7 @@ import {
 } from '@/app/actions/transactions';
 import { BudgetCategory, TransactionType, Profile, Association } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { PlusCircle, X, Loader2, Wallet, Tag, MapPin, Hash, Building2, FileText } from 'lucide-react';
+import { PlusCircle, X, Loader2, Wallet, Tag, MapPin, Hash, Building2, FileText, Search, Users } from 'lucide-react';
 
 interface TransactionFormModalProps {
   categories: BudgetCategory[];
@@ -40,6 +40,8 @@ export default function TransactionFormModal({
   const [categoryId, setCategoryId] = useState<string>('');
   const [customCategory, setCustomCategory] = useState<string>('');
   const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [memberSearch, setMemberSearch] = useState<string>('');
+  const [memberPickerOpen, setMemberPickerOpen] = useState<boolean>(false);
   const [transactionDate, setTransactionDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const [voucherNumber, setVoucherNumber] = useState<string>('');
@@ -57,6 +59,20 @@ export default function TransactionFormModal({
   const filteredCategories = (categories && categories.length > 0 ? categories : []).filter((c) => c.category_type === type);
   const isCustomCategory = categoryId === CUSTOM_OPTION;
   const filteredMembers = members.filter((m) => !m.association_id || m.association_id === selectedAssocId);
+
+  const selectedMembers = filteredMembers.filter((m) => memberIds.includes(m.id));
+  const searchedMembers = memberSearch.trim()
+    ? filteredMembers.filter((m) =>
+        (m.full_name || '').toLowerCase().includes(memberSearch.trim().toLowerCase()) ||
+        (m.farm_location || '').toLowerCase().includes(memberSearch.trim().toLowerCase())
+      )
+    : filteredMembers;
+
+  function toggleMember(id: string) {
+    setMemberIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -340,18 +356,95 @@ export default function TransactionFormModal({
             </div>
           </div>
 
-          {/* Member Selection for Collections */}
+          {/* Multi-Member Selection for Collections */}
           {type === 'collection' && filteredMembers.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className={labelCls}>Payer Farmer-Member (Optional)</label>
-              <select value={memberIds[0] || ''} onChange={(e) => setMemberIds(e.target.value ? [e.target.value] : [])} className={inputCls}>
-                <option value="">-- General / Non-Member Payment --</option>
-                {filteredMembers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.full_name} ({m.farm_location || 'Member'})
-                  </option>
-                ))}
-              </select>
+
+              {/* Selected Member Chips */}
+              {selectedMembers.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 p-2 rounded-lg bg-emerald-50/70 border border-emerald-200">
+                  {selectedMembers.map((m) => (
+                    <span
+                      key={m.id}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-bold"
+                    >
+                      {m.full_name}
+                      <button
+                        type="button"
+                        onClick={() => toggleMember(m.id)}
+                        className="hover:text-emerald-200 transition-colors"
+                        aria-label={`Remove ${m.full_name}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Searchable Member Picker */}
+              <div className="relative">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={memberSearch}
+                    onChange={(e) => {
+                      setMemberSearch(e.target.value);
+                      setMemberPickerOpen(true);
+                    }}
+                    onFocus={() => setMemberPickerOpen(true)}
+                    placeholder={selectedMembers.length > 0
+                      ? 'Add more members...'
+                      : 'Search a member or leave blank for General / Non-Member Payment'}
+                    className={`${inputCls} pl-9`}
+                  />
+                </div>
+
+                {memberPickerOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setMemberPickerOpen(false)} />
+                    <div className="absolute z-40 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                      {searchedMembers.length === 0 ? (
+                        <div className="px-3.5 py-3 text-xs text-slate-400 font-medium">
+                          No members match &ldquo;{memberSearch}&rdquo;.
+                        </div>
+                      ) : (
+                        searchedMembers.map((m) => {
+                          const isSelected = memberIds.includes(m.id);
+                          return (
+                            <label
+                              key={m.id}
+                              className={`flex items-center gap-2.5 px-3.5 py-2.5 cursor-pointer transition-colors border-b border-slate-100 last:border-b-0 ${
+                                isSelected ? 'bg-emerald-50' : 'hover:bg-slate-50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleMember(m.id)}
+                                className="w-3.5 h-3.5 accent-emerald-700 shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-slate-800 truncate">{m.full_name}</div>
+                                <div className="text-[10px] text-slate-400 font-medium truncate">
+                                  {m.farm_location || 'Member'}
+                                </div>
+                              </div>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                <Users className="w-3 h-3 shrink-0" />
+                Select multiple members if several farmers paid together. Leave blank for General / Non-Member payment.
+              </p>
             </div>
           )}
 

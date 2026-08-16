@@ -21,9 +21,11 @@ export default function LandingPage() {
         <div className="w-full flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/api/logo?v=latest"
+            src="/Iarmslogo.png"
             alt="NIA IARMS Logo"
             className="w-9 h-9 sm:w-10 sm:h-10 object-contain drop-shadow-md shrink-0"
+            loading="lazy"
+            decoding="async"
           />
           <div>
             <span className="text-xs sm:text-[13px] font-black tracking-tight text-white uppercase block leading-tight">
@@ -42,9 +44,11 @@ export default function LandingPage() {
           {/* Logo */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/api/logo?v=latest"
+            src="/Iarmslogo.png"
             alt="NIA IARMS Logo"
             className="w-40 h-40 sm:w-48 sm:h-48 object-contain drop-shadow-md animate-in zoom-in-95 fade-in duration-700"
+            loading="lazy"
+            decoding="async"
           />
 
           {/* Headline */}

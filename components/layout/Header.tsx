@@ -138,7 +138,7 @@ export default function Header({
 
           {/* Direct Fitted Logo Graphic */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/api/logo?v=latest" alt="IARMS Logo" className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain filter drop-shadow-md transition-transform hover:scale-105 shrink-0" />
+          <img src="/Iarmslogo.png" alt="IARMS Logo" className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain filter drop-shadow-md transition-transform hover:scale-105 shrink-0" loading="lazy" decoding="async" />
           <div className="min-w-0 flex-1">
             <h2 className="text-[11px] sm:text-xs md:text-sm font-black tracking-tight text-white leading-tight drop-shadow-sm truncate">
               IRRIGATORS ASSOCIATION RECORD MANAGEMENT SYSTEM

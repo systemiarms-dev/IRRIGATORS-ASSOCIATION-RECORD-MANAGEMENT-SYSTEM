@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   description: 'Irrigation Record & Financial Management System (IARMS) for Irrigators Associations.',
   applicationName: 'IARMS',
   icons: {
-    icon: '/api/logo?v=latest',
-    shortcut: '/api/logo?v=latest',
+    icon: '/Iarmslogo.png',
+    shortcut: '/Iarmslogo.png',
     apple: '/icons/icon-192.png',
   },
 };
