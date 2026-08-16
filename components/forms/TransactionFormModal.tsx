@@ -42,6 +42,8 @@ export default function TransactionFormModal({
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [memberSearch, setMemberSearch] = useState<string>('');
   const [memberPickerOpen, setMemberPickerOpen] = useState<boolean>(false);
+  const [memberNames, setMemberNames] = useState<string[]>([]);
+  const [memberNameInput, setMemberNameInput] = useState<string>('');
   const [transactionDate, setTransactionDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const [voucherNumber, setVoucherNumber] = useState<string>('');
@@ -72,6 +74,21 @@ export default function TransactionFormModal({
     setMemberIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+  }
+
+  function addMemberName() {
+    const name = memberNameInput.trim();
+    if (name.length < 2) return;
+    if (memberNames.some((n) => n.toLowerCase() === name.toLowerCase())) {
+      setMemberNameInput('');
+      return;
+    }
+    setMemberNames((prev) => [...prev, name]);
+    setMemberNameInput('');
+  }
+
+  function removeMemberName(name: string) {
+    setMemberNames((prev) => prev.filter((n) => n !== name));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -152,6 +169,7 @@ export default function TransactionFormModal({
         particulars: particulars || null,
         member_id: type === 'collection' && memberIds.length === 1 ? memberIds[0] || null : null,
         member_ids: type === 'collection' && memberIds.length > 0 ? memberIds : null,
+        member_names: type === 'collection' && memberNames.length > 0 ? memberNames : null,
         receipt_id: receiptId,
         payment_method: 'cash',
         transaction_date: transactionDate,
@@ -441,9 +459,59 @@ export default function TransactionFormModal({
                 )}
               </div>
 
+              {/* Named (Not On List) Member Chips */}
+              {memberNames.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 p-2 rounded-lg bg-indigo-50/70 border border-indigo-200">
+                  {memberNames.map((name) => (
+                    <span
+                      key={name}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-700 text-white text-[10px] font-bold"
+                    >
+                      {name}
+                      <button
+                        type="button"
+                        onClick={() => removeMemberName(name)}
+                        className="hover:text-indigo-200 transition-colors"
+                        aria-label={`Remove ${name}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Type-In a Member Name Not On The List */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={memberNameInput}
+                    onChange={(e) => setMemberNameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addMemberName();
+                      }
+                    }}
+                    placeholder="Type a member name not on the list, press Enter"
+                    className={`${inputCls} pl-9`}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={addMemberName}
+                  disabled={memberNameInput.trim().length < 2}
+                  className="px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold disabled:opacity-40 transition-colors shrink-0"
+                >
+                  Add
+                </button>
+              </div>
+
               <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                 <Users className="w-3 h-3 shrink-0" />
-                Select multiple members if several farmers paid together. Leave blank for General / Non-Member payment.
+                Select members from the list, or type a name not on the list. Leave blank for General / Non-Member payment.
               </p>
             </div>
           )}

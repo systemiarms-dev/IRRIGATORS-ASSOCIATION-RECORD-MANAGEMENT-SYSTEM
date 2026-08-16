@@ -216,6 +216,9 @@ export async function createTransactionAction(payload: CreateTransactionPayload)
     association_id: targetAssociationId,
     member_id: selectedMembers.length === 1 ? (selectedMembers[0]?.id ?? null) : null,
     member_ids: selectedMembers.length > 0 ? selectedMembers.map((m) => m.id) : null,
+    member_names: Array.isArray(payload.member_names) && payload.member_names.length > 0
+      ? payload.member_names.map((n) => n.trim()).filter((n) => n.length >= 2)
+      : null,
     member: member ? toPublicProfile(member) : undefined,
     members: selectedMembers.length > 0 ? selectedMembers.map((m) => toPublicProfile(m)) : undefined,
     category_id: payload.category_id,
