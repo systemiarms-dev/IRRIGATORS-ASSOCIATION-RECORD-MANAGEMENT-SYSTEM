@@ -42,8 +42,6 @@ export default function TransactionFormModal({
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [memberSearch, setMemberSearch] = useState<string>('');
   const [memberPickerOpen, setMemberPickerOpen] = useState<boolean>(false);
-  const [memberNames, setMemberNames] = useState<string[]>([]);
-  const [memberNameInput, setMemberNameInput] = useState<string>('');
   const [transactionDate, setTransactionDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const [voucherNumber, setVoucherNumber] = useState<string>('');
@@ -74,21 +72,6 @@ export default function TransactionFormModal({
     setMemberIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
-  }
-
-  function addMemberName() {
-    const name = memberNameInput.trim();
-    if (name.length < 2) return;
-    if (memberNames.some((n) => n.toLowerCase() === name.toLowerCase())) {
-      setMemberNameInput('');
-      return;
-    }
-    setMemberNames((prev) => [...prev, name]);
-    setMemberNameInput('');
-  }
-
-  function removeMemberName(name: string) {
-    setMemberNames((prev) => prev.filter((n) => n !== name));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -169,7 +152,6 @@ export default function TransactionFormModal({
         particulars: particulars || null,
         member_id: type === 'collection' && memberIds.length === 1 ? memberIds[0] || null : null,
         member_ids: type === 'collection' && memberIds.length > 0 ? memberIds : null,
-        member_names: type === 'collection' && memberNames.length > 0 ? memberNames : null,
         receipt_id: receiptId,
         payment_method: 'cash',
         transaction_date: transactionDate,
@@ -193,7 +175,17 @@ export default function TransactionFormModal({
 
   return (
     <Dialog open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent onClose={onClose} className="max-w-2xl p-4 sm:p-5 max-h-[92vh] overflow-y-auto">
+      <DialogContent onClose={onClose} className="max-w-2xl p-4 sm:p-5 max-h-[92vh] overflow-y-auto relative">
+        {/* Busy overlay: blocks all interaction while uploading or saving */}
+        {(uploading || loading) && (
+          <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-9 h-9 animate-spin text-emerald-700" />
+            <span className="text-xs font-bold text-emerald-800">
+              {uploading ? 'Uploading receipt voucher...' : 'Saving transaction to ledger...'}
+            </span>
+            <span className="text-[10px] text-slate-500 font-medium">Please wait, do not close this window.</span>
+          </div>
+        )}
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-emerald-800 text-white shadow-md shrink-0">
@@ -459,59 +451,9 @@ export default function TransactionFormModal({
                 )}
               </div>
 
-              {/* Named (Not On List) Member Chips */}
-              {memberNames.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 p-2 rounded-lg bg-indigo-50/70 border border-indigo-200">
-                  {memberNames.map((name) => (
-                    <span
-                      key={name}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-700 text-white text-[10px] font-bold"
-                    >
-                      {name}
-                      <button
-                        type="button"
-                        onClick={() => removeMemberName(name)}
-                        className="hover:text-indigo-200 transition-colors"
-                        aria-label={`Remove ${name}`}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Type-In a Member Name Not On The List */}
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={memberNameInput}
-                    onChange={(e) => setMemberNameInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addMemberName();
-                      }
-                    }}
-                    placeholder="Type a member name not on the list, press Enter"
-                    className={`${inputCls} pl-9`}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={addMemberName}
-                  disabled={memberNameInput.trim().length < 2}
-                  className="px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold disabled:opacity-40 transition-colors shrink-0"
-                >
-                  Add
-                </button>
-              </div>
-
               <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                 <Users className="w-3 h-3 shrink-0" />
-                Select members from the list, or type a name not on the list. Leave blank for General / Non-Member payment.
+                Select multiple members if several farmers paid together. Leave blank for General / Non-Member payment.
               </p>
             </div>
           )}
@@ -525,11 +467,38 @@ export default function TransactionFormModal({
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,application/pdf"
+              disabled={uploading || loading}
               onChange={(e) => {
-                setFile(e.target.files?.[0] || null);
+                const selected = e.target.files?.[0] || null;
                 setReceiptName('');
+
+                if (!selected) {
+                  setFile(null);
+                  return;
+                }
+
+                const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+                const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+                const MAX_SIZE = 10 * 1024 * 1024;
+
+                const ext = (selected.name.split('.').pop() || '').toLowerCase();
+                const typeOk = ALLOWED_TYPES.includes(selected.type) || ALLOWED_EXTS.includes(ext);
+                if (!typeOk) {
+                  setFile(null);
+                  setErrorMsg('Unsupported file type. Only JPG, PNG, WebP, and PDF files are allowed.');
+                  e.target.value = '';
+                  return;
+                }
+                if (selected.size > MAX_SIZE) {
+                  setFile(null);
+                  setErrorMsg('File is too large. Maximum allowed size is 10MB.');
+                  e.target.value = '';
+                  return;
+                }
+                setErrorMsg(null);
+                setFile(selected);
               }}
-              className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800 cursor-pointer"
+              className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             />
             {file && (
               <div className="mt-2 space-y-1">

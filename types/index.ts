@@ -77,7 +77,6 @@ export interface CreateTransactionPayload {
   particulars?: string | null;
   member_id?: string | null;
   member_ids?: string[] | null;
-  member_names?: string[] | null;
   category_id: string;
   receipt_id?: string | null;
   amount: number;

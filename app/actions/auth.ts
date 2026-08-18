@@ -49,6 +49,11 @@ export async function loginAction(formData: FormData): Promise<ActionResponse<{ 
     return { success: false, message: 'Invalid username or password. Please try again.' };
   }
 
+  // Farmer-member records are registry-only entries and do not have portal access.
+  if (user.role === 'member') {
+    return { success: false, message: 'Member accounts do not have portal sign-in access. Contact your association Head Admin for assistance.' };
+  }
+
   clearLoginLockout(lockKey);
 
   // 3. Persist signed HttpOnly session cookie

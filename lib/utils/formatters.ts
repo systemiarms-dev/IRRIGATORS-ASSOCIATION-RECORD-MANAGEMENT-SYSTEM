@@ -101,6 +101,8 @@ export function getRoleBadgeProps(role: string): { label: string; variant: strin
       return { label: 'Treasurer', variant: 'emerald' };
     case 'auditor':
       return { label: 'Auditor', variant: 'indigo' };
+    case 'member':
+      return { label: 'Farmer Member', variant: 'blue' };
     default:
       return { label: 'Officer', variant: 'blue' };
   }

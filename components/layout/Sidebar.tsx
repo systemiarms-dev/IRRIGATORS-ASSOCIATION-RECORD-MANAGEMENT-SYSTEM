@@ -71,6 +71,14 @@ export default function Sidebar({
           badge: 'Registry',
           description: 'Registry & NIA Profile',
         },
+        {
+          label: 'Farmer Members',
+          href: '/dashboard/members',
+          icon: Users,
+          roles: ['super_admin', 'admin', 'treasurer'],
+          badge: 'Registry',
+          description: 'Member roster per IA',
+        },
       ],
     },
     {

@@ -41,7 +41,7 @@ export default function TreasurerPage() {
       const [txRes, catRes, memRes, assocRes, selfRes] = await Promise.all([
         getTransactionsAction(selectedAssocId, 'all'),
         getBudgetCategoriesAction(selectedAssocId),
-        getProfilesAction('all', selectedAssocId),
+        getProfilesAction('member', selectedAssocId),
         getAssociationsAction(),
         getSelfProfileAction(),
       ]);
@@ -157,7 +157,7 @@ export default function TreasurerPage() {
         t.association?.code || 'IA',
         t.type.toUpperCase(),
         t.category?.name || t.category_id || 'General',
-        t.payee_name || (t.members && t.members.length > 0 ? t.members.map((m) => m.full_name).join('; ') : t.member?.full_name || 'N/A') || (t.member_names && t.member_names.length > 0 ? t.member_names.join('; ') : 'N/A'),
+        t.payee_name || (t.members && t.members.length > 0 ? t.members.map((m) => m.full_name).join('; ') : t.member?.full_name || 'N/A'),
         t.lateral_section || 'N/A',
         t.particulars || t.notes || 'N/A',
         t.amount,
@@ -420,7 +420,7 @@ export default function TreasurerPage() {
                     </td>
 
                     <td className="py-3 px-3 text-slate-700 max-w-[150px] truncate">
-                      {tx.payee_name || (tx.members && tx.members.length > 0 ? tx.members.map((m) => m.full_name).join(', ') : tx.member?.full_name || 'N/A') || (tx.member_names && tx.member_names.length > 0 ? tx.member_names.join(', ') : 'N/A')}
+                      {tx.payee_name || (tx.members && tx.members.length > 0 ? tx.members.map((m) => m.full_name).join(', ') : tx.member?.full_name || 'N/A')}
                     </td>
 
                     <td className="py-3 px-3 text-slate-600 whitespace-nowrap">

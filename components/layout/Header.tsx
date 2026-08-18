@@ -39,6 +39,7 @@ export default function Header({
   const navItems = [
     { label: 'Overview Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'treasurer', 'auditor'] },
     { label: 'Irrigators Associations', href: '/dashboard/associations', icon: Building2, roles: ['super_admin'] },
+    { label: 'Farmer Members', href: '/dashboard/members', icon: Users, roles: ['super_admin', 'admin', 'treasurer'] },
     { label: 'Collections & Expenses', href: '/dashboard/treasurer', icon: Wallet, roles: ['super_admin', 'admin', 'treasurer'] },
     { label: 'Verification & Audit Queue', href: '/dashboard/auditor', icon: ShieldCheck, roles: ['super_admin', 'admin', 'auditor'] },
     { label: 'Financial Statements', href: '/dashboard/statements', icon: FileText, roles: ['super_admin', 'admin', 'treasurer', 'auditor'] },
@@ -114,6 +115,7 @@ export default function Header({
     admin: 'Head Admin',
     treasurer: 'Treasurer',
     auditor: 'Auditor',
+    member: 'Farmer Member',
   };
 
   const roleColors: Record<UserRole, string> = {
@@ -121,6 +123,7 @@ export default function Header({
     admin: 'bg-rose-500/20 text-rose-200 border-rose-400/30',
     treasurer: 'bg-emerald-500/20 text-emerald-200 border-emerald-400/30',
     auditor: 'bg-indigo-500/20 text-indigo-200 border-indigo-400/30',
+    member: 'bg-blue-500/20 text-blue-200 border-blue-400/30',
   };
 
   return (
