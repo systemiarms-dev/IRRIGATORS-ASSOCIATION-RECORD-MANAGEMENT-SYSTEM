@@ -138,6 +138,36 @@ export async function generateStatementAction(
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   }
 
+  const KNOWN_REC_CODES = ['REC-ISF', 'REC-MEM', 'REC-SUB', 'REC-FIN', 'REC-DON'];
+  const KNOWN_DISB_CODES = ['DISB-TRAV', 'DISB-CLEAR', 'DISB-PROF', 'DISB-FED', 'DISB-PISO', 'DISB-MISC', 'DISB-LATERAL', 'DISB-REPAIR', 'DISB-SUPP', 'DISB-HON', 'DISB-TAX'];
+
+  /**
+   * Group custom / user-defined categories (codes outside the NIA chart) into
+   * named FS1 extra lines so they always appear on the generated report.
+   */
+  function buildExtraLines(
+    currentList: any[],
+    priorList: any[],
+    isKnown: (code: string) => boolean
+  ): Array<{ label: string; current: number; prior: number }> {
+    const map = new Map<string, { label: string; current: number; prior: number }>();
+    const add = (tx: any, isCurrent: boolean) => {
+      if (!tx.category || !tx.category.code || isKnown(tx.category.code)) return;
+      const label = (tx.category.name || '').trim() || tx.category.code;
+      if (!label) return;
+      const entry = map.get(label) || { label, current: 0, prior: 0 };
+      if (isCurrent) entry.current += Number(tx.amount || 0);
+      else entry.prior += Number(tx.amount || 0);
+      map.set(label, entry);
+    };
+    for (const t of currentList || []) add(t, true);
+    for (const t of priorList || []) add(t, false);
+    return Array.from(map.values());
+  }
+
+  const extraReceipts = buildExtraLines(currentTxs, priorTxs, (c) => KNOWN_REC_CODES.includes(c));
+  const extraDisbursements = buildExtraLines(currentTxs, priorTxs, (c) => KNOWN_DISB_CODES.includes(c));
+
   // Calculate live values
   let liveCollections = currentTxs.filter((t) => t.type === 'collection').reduce((s, t) => s + Number(t.amount || 0), 0);
   let liveDisbursements = currentTxs.filter((t) => t.type === 'disbursement').reduce((s, t) => s + Number(t.amount || 0), 0);
@@ -210,8 +240,8 @@ export async function generateStatementAction(
       prior: overrides?.canalClearingRepairPrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-CLEAR'),
     },
     taxLicenses: {
-      current: overrides?.taxLicensesCurrent ?? 0,
-      prior: overrides?.taxLicensesPrior ?? 0,
+      current: overrides?.taxLicensesCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-TAX'),
+      prior: overrides?.taxLicensesPrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-TAX'),
     },
     otherExpenses: {
       current: overrides?.otherExpensesCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-MISC'),
@@ -247,6 +277,12 @@ export async function generateStatementAction(
     .filter((v: any) => typeof v.prior === 'number')
     .reduce((sum: number, v: any) => sum + v.prior, 0);
 
+  // Fold custom-category lines into the totals so the books stay balanced
+  r.total.current += extraReceipts.reduce((s, x) => s + x.current, 0);
+  r.total.prior += extraReceipts.reduce((s, x) => s + x.prior, 0);
+  d.total.current += extraDisbursements.reduce((s, x) => s + x.current, 0);
+  d.total.prior += extraDisbursements.reduce((s, x) => s + x.prior, 0);
+
   const netSurplusCurrent = r.total.current - d.total.current;
   const netSurplusPrior = r.total.prior - d.total.prior;
 
@@ -264,6 +300,8 @@ export async function generateStatementAction(
     yearPrior: priorYearNum,
     receipts: r,
     disbursements: d,
+    extraReceipts,
+    extraDisbursements,
     netSurplus: { current: netSurplusCurrent, prior: netSurplusPrior },
     membersEquity: {
       fundBalanceBeginning: { current: fundBalanceBeginningCurrent, prior: fundBalanceBeginningPrior },
@@ -362,7 +400,7 @@ export async function generateStatementAction(
       iaSubsidy: fs1.receipts.omSubsidy.current,
       canalRemuneration: fs1.receipts.canalRemuIncentive.current,
       omFee: 0,
-      otherIncome: fs1.receipts.otherIncome.current,
+      otherIncome: fs1.receipts.otherIncome.current + extraReceipts.reduce((s, x) => s + x.current, 0),
       total: fs1.receipts.total.current,
     },
     cashDisbursements: {
@@ -375,7 +413,7 @@ export async function generateStatementAction(
       snacksMeetings: 0,
       collectionExpenses: 0,
       miscExpenses: fs1.disbursements.otherExpenses.current,
-      otherExpenses: 0,
+      otherExpenses: extraDisbursements.reduce((s, x) => s + x.current, 0),
       distributedIAShare: fs1.disbursements.distributedIAShare.current,
       professionalFee: fs1.disbursements.professionalFee.current,
       federationShare: fs1.disbursements.federationShare.current,
