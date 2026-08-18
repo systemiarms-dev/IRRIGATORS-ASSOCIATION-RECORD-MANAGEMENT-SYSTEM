@@ -8,7 +8,7 @@ import { getSelfProfileAction } from '@/app/actions/auth';
 import { Profile, UserRole, Association } from '@/types';
 import { formatDate } from '@/lib/utils/formatters';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Users, PlusCircle, Loader2, Trash2, Pencil, Building2, UserRound, MapPin, Phone, RefreshCw } from 'lucide-react';
+import { Users, PlusCircle, Loader2, Trash2, Pencil, Building2, UserRound, MapPin, Phone, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 import { PhilippinePhoneInput } from '@/components/ui/philippine-phone-input';
 
 export default function MembersPage() {
@@ -67,6 +67,12 @@ export default function MembersPage() {
     setFormAssocId(userRole === 'super_admin' ? (selectedAssocId !== 'all' ? selectedAssocId : '') : (userAssocId || ''));
     setFormError(null);
     setShowModal(true);
+  }
+
+  function bumpFarmSize(delta: number) {
+    const current = parseFloat(formFarmSize) || 0;
+    const next = Math.max(0, Math.round((current + delta) * 100) / 100);
+    setFormFarmSize(String(next));
   }
 
   function openEditModal(member: Profile) {
@@ -344,15 +350,38 @@ export default function MembersPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-slate-600">Farm Size (hectares)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formFarmSize}
-                  onChange={(e) => setFormFarmSize(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-300"
-                />
+                <div className="flex items-stretch rounded-lg border border-slate-300 bg-white focus-within:ring-2 focus-within:ring-emerald-300 overflow-hidden">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formFarmSize}
+                    onChange={(e) => setFormFarmSize(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 text-xs text-slate-800 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <div className="flex flex-col border-l border-slate-200 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => bumpFarmSize(0.25)}
+                      disabled={isSaving}
+                      className="px-2 py-0.5 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 transition-colors disabled:opacity-40"
+                      aria-label="Increase farm size"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    <div className="h-px bg-slate-200" />
+                    <button
+                      type="button"
+                      onClick={() => bumpFarmSize(-0.25)}
+                      disabled={isSaving}
+                      className="px-2 py-0.5 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 transition-colors disabled:opacity-40"
+                      aria-label="Decrease farm size"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
