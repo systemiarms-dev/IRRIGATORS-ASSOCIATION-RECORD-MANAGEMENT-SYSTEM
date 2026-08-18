@@ -144,14 +144,18 @@ export async function generateStatementAction(
   /**
    * Group custom / user-defined categories (codes outside the NIA chart) into
    * named FS1 extra lines so they always appear on the generated report.
+   * The transaction type is checked explicitly so a receipt can never land
+   * on the disbursement side (or vice versa), regardless of code prefix.
    */
   function buildExtraLines(
     currentList: any[],
     priorList: any[],
+    expectedType: 'collection' | 'disbursement',
     isKnown: (code: string) => boolean
   ): Array<{ label: string; current: number; prior: number }> {
     const map = new Map<string, { label: string; current: number; prior: number }>();
     const add = (tx: any, isCurrent: boolean) => {
+      if (tx.type !== expectedType) return;
       if (!tx.category || !tx.category.code || isKnown(tx.category.code)) return;
       const label = (tx.category.name || '').trim() || tx.category.code;
       if (!label) return;
@@ -165,8 +169,8 @@ export async function generateStatementAction(
     return Array.from(map.values());
   }
 
-  const extraReceipts = buildExtraLines(currentTxs, priorTxs, (c) => KNOWN_REC_CODES.includes(c));
-  const extraDisbursements = buildExtraLines(currentTxs, priorTxs, (c) => KNOWN_DISB_CODES.includes(c));
+  const extraReceipts = buildExtraLines(currentTxs, priorTxs, 'collection', (c) => KNOWN_REC_CODES.includes(c));
+  const extraDisbursements = buildExtraLines(currentTxs, priorTxs, 'disbursement', (c) => KNOWN_DISB_CODES.includes(c));
 
   // Calculate live values
   let liveCollections = currentTxs.filter((t) => t.type === 'collection').reduce((s, t) => s + Number(t.amount || 0), 0);
