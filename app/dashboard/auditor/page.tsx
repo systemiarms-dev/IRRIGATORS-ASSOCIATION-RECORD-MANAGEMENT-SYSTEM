@@ -381,7 +381,7 @@ export default function AuditorPage() {
       {/* Decision Modal */}
       {selectedReceipt && (
         <Dialog open={Boolean(selectedReceipt)} onOpenChange={() => setSelectedReceipt(null)}>
-          <DialogContent className="max-w-md p-6 bg-white rounded-2xl">
+          <DialogContent className="max-w-md p-6 bg-white rounded-2xl" onClose={() => setSelectedReceipt(null)}>
             <DialogHeader>
               <DialogTitle className="text-base font-black text-slate-900">
                 Auditor Verification Decision
