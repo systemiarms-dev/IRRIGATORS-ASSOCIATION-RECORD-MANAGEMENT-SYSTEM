@@ -8,6 +8,9 @@ build/
 
 # local database & private data (contains account data - NEVER commit)
 iarms_local_data.json
+
+# credentials list (contains passwords - NEVER commit)
+ACCOUNT_CREDENTIALS.txt
 iarms_local_data.json.bak
 iarms_local_data.json.tmp
 .data/
