@@ -126,20 +126,25 @@ export async function generateStatementAction(
     'DISB-PISO': 'pisoMulaSaPuso',
     'DISB-MISC': 'otherExpenses',
     'DISB-LATERAL': 'distributedIAShare',
+    'DISB-SHARE': 'distributedIAShare',
     'DISB-REPAIR': 'repairMaintenance',
     'DISB-SUPP': 'officeSupplies',
     'DISB-HON': 'salariesWages',
     'DISB-TAX': 'taxLicenses',
   };
 
-  function sumByCategory(txList: any[], codeMatch: (code: string) => boolean): number {
+  function sumByCategory(
+    txList: any[],
+    expectedType: 'collection' | 'disbursement',
+    codeMatch: (code: string) => boolean
+  ): number {
     return (txList || [])
-      .filter((t) => t.category && codeMatch(t.category.code))
+      .filter((t) => t.type === expectedType && t.category && codeMatch(t.category.code))
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   }
 
   const KNOWN_REC_CODES = ['REC-ISF', 'REC-MEM', 'REC-SUB', 'REC-FIN', 'REC-DON'];
-  const KNOWN_DISB_CODES = ['DISB-TRAV', 'DISB-CLEAR', 'DISB-PROF', 'DISB-FED', 'DISB-PISO', 'DISB-MISC', 'DISB-LATERAL', 'DISB-REPAIR', 'DISB-SUPP', 'DISB-HON', 'DISB-TAX'];
+  const KNOWN_DISB_CODES = ['DISB-TRAV', 'DISB-CLEAR', 'DISB-PROF', 'DISB-FED', 'DISB-PISO', 'DISB-MISC', 'DISB-LATERAL', 'DISB-SHARE', 'DISB-REPAIR', 'DISB-SUPP', 'DISB-HON', 'DISB-TAX'];
 
   /**
    * Group custom / user-defined categories (codes outside the NIA chart) into
@@ -172,41 +177,35 @@ export async function generateStatementAction(
   const extraReceipts = buildExtraLines(currentTxs, priorTxs, 'collection', (c) => KNOWN_REC_CODES.includes(c));
   const extraDisbursements = buildExtraLines(currentTxs, priorTxs, 'disbursement', (c) => KNOWN_DISB_CODES.includes(c));
 
-  // Calculate live values
-  let liveCollections = currentTxs.filter((t) => t.type === 'collection').reduce((s, t) => s + Number(t.amount || 0), 0);
-  let liveDisbursements = currentTxs.filter((t) => t.type === 'disbursement').reduce((s, t) => s + Number(t.amount || 0), 0);
-  let priorCollections = priorTxs.filter((t) => t.type === 'collection').reduce((s, t) => s + Number(t.amount || 0), 0);
-  let priorDisbursements = priorTxs.filter((t) => t.type === 'disbursement').reduce((s, t) => s + Number(t.amount || 0), 0);
-
   // Apply overrides if provided (Full editable capability)
   const r = {
     membershipFees: {
-      current: overrides?.membershipFeesCurrent ?? sumByCategory(currentTxs, (c) => c === 'REC-MEM'),
-      prior: overrides?.membershipFeesPrior ?? sumByCategory(priorTxs, (c) => c === 'REC-MEM'),
+      current: overrides?.membershipFeesCurrent ?? sumByCategory(currentTxs, 'collection', (c) => c === 'REC-MEM'),
+      prior: overrides?.membershipFeesPrior ?? sumByCategory(priorTxs, 'collection', (c) => c === 'REC-MEM'),
     },
     annualDues: {
       current: overrides?.annualDuesCurrent ?? 0,
       prior: overrides?.annualDuesPrior ?? 0,
     },
     omSubsidy: {
-      current: overrides?.omSubsidyCurrent ?? sumByCategory(currentTxs, (c) => c === 'REC-ISF' || c === 'REC-SUB'),
-      prior: overrides?.omSubsidyPrior ?? sumByCategory(priorTxs, (c) => c === 'REC-ISF' || c === 'REC-SUB'),
+      current: overrides?.omSubsidyCurrent ?? sumByCategory(currentTxs, 'collection', (c) => c === 'REC-ISF' || c === 'REC-SUB'),
+      prior: overrides?.omSubsidyPrior ?? sumByCategory(priorTxs, 'collection', (c) => c === 'REC-ISF' || c === 'REC-SUB'),
     },
     canalRemuIncentive: {
       current: overrides?.canalRemuCurrent ?? 0,
       prior: overrides?.canalRemuPrior ?? 0,
     },
     finesPenalties: {
-      current: overrides?.finesPenaltiesCurrent ?? sumByCategory(currentTxs, (c) => c === 'REC-FIN'),
-      prior: overrides?.finesPenaltiesPrior ?? sumByCategory(priorTxs, (c) => c === 'REC-FIN'),
+      current: overrides?.finesPenaltiesCurrent ?? sumByCategory(currentTxs, 'collection', (c) => c === 'REC-FIN'),
+      prior: overrides?.finesPenaltiesPrior ?? sumByCategory(priorTxs, 'collection', (c) => c === 'REC-FIN'),
     },
     interestEarned: {
       current: overrides?.interestEarnedCurrent ?? 0,
       prior: overrides?.interestEarnedPrior ?? 0,
     },
     otherIncome: {
-      current: overrides?.otherIncomeCurrent ?? sumByCategory(currentTxs, (c) => c === 'REC-DON'),
-      prior: overrides?.otherIncomePrior ?? sumByCategory(priorTxs, (c) => c === 'REC-DON'),
+      current: overrides?.otherIncomeCurrent ?? sumByCategory(currentTxs, 'collection', (c) => c === 'REC-DON'),
+      prior: overrides?.otherIncomePrior ?? sumByCategory(priorTxs, 'collection', (c) => c === 'REC-DON'),
     },
     total: { current: 0, prior: 0 },
   };
@@ -220,56 +219,56 @@ export async function generateStatementAction(
 
   const d = {
     registrationPermits: {
-      current: overrides?.registrationPermitsCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-TAX'),
-      prior: overrides?.registrationPermitsPrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-TAX'),
+      current: overrides?.registrationPermitsCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-TAX'),
+      prior: overrides?.registrationPermitsPrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-TAX'),
     },
     travelRep: {
-      current: overrides?.travelRepCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-TRAV'),
-      prior: overrides?.travelRepPrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-TRAV'),
+      current: overrides?.travelRepCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-TRAV'),
+      prior: overrides?.travelRepPrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-TRAV'),
     },
     meetingExpenses: {
       current: overrides?.meetingExpensesCurrent ?? 0,
       prior: overrides?.meetingExpensesPrior ?? 0,
     },
     officeSupplies: {
-      current: overrides?.officeSuppliesCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-SUPP'),
-      prior: overrides?.officeSuppliesPrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-SUPP'),
+      current: overrides?.officeSuppliesCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-SUPP'),
+      prior: overrides?.officeSuppliesPrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-SUPP'),
     },
     salariesWages: {
-      current: overrides?.salariesWagesCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-HON'),
-      prior: overrides?.salariesWagesPrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-HON'),
+      current: overrides?.salariesWagesCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-HON'),
+      prior: overrides?.salariesWagesPrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-HON'),
     },
     canalClearingRepair: {
-      current: overrides?.canalClearingRepairCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-CLEAR'),
-      prior: overrides?.canalClearingRepairPrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-CLEAR'),
+      current: overrides?.canalClearingRepairCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-CLEAR'),
+      prior: overrides?.canalClearingRepairPrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-CLEAR'),
     },
     taxLicenses: {
-      current: overrides?.taxLicensesCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-TAX'),
-      prior: overrides?.taxLicensesPrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-TAX'),
+      current: overrides?.taxLicensesCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-TAX'),
+      prior: overrides?.taxLicensesPrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-TAX'),
     },
     otherExpenses: {
-      current: overrides?.otherExpensesCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-MISC'),
-      prior: overrides?.otherExpensesPrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-MISC'),
+      current: overrides?.otherExpensesCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-MISC'),
+      prior: overrides?.otherExpensesPrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-MISC'),
     },
     repairMaintenance: {
-      current: overrides?.repairMaintenanceCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-REPAIR'),
-      prior: overrides?.repairMaintenancePrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-REPAIR'),
+      current: overrides?.repairMaintenanceCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-REPAIR'),
+      prior: overrides?.repairMaintenancePrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-REPAIR'),
     },
     distributedIAShare: {
-      current: overrides?.distributedIAShareCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-LATERAL'),
-      prior: overrides?.distributedIASharePrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-LATERAL'),
+      current: overrides?.distributedIAShareCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-LATERAL' || c === 'DISB-SHARE'),
+      prior: overrides?.distributedIASharePrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-LATERAL' || c === 'DISB-SHARE'),
     },
     professionalFee: {
-      current: overrides?.professionalFeeCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-PROF'),
-      prior: overrides?.professionalFeePrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-PROF'),
+      current: overrides?.professionalFeeCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-PROF'),
+      prior: overrides?.professionalFeePrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-PROF'),
     },
     federationShare: {
-      current: overrides?.federationShareCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-FED'),
-      prior: overrides?.federationSharePrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-FED'),
+      current: overrides?.federationShareCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-FED'),
+      prior: overrides?.federationSharePrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-FED'),
     },
     pisoMulaSaPuso: {
-      current: overrides?.pisoMulaSaPusoCurrent ?? sumByCategory(currentTxs, (c) => c === 'DISB-PISO'),
-      prior: overrides?.pisoMulaSaPusoPrior ?? sumByCategory(priorTxs, (c) => c === 'DISB-PISO'),
+      current: overrides?.pisoMulaSaPusoCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-PISO'),
+      prior: overrides?.pisoMulaSaPusoPrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-PISO'),
     },
     total: { current: 0, prior: 0 },
   };

@@ -333,126 +333,26 @@ export default function FinancialStatementsPage() {
   function handleRecalculateAndSave() {
     if (!selectedStatement || !editFS1) return;
 
-    // Recalculate FS1 Totals & Net Surplus
-    const r = editFS1.receipts;
-    const rCurrentTotal = 
-      (Number(r.membershipFees?.current) || 0) +
-      (Number(r.annualDues?.current) || 0) +
-      (Number(r.omSubsidy?.current) || 0) +
-      (Number(r.canalRemuIncentive?.current) || 0) +
-      (Number(r.finesPenalties?.current) || 0) +
-      (Number(r.interestEarned?.current) || 0) +
-      (Number(r.otherIncome?.current) || 0);
-
-    const rPriorTotal = 
-      (Number(r.membershipFees?.prior) || 0) +
-      (Number(r.annualDues?.prior) || 0) +
-      (Number(r.omSubsidy?.prior) || 0) +
-      (Number(r.canalRemuIncentive?.prior) || 0) +
-      (Number(r.finesPenalties?.prior) || 0) +
-      (Number(r.interestEarned?.prior) || 0) +
-      (Number(r.otherIncome?.prior) || 0);
-
-    r.total = { current: rCurrentTotal, prior: rPriorTotal };
-
-    const d = editFS1.disbursements;
-    const dCurrentTotal = 
-      (Number(d.registrationPermits?.current) || 0) +
-      (Number(d.travelRep?.current) || 0) +
-      (Number(d.meetingExpenses?.current) || 0) +
-      (Number(d.officeSupplies?.current) || 0) +
-      (Number(d.salariesWages?.current) || 0) +
-      (Number(d.canalClearingRepair?.current) || 0) +
-      (Number(d.professionalFee?.current) || 0) +
-      (Number(d.federationShare?.current) || 0) +
-      (Number(d.pisoMulaSaPuso?.current) || 0) +
-      (Number(d.taxLicenses?.current) || 0) +
-      (Number(d.otherExpenses?.current) || 0) +
-      (Number(d.repairMaintenance?.current) || 0) +
-      (Number(d.distributedIAShare?.current) || 0);
-
-    const dPriorTotal = 
-      (Number(d.registrationPermits?.prior) || 0) +
-      (Number(d.travelRep?.prior) || 0) +
-      (Number(d.meetingExpenses?.prior) || 0) +
-      (Number(d.officeSupplies?.prior) || 0) +
-      (Number(d.salariesWages?.prior) || 0) +
-      (Number(d.canalClearingRepair?.prior) || 0) +
-      (Number(d.professionalFee?.prior) || 0) +
-      (Number(d.federationShare?.prior) || 0) +
-      (Number(d.pisoMulaSaPuso?.prior) || 0) +
-      (Number(d.taxLicenses?.prior) || 0) +
-      (Number(d.otherExpenses?.prior) || 0) +
-      (Number(d.repairMaintenance?.prior) || 0) +
-      (Number(d.distributedIAShare?.prior) || 0);
-
-    d.total = { current: dCurrentTotal, prior: dPriorTotal };
-
-    const netSurplusCurrent = rCurrentTotal - dCurrentTotal;
-    const netSurplusPrior = rPriorTotal - dPriorTotal;
-    editFS1.netSurplus = { current: netSurplusCurrent, prior: netSurplusPrior };
-
-    const begCurrent = Number(editFS1.membersEquity?.fundBalanceBeginning?.current) || 0;
-    const begPrior = Number(editFS1.membersEquity?.fundBalanceBeginning?.prior) || 0;
-    const endCurrent = begCurrent + netSurplusCurrent;
-    const endPrior = begPrior + netSurplusPrior;
-
-    editFS1.membersEquity = {
-      fundBalanceBeginning: { current: begCurrent, prior: begPrior },
-      netSavingsYear: { current: netSurplusCurrent, prior: netSurplusPrior },
-      fundBalanceEnd: { current: endCurrent, prior: endPrior },
-    };
-
-    // Interconnect FS2
-    if (editFS2) {
-      editFS2.cashFlows = {
-        netSurplus: { current: netSurplusCurrent, prior: netSurplusPrior },
-        depreciation: { current: Number(editFS2.cashFlows?.depreciation?.current) || 0, prior: 0 },
-        cashBalanceBeginning: { current: begCurrent, prior: begPrior },
-        cashBalanceEnd: { current: endCurrent, prior: endPrior },
-      };
-      const inv = Number(editFS2.financialCondition?.assets?.inventorySupplies?.current) || 0;
-      const bld = Number(editFS2.financialCondition?.assets?.officeBuilding?.current) || 0;
-      editFS2.financialCondition.assets.currentAssets = { current: endCurrent, prior: endPrior };
-      editFS2.financialCondition.assets.totalAssets = { current: endCurrent + inv + bld, prior: endPrior };
-      editFS2.financialCondition.liabilitiesEquity.membersEquity = { current: endCurrent, prior: endPrior };
-    }
-
-    // Interconnect FS3
-    if (editFS3) {
-      editFS3.cashBalanceThisYear = netSurplusCurrent;
-      editFS3.fundBalanceLastReport = begCurrent;
-      editFS3.totalCashBalance = endCurrent;
-      if (editFS3.composition) {
-        editFS3.composition.total = endCurrent;
-      }
-    }
-
-    // Interconnect FS4
-    if (editFS4) {
-      const coh = Number(editFS4.assets?.cashOnHand) || 0;
-      const cib = Number(editFS4.assets?.cashInBank) || 0;
-      const rec = Number(editFS4.assets?.receivables) || 0;
-      const mat = Number(editFS4.assets?.materialsSuppliesInventory) || 0;
-      const bld = Number(editFS4.assets?.officeBuilding) || 0;
-      const totalAssets = coh + cib + rec + mat + bld;
-      editFS4.assets.totalAssets = totalAssets;
-
-      const not = Number(editFS4.liabilities?.notarialPermitFees) || 0;
-      const wag = Number(editFS4.liabilities?.honorariumWagesPayable) || 0;
-      const oth = Number(editFS4.liabilities?.otherAccountsPayable) || 0;
-      const totalLiab = not + wag + oth;
-      editFS4.liabilities.totalLiabilities = totalLiab;
-      editFS4.netWorth = totalAssets - totalLiab;
-    }
+    // Recalculate through the shared engine so custom (extra) lines, totals,
+    // and all FS interconnections stay consistent with the rest of the app.
+    // Pins are cleared so every derived figure is recomputed from the modal's
+    // entered line items (matching the previous always-recalculate behavior).
+    const rd = recomputeBreakdown({
+      ...(selectedStatement.report_data || {}),
+      fs1: editFS1,
+      fs2: editFS2 || undefined,
+fs3: editFS3 || undefined,
+      fs4: editFS4 || undefined,
+      edits: {},
+    });
 
     startTransition(async () => {
       try {
         const res = await updateFinancialStatementAction(selectedStatement.id, {
-          fs1: editFS1,
-          fs2: editFS2 || undefined,
-          fs3: editFS3 || undefined,
-          fs4: editFS4 || undefined,
+          fs1: rd.fs1,
+          fs2: rd.fs2,
+          fs3: rd.fs3,
+          fs4: rd.fs4,
         });
 
         if (res.success && res.data) {
