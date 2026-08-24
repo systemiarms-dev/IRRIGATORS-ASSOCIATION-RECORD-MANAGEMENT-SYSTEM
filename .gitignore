@@ -11,6 +11,7 @@ iarms_local_data.json
 
 # credentials list (contains passwords - NEVER commit)
 ACCOUNT_CREDENTIALS.txt
+SECURITY_AUDIT_CHECKLIST.txt
 iarms_local_data.json.bak
 iarms_local_data.json.tmp
 .data/
