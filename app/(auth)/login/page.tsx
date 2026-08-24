@@ -104,9 +104,9 @@ function LoginContent() {
                 <Lock className="w-7 h-7 text-[#00843D]" />
               </div>
               <div className="space-y-1">
-                <h2 className="text-xl sm:text-[22px] font-black text-slate-900 tracking-tight">Log In</h2>
+                <h2 className="text-xl sm:text-[22px] font-black text-slate-900 tracking-tight">Portal Sign In</h2>
                 <p className="text-xs text-slate-600 font-medium">
-                  Access your association records &amp; financial statements..
+                  Access your association records &amp; financial statements.
                 </p>
               </div>
             </div>
