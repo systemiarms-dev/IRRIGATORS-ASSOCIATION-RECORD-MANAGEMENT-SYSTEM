@@ -493,8 +493,8 @@ export default function FinancialStatementsPage() {
             <button
               onClick={() => setSelectedAssocId('all')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${selectedAssocId === 'all'
-                  ? 'bg-emerald-800 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-emerald-800 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
             >
               All Associations ({statements.length})
@@ -504,8 +504,8 @@ export default function FinancialStatementsPage() {
                 key={assoc.id}
                 onClick={() => setSelectedAssocId(assoc.id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${selectedAssocId === assoc.id
-                    ? 'bg-emerald-800 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'bg-emerald-800 text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
               >
                 {assoc.code}
@@ -685,8 +685,8 @@ export default function FinancialStatementsPage() {
             >
               <TabsList className="justify-start overflow-x-auto max-w-full">
                 <TabsTrigger value="FS1">FS1: Receipts &amp; Expenses</TabsTrigger>
-                <TabsTrigger value="FS2">FS2: Financial Condition</TabsTrigger>
-                <TabsTrigger value="FS3">FS3: Cash Composition</TabsTrigger>
+                <TabsTrigger value="FS2">FS2: Cash Flows</TabsTrigger>
+                <TabsTrigger value="FS3">FS3: Cash Statement</TabsTrigger>
                 <TabsTrigger value="FS4">FS4: Balance Sheet</TabsTrigger>
               </TabsList>
             </Tabs>
@@ -703,10 +703,10 @@ export default function FinancialStatementsPage() {
                           onClick={() => switchEditMode(m)}
                           title={MODE_LABELS[m].hint}
                           className={`px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors inline-flex items-center gap-1.5 ${editMode === m
-                              ? m === 'manual'
-                                ? 'bg-amber-500 text-white shadow-sm'
-                                : 'bg-emerald-700 text-white shadow-sm'
-                              : 'text-slate-600 hover:bg-slate-100'
+                            ? m === 'manual'
+                              ? 'bg-amber-500 text-white shadow-sm'
+                              : 'bg-emerald-700 text-white shadow-sm'
+                            : 'text-slate-600 hover:bg-slate-100'
                             }`}
                         >
                           {m === 'auto' ? (
@@ -760,8 +760,8 @@ export default function FinancialStatementsPage() {
                 </div>
 
                 <div className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold flex items-start gap-2.5 ${editMode === 'manual'
-                    ? 'bg-amber-50 border-amber-200 text-amber-900'
-                    : 'bg-slate-50 border-slate-200 text-slate-700'
+                  ? 'bg-amber-50 border-amber-200 text-amber-900'
+                  : 'bg-slate-50 border-slate-200 text-slate-700'
                   }`}>
                   {editMode === 'manual' ? (
                     <Pencil className="w-4 h-4 shrink-0 mt-0.5" />
