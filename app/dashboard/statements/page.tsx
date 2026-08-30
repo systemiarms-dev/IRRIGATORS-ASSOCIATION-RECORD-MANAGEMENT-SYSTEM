@@ -2,14 +2,14 @@
 
 import React, { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useLoadOnce } from '@/lib/hooks/useLoadOnce';
-import { 
-  getFinancialStatementsAction, generateStatementAction, 
+import {
+  getFinancialStatementsAction, generateStatementAction,
   deleteFinancialStatementAction, updateFinancialStatementAction, renameFinancialStatementAction
 } from '@/app/actions/statements';
 import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
-import { 
-  FinancialStatement, StatementType, FS1Data, FS2Data, FS3Data, FS4Data, 
+import {
+  FinancialStatement, StatementType, FS1Data, FS2Data, FS3Data, FS4Data,
   UserRole, StatementFinancialOverrides, Association, FinancialStatementEdits,
   FinancialStatementBreakdown
 } from '@/types';
@@ -22,10 +22,10 @@ import FS3View from '@/components/statements/FS3View';
 import FS4View from '@/components/statements/FS4View';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  FileText, Printer, Loader2, Calculator, Trash2, 
-  Layers, TrendingUp, Wallet, Landmark, HelpCircle, Shield, Pencil, 
-  CheckCircle2, Tag, Building2, Save, Calendar, Sparkles, X, Users, AlertTriangle 
+import {
+  FileText, Printer, Loader2, Calculator, Trash2,
+  Layers, TrendingUp, Wallet, Landmark, HelpCircle, Shield, Pencil,
+  CheckCircle2, Tag, Building2, Save, Calendar, Sparkles, X, Users, AlertTriangle
 } from 'lucide-react';
 import { exportToPDFPrint, buildExportFilename } from '@/lib/utils/export';
 
@@ -54,8 +54,8 @@ export default function FinancialStatementsPage() {
 
   const FS_TAB_LABELS: Record<'FS1' | 'FS2' | 'FS3' | 'FS4', string> = {
     FS1: 'FS1: Receipts & Expenses',
-    FS2: 'FS2: Financial Condition',
-    FS3: 'FS3: Cash Composition',
+    FS2: 'FS2: Cash Flows',
+    FS3: 'FS3: Cash Statement',
     FS4: 'FS4: Balance Sheet',
   };
 
@@ -341,7 +341,7 @@ export default function FinancialStatementsPage() {
       ...(selectedStatement.report_data || {}),
       fs1: editFS1,
       fs2: editFS2 || undefined,
-fs3: editFS3 || undefined,
+      fs3: editFS3 || undefined,
       fs4: editFS4 || undefined,
       edits: {},
     });
@@ -492,11 +492,10 @@ fs3: editFS3 || undefined,
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => setSelectedAssocId('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                selectedAssocId === 'all'
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${selectedAssocId === 'all'
                   ? 'bg-emerald-800 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
+                }`}
             >
               All Associations ({statements.length})
             </button>
@@ -504,11 +503,10 @@ fs3: editFS3 || undefined,
               <button
                 key={assoc.id}
                 onClick={() => setSelectedAssocId(assoc.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  selectedAssocId === assoc.id
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${selectedAssocId === assoc.id
                     ? 'bg-emerald-800 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                  }`}
               >
                 {assoc.code}
               </button>
@@ -552,9 +550,8 @@ fs3: editFS3 || undefined,
       </div>
 
       {bannerMsg && (
-        <div className={`p-3.5 rounded-xl text-xs font-bold border flex items-center justify-between gap-2 print:hidden animate-in fade-in ${
-          bannerMsg.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
-        }`}>
+        <div className={`p-3.5 rounded-xl text-xs font-bold border flex items-center justify-between gap-2 print:hidden animate-in fade-in ${bannerMsg.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
+          }`}>
           <span className="flex items-center gap-2 min-w-0">
             {bannerMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <Shield className="w-4 h-4 shrink-0" />}
             <span className="truncate">{bannerMsg.text}</span>
@@ -607,9 +604,8 @@ fs3: editFS3 || undefined,
                         if (isEditing || s.id === selectedStatement?.id) return;
                         requestNav(() => setSelectedStatement(s), 'You have unsaved changes. Switching statement before saving will keep them un-saved in the ledger.');
                       }}
-                      className={`w-full text-left px-4 py-3 flex flex-col gap-1 transition-all border-l-4 cursor-pointer ${
-                        isActive ? 'bg-emerald-50/80 border-emerald-700' : 'border-transparent hover:bg-slate-50'
-                      }`}
+                      className={`w-full text-left px-4 py-3 flex flex-col gap-1 transition-all border-l-4 cursor-pointer ${isActive ? 'bg-emerald-50/80 border-emerald-700' : 'border-transparent hover:bg-slate-50'
+                        }`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         {isEditing ? (
@@ -706,13 +702,12 @@ fs3: editFS3 || undefined,
                           key={m}
                           onClick={() => switchEditMode(m)}
                           title={MODE_LABELS[m].hint}
-                          className={`px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors inline-flex items-center gap-1.5 ${
-                            editMode === m
+                          className={`px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors inline-flex items-center gap-1.5 ${editMode === m
                               ? m === 'manual'
                                 ? 'bg-amber-500 text-white shadow-sm'
                                 : 'bg-emerald-700 text-white shadow-sm'
                               : 'text-slate-600 hover:bg-slate-100'
-                          }`}
+                            }`}
                         >
                           {m === 'auto' ? (
                             <Layers className="w-3.5 h-3.5 shrink-0" />
@@ -764,11 +759,10 @@ fs3: editFS3 || undefined,
                   </div>
                 </div>
 
-                <div className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold flex items-start gap-2.5 ${
-                  editMode === 'manual'
+                <div className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold flex items-start gap-2.5 ${editMode === 'manual'
                     ? 'bg-amber-50 border-amber-200 text-amber-900'
                     : 'bg-slate-50 border-slate-200 text-slate-700'
-                }`}>
+                  }`}>
                   {editMode === 'manual' ? (
                     <Pencil className="w-4 h-4 shrink-0 mt-0.5" />
                   ) : (
@@ -829,165 +823,165 @@ fs3: editFS3 || undefined,
 
             <div className="relative">
               <form onSubmit={handleGenerateSubmit} className="space-y-4 pt-2">
-              {userRole === 'super_admin' && associations.length > 0 ? (
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Target Irrigators Association *</label>
-                  <select
-                    value={genAssocId}
-                    onChange={(e) => {
-                      setGenAssocId(e.target.value);
-                      const a = associations.find((x) => x.id === e.target.value);
-                      if (a?.president_name) setGenOfficerPresident(a.president_name);
-                    }}
-                    className="w-full text-xs p-2.5 border rounded-xl border-slate-300 font-bold bg-white text-slate-800"
-                  >
-                    {associations.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-700 truncate">
-                    <Building2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                    <span>Association:</span>
-                    <span className="text-emerald-800 font-mono font-bold truncate">
-                      {associations.find((a) => a.id === genAssocId)?.name || 'Your Association'} ({associations.find((a) => a.id === genAssocId)?.code || 'IA'})
-                    </span>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold shrink-0 ml-2">
-                    Assigned IA
-                  </span>
-                </div>
-              )}
-
-              {/* Comparative Years Selection */}
-              <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-900">
-                  <Calendar className="w-4 h-4 text-emerald-700" />
-                  Comparative Reporting Period
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Reporting Year (Current) *</label>
+                {userRole === 'super_admin' && associations.length > 0 ? (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Target Irrigators Association *</label>
                     <select
-                      value={selectedYear}
-                      onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
-                      className="w-full text-xs p-2 border rounded-lg border-emerald-300 bg-white font-bold text-emerald-950"
+                      value={genAssocId}
+                      onChange={(e) => {
+                        setGenAssocId(e.target.value);
+                        const a = associations.find((x) => x.id === e.target.value);
+                        if (a?.president_name) setGenOfficerPresident(a.president_name);
+                      }}
+                      className="w-full text-xs p-2.5 border rounded-xl border-slate-300 font-bold bg-white text-slate-800"
                     >
-                      {[2027, 2026, 2025, 2024, 2023, 2022].map((yr) => (
-                        <option key={yr} value={yr}>
-                          CY {yr} (Current Year)
+                      {associations.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} ({a.code})
                         </option>
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Comparative Prior Year *</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={`CY ${priorYear} (Prior Year)`}
-                      className="w-full text-xs p-2 border rounded-lg border-slate-200 bg-slate-100 font-bold text-slate-600 cursor-not-allowed"
-                    />
+                ) : (
+                  <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700 truncate">
+                      <Building2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span>Association:</span>
+                      <span className="text-emerald-800 font-mono font-bold truncate">
+                        {associations.find((a) => a.id === genAssocId)?.name || 'Your Association'} ({associations.find((a) => a.id === genAssocId)?.code || 'IA'})
+                      </span>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold shrink-0 ml-2">
+                      Assigned IA
+                    </span>
+                  </div>
+                )}
+
+                {/* Comparative Years Selection */}
+                <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-900">
+                    <Calendar className="w-4 h-4 text-emerald-700" />
+                    Comparative Reporting Period
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Reporting Year (Current) *</label>
+                      <select
+                        value={selectedYear}
+                        onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
+                        className="w-full text-xs p-2 border rounded-lg border-emerald-300 bg-white font-bold text-emerald-950"
+                      >
+                        {[2027, 2026, 2025, 2024, 2023, 2022].map((yr) => (
+                          <option key={yr} value={yr}>
+                            CY {yr} (Current Year)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Comparative Prior Year *</label>
+                      <input
+                        type="text"
+                        disabled
+                        value={`CY ${priorYear} (Prior Year)`}
+                        className="w-full text-xs p-2 border rounded-lg border-slate-200 bg-slate-100 font-bold text-slate-600 cursor-not-allowed"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Report Title</label>
-                <input
-                  type="text"
-                  placeholder={`e.g. Annual Financial Statement CY ${selectedYear}`}
-                  value={genTitle}
-                  onChange={(e) => setGenTitle(e.target.value)}
-                  className="w-full text-xs p-2.5 border rounded-xl border-slate-300"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Period Start Date *</label>
+                  <label className="text-xs font-bold text-slate-700">Report Title</label>
                   <input
-                    type="date"
-                    required
-                    value={periodStart}
-                    onChange={(e) => setPeriodStart(e.target.value)}
+                    type="text"
+                    placeholder={`e.g. Annual Financial Statement CY ${selectedYear}`}
+                    value={genTitle}
+                    onChange={(e) => setGenTitle(e.target.value)}
                     className="w-full text-xs p-2.5 border rounded-xl border-slate-300"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Period End Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={periodEnd}
-                    onChange={(e) => setPeriodEnd(e.target.value)}
-                    className="w-full text-xs p-2.5 border rounded-xl border-slate-300"
-                  />
-                </div>
-              </div>
 
-              {/* Authorized Signatories */}
-              <div className="p-3.5 bg-amber-50/50 border border-amber-200 rounded-xl space-y-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900">
-                  <Users className="w-4 h-4 text-amber-700" />
-                  Authorized Signatories (editable)
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-slate-700 block">IA President</label>
+                    <label className="text-xs font-bold text-slate-700">Period Start Date *</label>
                     <input
-                      type="text"
-                      placeholder="e.g. MEYNARD A. TOMANENG"
-                      value={genOfficerPresident}
-                      onChange={(e) => setGenOfficerPresident(e.target.value)}
-                      className="w-full text-xs p-2 border rounded-lg border-amber-300 bg-white font-bold uppercase"
+                      type="date"
+                      required
+                      value={periodStart}
+                      onChange={(e) => setPeriodStart(e.target.value)}
+                      className="w-full text-xs p-2.5 border rounded-xl border-slate-300"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-slate-700 block">IA Treasurer</label>
+                    <label className="text-xs font-bold text-slate-700">Period End Date *</label>
                     <input
-                      type="text"
-                      placeholder="e.g. RIC UNDAY"
-                      value={genOfficerTreasurer}
-                      onChange={(e) => setGenOfficerTreasurer(e.target.value)}
-                      className="w-full text-xs p-2 border rounded-lg border-amber-300 bg-white font-bold uppercase"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-slate-700 block">IA Auditor</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. ARTUR GUIANG"
-                      value={genOfficerAuditor}
-                      onChange={(e) => setGenOfficerAuditor(e.target.value)}
-                      className="w-full text-xs p-2 border rounded-lg border-amber-300 bg-white font-bold uppercase"
+                      type="date"
+                      required
+                      value={periodEnd}
+                      onChange={(e) => setPeriodEnd(e.target.value)}
+                      className="w-full text-xs p-2.5 border rounded-xl border-slate-300"
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t">
-                <button
-                  type="button"
-                  onClick={() => setShowGenerateModal(false)}
-                  disabled={isGenerating}
-                  className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isGenerating || isPending}
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-800 text-white hover:bg-emerald-900 flex items-center gap-2 shadow-sm active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
-                >
-                  {isGenerating || isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
-                  {isGenerating || isPending ? 'Generating...' : 'Generate FS Report'}
-                </button>
-              </div>
+                {/* Authorized Signatories */}
+                <div className="p-3.5 bg-amber-50/50 border border-amber-200 rounded-xl space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900">
+                    <Users className="w-4 h-4 text-amber-700" />
+                    Authorized Signatories (editable)
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 block">IA President</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. MEYNARD A. TOMANENG"
+                        value={genOfficerPresident}
+                        onChange={(e) => setGenOfficerPresident(e.target.value)}
+                        className="w-full text-xs p-2 border rounded-lg border-amber-300 bg-white font-bold uppercase"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 block">IA Treasurer</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. RIC UNDAY"
+                        value={genOfficerTreasurer}
+                        onChange={(e) => setGenOfficerTreasurer(e.target.value)}
+                        className="w-full text-xs p-2 border rounded-lg border-amber-300 bg-white font-bold uppercase"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 block">IA Auditor</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. ARTUR GUIANG"
+                        value={genOfficerAuditor}
+                        onChange={(e) => setGenOfficerAuditor(e.target.value)}
+                        className="w-full text-xs p-2 border rounded-lg border-amber-300 bg-white font-bold uppercase"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowGenerateModal(false)}
+                    disabled={isGenerating}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isGenerating || isPending}
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-800 text-white hover:bg-emerald-900 flex items-center gap-2 shadow-sm active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
+                  >
+                    {isGenerating || isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
+                    {isGenerating || isPending ? 'Generating...' : 'Generate FS Report'}
+                  </button>
+                </div>
               </form>
 
               {/* Generating Overlay (anti-spam) */}
