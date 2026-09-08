@@ -56,8 +56,7 @@ export default function ChartOfAccountsPage() {
   const [formCode, setFormCode] = useState('');
   const [formType, setFormType] = useState<'collection' | 'disbursement'>('collection');
   const [formAssocId, setFormAssocId] = useState('');
-  const [formBudget, setFormBudget] = useState('');
-  const [formDescription, setFormDescription] = useState('');
+
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
   const isReadOnly = currentUser?.role === 'treasurer' || currentUser?.role === 'auditor';
@@ -152,8 +151,6 @@ export default function ChartOfAccountsPage() {
     setFormName('');
     setFormCode('');
     setFormType('collection');
-    setFormBudget('');
-    setFormDescription('');
     setFormAssocId(isSuperAdmin ? selectedAssocId : (currentUser?.association_id || ''));
     setShowAddModal(true);
   }
@@ -168,13 +165,10 @@ export default function ChartOfAccountsPage() {
 
     setActionLoading(true);
     try {
-      const budgetNum = formBudget.trim() ? parseFloat(formBudget) : 0;
       const res = await createBudgetCategoryAction({
         name: formName.trim(),
         category_type: formType,
         code: formCode.trim() || undefined,
-        allocated_amount: isNaN(budgetNum) ? 0 : budgetNum,
-        description: formDescription.trim() || undefined,
         association_id: isSuperAdmin ? formAssocId : undefined,
       });
 
@@ -446,7 +440,6 @@ export default function ChartOfAccountsPage() {
                   <th className="py-3 px-4 text-left">Category Name / Line Item</th>
                   <th className="py-3 px-3 text-left">Cash Flow Type</th>
                   <th className="py-3 px-3 text-left">Scope &amp; Authority</th>
-                  <th className="py-3 px-4 text-right">Allocated Budget</th>
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
@@ -500,15 +493,6 @@ export default function ChartOfAccountsPage() {
                             <Sparkles className="w-2.5 h-2.5 text-amber-600" />
                             IA Custom ({assocName})
                           </span>
-                        )}
-                      </td>
-
-                      {/* Allocated Budget */}
-                      <td className="py-3 px-4 text-right font-mono font-semibold text-slate-700 whitespace-nowrap">
-                        {c.allocated_amount && c.allocated_amount > 0 ? (
-                          formatPHP(c.allocated_amount)
-                        ) : (
-                          <span className="text-slate-400 font-sans text-[11px]">Uncapped / As Needed</span>
                         )}
                       </td>
 
@@ -636,32 +620,6 @@ export default function ChartOfAccountsPage() {
                   value={formCode}
                   onChange={(e) => setFormCode(e.target.value)}
                   className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-medium uppercase focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
-                />
-              </div>
-
-              {/* Allocated Budget (Optional) */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-700">Allocated Budget in PHP (Optional)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={formBudget}
-                  onChange={(e) => setFormBudget(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
-                />
-              </div>
-
-              {/* Description */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-700">Description / Guidelines (Optional)</label>
-                <textarea
-                  rows={2}
-                  placeholder="Notes on what expenses or collections belong to this category..."
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600/30 resize-none"
                 />
               </div>
 
