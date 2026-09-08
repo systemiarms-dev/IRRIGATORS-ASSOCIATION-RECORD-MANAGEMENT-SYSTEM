@@ -10,11 +10,12 @@ import { isValidPhilippineMobile, normalizePhilippineMobile } from '@/lib/utils/
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Head Admin',
+  bookkeeper: 'Bookkeeper',
   treasurer: 'Treasurer',
   auditor: 'Auditor',
 };
 
-const OFFICER_ROLES: UserRole[] = ['admin', 'treasurer', 'auditor'];
+const OFFICER_ROLES: UserRole[] = ['admin', 'bookkeeper', 'treasurer', 'auditor'];
 
 /**
  * Fetch all profiles filtered by role and association from Supabase.
@@ -24,7 +25,7 @@ const OFFICER_ROLES: UserRole[] = ['admin', 'treasurer', 'auditor'];
  *   and never the super_admin.
  */
 export async function getProfilesAction(roleFilter?: UserRole | 'all', associationIdFilter?: string): Promise<ActionResponse<Profile[]>> {
-  const admin = await requireRole('admin', 'treasurer', 'auditor');
+  const admin = await requireRole('admin', 'bookkeeper', 'treasurer', 'auditor');
   if (!admin) {
     return UNAUTHORIZED_RESPONSE;
   }
@@ -115,9 +116,15 @@ export async function updateUserRoleAction(userId: string, newRole: UserRole, as
     });
 
     revalidatePath('/dashboard/admin');
-    revalidatePath('/', 'layout');
-    return { success: true, message: `User role updated to ${newRole}.` };
+    revalidatePath('/dashboard/admin');
+    return { success: true, message: `Role for ${user.full_name} changed to ${ROLE_LABELS[newRole] || newRole}.` };
   } catch (error: any) {
+    if (error.message?.includes('profiles_role_check')) {
+      return {
+        success: false,
+        message: 'The database requires the bookkeeper role migration. Please run the SQL snippet in supabase_migration_bookkeeper.sql in your Supabase SQL Editor.',
+      };
+    }
     return { success: false, message: error.message || 'Error updating user role in Supabase.' };
   }
 }
@@ -390,6 +397,12 @@ export async function createAccountAction(formData: FormData): Promise<ActionRes
       data: toPublicProfile(newUser),
     };
   } catch (error: any) {
+    if (error.message?.includes('profiles_role_check')) {
+      return {
+        success: false,
+        message: 'The database requires the bookkeeper role migration. Please run the SQL snippet in supabase_migration_bookkeeper.sql in your Supabase SQL Editor.',
+      };
+    }
     return { success: false, message: error.message || 'Error creating account in Supabase.' };
   }
 }

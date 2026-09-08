@@ -228,8 +228,8 @@ export default function AssociationsManagementPage() {
       <AssociationFormModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        onSuccess={() => {
-          setBannerMsg({ type: 'success', text: 'Association saved successfully.' });
+        onSuccess={(msg) => {
+          setBannerMsg({ type: 'success', text: msg || 'Association saved successfully.' });
           loadData();
         }}
         associationToEdit={editingAssoc}

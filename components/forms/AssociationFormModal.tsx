@@ -10,7 +10,7 @@ import { Building2, Save, Loader2, MapPin, User, FileText, CheckCircle2, AlertCi
 interface AssociationFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (message?: string) => void;
   associationToEdit?: Association | null;
 }
 
@@ -103,7 +103,7 @@ export default function AssociationFormModal({
     setLoading(false);
 
     if (res.success) {
-      onSuccess();
+      onSuccess(res.message);
       onClose();
     } else {
       setErrorMsg(res.message || 'Failed to save association.');

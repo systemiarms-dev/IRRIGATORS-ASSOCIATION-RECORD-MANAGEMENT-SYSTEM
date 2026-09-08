@@ -58,8 +58,14 @@ export async function generateStatementAction(
   },
   overrides?: StatementFinancialOverrides
 ): Promise<ActionResponse<FinancialStatement>> {
-  const user = await requireRole('admin', 'treasurer');
+  const user = await requireUser();
   if (!user) {
+    return UNAUTHORIZED_RESPONSE;
+  }
+  if (user.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can compile financial statements.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -561,8 +567,14 @@ export async function updateFinancialStatementAction(
     };
   }
 ): Promise<ActionResponse<FinancialStatement>> {
-  const user = await requireRole('admin', 'treasurer');
+  const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can modify financial statements.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
 
   const stmt = await localDb.getFinancialStatementById(id);
   if (!stmt) {
@@ -609,8 +621,14 @@ export async function updateFinancialStatementAction(
  * Rename financial statement
  */
 export async function renameFinancialStatementAction(id: string, newTitle: string): Promise<ActionResponse<FinancialStatement>> {
-  const user = await requireRole('admin', 'treasurer');
+  const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can rename financial statements.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
 
   if (!newTitle || newTitle.trim().length === 0) {
     return { success: false, message: 'Statement title cannot be empty.' };
@@ -639,8 +657,14 @@ export async function renameFinancialStatementAction(id: string, newTitle: strin
  * Delete a financial statement
  */
 export async function deleteFinancialStatementAction(id: string): Promise<ActionResponse> {
-  const user = await requireRole('admin', 'treasurer');
+  const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can delete financial statements.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
 
   const stmt = await localDb.getFinancialStatementById(id);
   if (!stmt) {

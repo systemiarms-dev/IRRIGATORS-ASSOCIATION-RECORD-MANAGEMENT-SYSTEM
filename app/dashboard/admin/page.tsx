@@ -51,7 +51,7 @@ export default function AdminUsersPage() {
   const fixedAssocId = currentUserRole === 'super_admin' ? createForm.associationId : currentUserAssocId || createForm.associationId;
   const selectedAssoc = associations.find((a) => a.id === fixedAssocId);
   const assocShortCode = (selectedAssoc?.code || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const isFixedUsername = createForm.role === 'treasurer' || createForm.role === 'auditor';
+  const isFixedUsername = createForm.role === 'treasurer' || createForm.role === 'auditor' || createForm.role === 'bookkeeper';
   const generatedUsername = isFixedUsername && assocShortCode ? `${createForm.role}_${assocShortCode}` : '';
 
   useEffect(() => {
@@ -294,7 +294,7 @@ export default function AdminUsersPage() {
     if (currentUserRole === 'super_admin') return u.id !== currentUserId;
     return (
       currentUserRole === 'admin' &&
-      (u.role === 'treasurer' || u.role === 'auditor') &&
+      (u.role === 'bookkeeper' || u.role === 'treasurer' || u.role === 'auditor') &&
       u.association_id === currentUserAssocId &&
       u.id !== currentUserId
     );
@@ -374,13 +374,14 @@ export default function AdminUsersPage() {
             <UserPlus className="w-4 h-4" /> Create Officer Account
           </button>
 
-          {currentUserRole === 'super_admin' && (
+          {(currentUserRole === 'super_admin' || currentUserRole === 'admin') && (
             <button
               onClick={() => setShowClearModal(true)}
               className="px-3 py-2.5 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs flex items-center gap-1.5"
+              title="Delete all financial records for this association"
             >
               <Trash2 className="w-4 h-4" />
-              <span>Purge Records</span>
+              <span>{currentUserRole === 'super_admin' ? 'Purge Records' : 'Purge Association Records'}</span>
             </button>
           )}
         </div>
@@ -412,6 +413,14 @@ export default function AdminUsersPage() {
             }`}
           >
             Head Admins
+          </button>
+          <button
+            onClick={() => setRoleFilter('bookkeeper')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              roleFilter === 'bookkeeper' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Bookkeepers
           </button>
           <button
             onClick={() => setRoleFilter('treasurer')}
@@ -490,6 +499,7 @@ export default function AdminUsersPage() {
                           className="px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 bg-white"
                         >
                           <option value="admin">Head Admin</option>
+                          <option value="bookkeeper">Bookkeeper</option>
                           <option value="treasurer">Treasurer</option>
                           <option value="auditor">Auditor</option>
                         </select>
@@ -633,7 +643,8 @@ export default function AdminUsersPage() {
                       onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}
                       className="w-full text-xs p-2.5 border rounded-xl border-slate-300 font-bold"
                     >
-                      <option value="treasurer">Association Treasurer</option>
+                      <option value="bookkeeper">Association Bookkeeper</option>
+                      <option value="treasurer">Association Treasurer (Read &amp; View Only)</option>
                       <option value="auditor">Internal Auditor</option>
                       {currentUserRole === 'super_admin' && <option value="admin">Association Head Admin</option>}
                     </select>
@@ -869,7 +880,9 @@ export default function AdminUsersPage() {
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
                 This permanently deletes ALL transactions, receipts, and generated statements
-                {selectedAssocId === 'all' ? ' across every association' : ' for the selected association'} including their uploaded files. This action cannot be undone.
+                {currentUserRole === 'super_admin' && selectedAssocId === 'all'
+                  ? ' across every association'
+                  : ' for your association'} including their uploaded files. This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
 

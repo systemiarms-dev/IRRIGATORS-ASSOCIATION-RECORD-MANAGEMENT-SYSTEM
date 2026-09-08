@@ -9,7 +9,9 @@ import { ActionResponse, CreateTransactionPayload, Transaction, BudgetCategory, 
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, toPublicProfile, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
 
-const MAX_RECEIPT_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB for receipt images
+const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10MB for PDF documents
+const MAX_RECEIPT_SIZE_BYTES = 10 * 1024 * 1024; // 10MB absolute ceiling
 const ALLOWED_RECEIPT_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -53,8 +55,14 @@ export async function createBudgetCategoryAction(input: {
   category_type: 'collection' | 'disbursement';
   association_id?: string;
 }): Promise<ActionResponse<BudgetCategory>> {
-  const user = await requireRole('admin', 'treasurer');
+  const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can add custom categories.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
 
   const name = (input.name || '').trim();
   if (name.length < 2) {
@@ -144,8 +152,14 @@ export async function getTransactionsAction(
  * Log a new Collection or Disbursement Transaction directly into Supabase
  */
 export async function createTransactionAction(payload: CreateTransactionPayload): Promise<ActionResponse<Transaction>> {
-  const user = await requireRole('admin', 'treasurer');
+  const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can record transactions.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
 
   // Determine target association - strictly force non-superadmins to their own association,
   // and require super admins to explicitly pick one (never silently fall back to the first one).
@@ -260,7 +274,7 @@ export async function uploadReceiptMetadataAction(
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
 
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper' && user.role !== 'treasurer') {
     return { success: false, message: 'You do not have permission to upload receipts.' };
   }
 
@@ -289,20 +303,33 @@ export async function uploadReceiptMetadataAction(
   // uploads route can serve it later.
   let storedFilePath: string = '';
   if (filePathOrDataUrl.startsWith('data:')) {
-    const match = filePathOrDataUrl.match(/^data:([^;]+);base64,(.+)$/i);
-    if (!match) {
+    const commaIdx = filePathOrDataUrl.indexOf(',');
+    if (commaIdx === -1) {
       return { success: false, message: 'Invalid file data format.' };
     }
-    const fileMime = match[1].toLowerCase();
+    const header = filePathOrDataUrl.slice(0, commaIdx);
+    const mimeMatch = header.match(/^data:([^;]+);base64$/i);
+    if (!mimeMatch) {
+      return { success: false, message: 'Invalid file data format.' };
+    }
+    const fileMime = mimeMatch[1].toLowerCase();
     const ext = ALLOWED_RECEIPT_TYPES[fileMime];
     if (!ext) {
       return { success: false, message: `File type ${fileMime} is not supported. Use JPG, PNG, WEBP, or PDF.` };
     }
-    if (clientFileSize > MAX_RECEIPT_SIZE_BYTES) {
-      return { success: false, message: 'Receipt file is too large. Maximum allowed size is 10MB.' };
+
+    const isImage = fileMime.startsWith('image/');
+    const allowedLimit = isImage ? MAX_IMAGE_SIZE_BYTES : MAX_PDF_SIZE_BYTES;
+    const limitLabel = isImage ? '5MB' : '10MB';
+    if (clientFileSize > allowedLimit) {
+      const sizeMB = (clientFileSize / (1024 * 1024)).toFixed(2);
+      return {
+        success: false,
+        message: `The selected ${isImage ? 'image' : 'document'} is too large (${sizeMB}MB). Maximum allowed size is ${limitLabel}. Please compress or resize the file.`,
+      };
     }
 
-    const base64Data = match[2].replace(/\s+/g, '');
+    const base64Data = filePathOrDataUrl.slice(commaIdx + 1).replace(/\s+/g, '');
     const buffer = Buffer.from(base64Data, 'base64');
 
     if (clientFileSize > 0 && buffer.length !== clientFileSize) {
@@ -386,8 +413,14 @@ export async function uploadReceiptMetadataAction(
  * Delete a logged transaction record from Supabase
  */
 export async function deleteTransactionAction(id: string): Promise<ActionResponse> {
-  const user = await requireRole('admin', 'treasurer');
+  const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can delete transactions.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
 
   try {
     const tx = await localDb.getTransactionById(id);

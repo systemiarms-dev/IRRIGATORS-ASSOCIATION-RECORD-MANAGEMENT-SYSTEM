@@ -1,7 +1,7 @@
 // Database and domain types for IARMS multi-association architecture
 export type Database = Record<string, any>;
 
-export type UserRole = 'super_admin' | 'admin' | 'treasurer' | 'auditor' | 'member';
+export type UserRole = 'super_admin' | 'admin' | 'bookkeeper' | 'treasurer' | 'auditor' | 'member';
 export type VerificationStatus = 'pending' | 'verified' | 'flagged' | 'rejected';
 export type TransactionType = 'collection' | 'disbursement';
 export type StatementType = 'balance_sheet' | 'income_statement' | 'cash_flow' | 'fs1' | 'fs2' | 'fs3' | 'fs4';

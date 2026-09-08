@@ -97,6 +97,8 @@ export function getRoleBadgeProps(role: string): { label: string; variant: strin
       return { label: 'Super Admin', variant: 'purple' };
     case 'admin':
       return { label: 'Head Admin', variant: 'rose' };
+    case 'bookkeeper':
+      return { label: 'Bookkeeper', variant: 'amber' };
     case 'treasurer':
       return { label: 'Treasurer', variant: 'emerald' };
     case 'auditor':

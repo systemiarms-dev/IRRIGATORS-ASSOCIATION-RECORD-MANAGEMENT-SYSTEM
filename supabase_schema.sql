@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     email VARCHAR(255),
     password TEXT NOT NULL,
     full_name VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL CHECK (role IN ('super_admin', 'admin', 'treasurer', 'auditor', 'member')),
+    role VARCHAR(50) NOT NULL CHECK (role IN ('super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor', 'member')),
     association_id TEXT REFERENCES public.associations(id) ON DELETE SET NULL,
     farm_location TEXT,
     farm_size_hectares NUMERIC(10, 2) DEFAULT 0,
@@ -254,7 +254,7 @@ ON CONFLICT (statement_number) DO NOTHING;
 -- ensure_iarms_schema() function below when creating members.
 -- ==============================================================================
 ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
-ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('super_admin', 'admin', 'treasurer', 'auditor', 'member'));
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor', 'member'));
 
 -- Helper called automatically by the app before inserting members, so the
 -- schema always matches even if this migration was never run manually.
@@ -265,7 +265,7 @@ SECURITY DEFINER
 AS $$
 BEGIN
     ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
-    ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('super_admin', 'admin', 'treasurer', 'auditor', 'member'));
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor', 'member'));
     PERFORM pg_notify('pgrst', 'reload schema');
 END;
 $$;

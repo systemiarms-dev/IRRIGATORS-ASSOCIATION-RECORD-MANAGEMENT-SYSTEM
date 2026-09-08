@@ -118,12 +118,12 @@ export async function createAssociationAction(formData: FormData): Promise<Actio
     await localDb.createAssociation(newAssoc);
 
     // Auto-seed default initial accounts for this new association with
-    // cryptographically-random passwords (returned once in the message so the
-    // creator can hand them out — they are never re-issued).
+    // standard system default passwords (<role>123) consistent across all IAs.
     const assocCleanCode = code.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const adminPassword = generateRandomPassword();
-    const treasurerPassword = generateRandomPassword();
-    const auditorPassword = generateRandomPassword();
+    const adminPassword = 'admin123';
+    const bookkeeperPassword = 'bookkeeper123';
+    const treasurerPassword = 'treasurer123';
+    const auditorPassword = 'auditor123';
     
     // Head Admin (President)
     await localDb.createUser({
@@ -141,7 +141,23 @@ export async function createAssociationAction(formData: FormData): Promise<Actio
       token_version: 0,
     });
 
-    // Treasurer
+    // Bookkeeper
+    await localDb.createUser({
+      id: `user-bookkeeper-${assocCleanCode}`,
+      username: `bookkeeper_${assocCleanCode}`,
+      password: hashPassword(bookkeeperPassword),
+      full_name: `Bookkeeper ${name.split(' ')[0]}`,
+      role: 'bookkeeper',
+      association_id: newAssoc.id,
+      farm_location: mailing_address,
+      farm_size_hectares: 2.0,
+      contact_number: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      token_version: 0,
+    });
+
+    // Treasurer (Read & View Only)
     await localDb.createUser({
       id: `user-treasurer-${assocCleanCode}`,
       username: `treasurer_${assocCleanCode}`,
@@ -188,7 +204,7 @@ export async function createAssociationAction(formData: FormData): Promise<Actio
 
     return {
       success: true,
-      message: `Association "${name}" created successfully. Initial passwords (one-time): admin_${assocCleanCode}=${adminPassword}, treasurer_${assocCleanCode}=${treasurerPassword}, auditor_${assocCleanCode}=${auditorPassword}. Share these securely and reset on first login.`,
+      message: `Association "${name}" (${code}) created successfully! Initial accounts provisioned: admin_${assocCleanCode} (admin123), bookkeeper_${assocCleanCode} (bookkeeper123), treasurer_${assocCleanCode} (treasurer123), auditor_${assocCleanCode} (auditor123).`,
       data: newAssoc,
     };
   } catch (error: any) {

@@ -37,14 +37,14 @@ export default function Header({
   const [navSaving, setNavSaving] = useState(false);
 
   const navItems = [
-    { label: 'Overview Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'treasurer', 'auditor'] },
+    { label: 'Overview Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
     { label: 'Irrigators Associations', href: '/dashboard/associations', icon: Building2, roles: ['super_admin'] },
-    { label: 'Farmer Members', href: '/dashboard/members', icon: Users, roles: ['super_admin', 'admin', 'treasurer'] },
-    { label: 'Collections & Expenses', href: '/dashboard/treasurer', icon: Wallet, roles: ['super_admin', 'admin', 'treasurer'] },
+    { label: 'Farmer Members', href: '/dashboard/members', icon: Users, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer'] },
+    { label: 'Collections & Expenses', href: '/dashboard/treasurer', icon: Wallet, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer'] },
     { label: 'Verification & Audit Queue', href: '/dashboard/auditor', icon: ShieldCheck, roles: ['super_admin', 'admin', 'auditor'] },
-    { label: 'Financial Statements', href: '/dashboard/statements', icon: FileText, roles: ['super_admin', 'admin', 'treasurer', 'auditor'] },
+    { label: 'Financial Statements', href: '/dashboard/statements', icon: FileText, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
     { label: 'User Account Manager', href: '/dashboard/admin', icon: Users, roles: ['super_admin', 'admin'] },
-    { label: 'My Account Settings', href: '/dashboard/account', icon: UserCheck, roles: ['super_admin', 'admin', 'treasurer', 'auditor'] },
+    { label: 'My Account Settings', href: '/dashboard/account', icon: UserCheck, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
   ];
 
   const allowedNav = navItems.filter((item) => item.roles.includes(userRole));
@@ -113,6 +113,7 @@ export default function Header({
   const roleLabels: Record<UserRole, string> = {
     super_admin: 'Super Admin',
     admin: 'Head Admin',
+    bookkeeper: 'Bookkeeper',
     treasurer: 'Treasurer',
     auditor: 'Auditor',
     member: 'Farmer Member',
@@ -121,6 +122,7 @@ export default function Header({
   const roleColors: Record<UserRole, string> = {
     super_admin: 'bg-purple-500/20 text-purple-200 border-purple-400/30',
     admin: 'bg-rose-500/20 text-rose-200 border-rose-400/30',
+    bookkeeper: 'bg-amber-500/20 text-amber-200 border-amber-400/30',
     treasurer: 'bg-emerald-500/20 text-emerald-200 border-emerald-400/30',
     auditor: 'bg-indigo-500/20 text-indigo-200 border-indigo-400/30',
     member: 'bg-blue-500/20 text-blue-200 border-blue-400/30',

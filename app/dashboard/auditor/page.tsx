@@ -22,6 +22,8 @@ export default function AuditorPage() {
   const [userRole, setUserRole] = useState<UserRole>('auditor');
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [previewImageReceipt, setPreviewImageReceipt] = useState<Receipt | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
   const [auditNotes, setAuditNotes] = useState('');
   const [isPending, startTransition] = useTransition();
   const [pendingStatus, setPendingStatus] = useState<VerificationStatus | null>(null);
@@ -35,6 +37,14 @@ export default function AuditorPage() {
     const timer = setTimeout(() => setActionMsg(null), 6000);
     return () => clearTimeout(timer);
   }, [actionMsg]);
+
+  // Reset image loading state when opening a new preview
+  useEffect(() => {
+    if (previewImageReceipt) {
+      setImageLoading(true);
+      setImageError(false);
+    }
+  }, [previewImageReceipt]);
 
   const [allReceipts, setAllReceipts] = useState<Receipt[]>([]);
 
@@ -451,20 +461,71 @@ export default function AuditorPage() {
                 </button>
               </div>
             </DialogHeader>
-            <div className="flex items-center justify-center p-4">
-              {previewImageReceipt.content_type?.includes('pdf') || previewImageReceipt.file_name?.endsWith('.pdf') ? (
-                <iframe
-                  src={previewImageReceipt.file_path}
-                  className="w-full h-[65vh] rounded-xl border border-slate-800"
-                  title="PDF Preview"
-                />
-              ) : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={previewImageReceipt.file_path}
-                  alt={previewImageReceipt.file_name}
-                  className="max-h-[70vh] object-contain rounded-xl shadow-2xl"
-                />
+            <div className="flex flex-col items-center justify-center p-4 min-h-[350px] relative">
+              {/* Image Loading State */}
+              {imageLoading && !imageError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/90 z-10 rounded-xl">
+                  <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+                  <div className="text-center space-y-1">
+                    <p className="text-xs font-bold text-slate-200">Loading voucher image...</p>
+                    <p className="text-[10px] text-slate-400">Fetching high-resolution voucher from secure storage</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Image Error State */}
+              {imageError && (
+                <div className="flex flex-col items-center justify-center p-8 gap-3 text-center z-20">
+                  <div className="p-3 rounded-full bg-rose-950/80 text-rose-400 border border-rose-800/60">
+                    <AlertTriangle className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-rose-300">Unable to display voucher image</p>
+                    <p className="text-[10px] text-slate-400 max-w-sm">
+                      The file could not be rendered in preview mode. You can try opening it directly in a new browser tab.
+                    </p>
+                  </div>
+                  <a
+                    href={previewImageReceipt.file_path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-400 border border-slate-700 flex items-center gap-1.5 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Open File Link Directly
+                  </a>
+                </div>
+              )}
+
+              {/* Media Display */}
+              {!imageError && (
+                previewImageReceipt.content_type?.includes('pdf') || previewImageReceipt.file_name?.endsWith('.pdf') ? (
+                  <iframe
+                    src={previewImageReceipt.file_path}
+                    className={`w-full h-[65vh] rounded-xl border border-slate-800 transition-opacity duration-300 ${
+                      imageLoading ? 'opacity-0' : 'opacity-100'
+                    }`}
+                    title="PDF Preview"
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => {
+                      setImageLoading(false);
+                      setImageError(true);
+                    }}
+                  />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={previewImageReceipt.file_path}
+                    alt={previewImageReceipt.file_name}
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => {
+                      setImageLoading(false);
+                      setImageError(true);
+                    }}
+                    className={`max-h-[70vh] object-contain rounded-xl shadow-2xl transition-opacity duration-300 ${
+                      imageLoading ? 'opacity-0' : 'opacity-100'
+                    }`}
+                  />
+                )
               )}
             </div>
           </DialogContent>

@@ -47,8 +47,14 @@ export async function getMembersAction(associationId?: string): Promise<ActionRe
  * Members are registry-only records - they do not get portal sign-in access.
  */
 export async function createMemberAction(formData: FormData): Promise<ActionResponse<Profile>> {
-  const admin = await requireRole('admin', 'treasurer');
+  const admin = await requireUser();
   if (!admin) return UNAUTHORIZED_RESPONSE;
+  if (admin.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can register farmer members.' };
+  }
+  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
 
   const full_name = (formData.get('full_name') as string)?.trim();
   const farm_location = (formData.get('farm_location') as string)?.trim();
@@ -128,8 +134,14 @@ export async function createMemberAction(formData: FormData): Promise<ActionResp
  * Only members of the caller's own association can be edited (unless Super Admin).
  */
 export async function updateMemberAction(memberId: string, formData: FormData): Promise<ActionResponse<Profile>> {
-  const admin = await requireRole('admin', 'treasurer');
+  const admin = await requireUser();
   if (!admin) return UNAUTHORIZED_RESPONSE;
+  if (admin.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can edit farmer members.' };
+  }
+  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
 
   try {
     const member = await localDb.getUserById(memberId);
@@ -184,8 +196,14 @@ export async function updateMemberAction(memberId: string, formData: FormData): 
  * Linked transactions keep their records (member_id is SET NULL on delete).
  */
 export async function deleteMemberAction(memberId: string): Promise<ActionResponse> {
-  const admin = await requireRole('admin', 'treasurer');
+  const admin = await requireUser();
   if (!admin) return UNAUTHORIZED_RESPONSE;
+  if (admin.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can remove farmer members.' };
+  }
+  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
 
   try {
     const member = await localDb.getUserById(memberId);

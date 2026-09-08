@@ -25,7 +25,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   FileText, Printer, Loader2, Calculator, Trash2,
   Layers, TrendingUp, Wallet, Landmark, HelpCircle, Shield, Pencil,
-  CheckCircle2, Tag, Building2, Save, Calendar, Sparkles, X, Users, AlertTriangle
+  CheckCircle2, Tag, Building2, Save, Calendar, Sparkles, X, Users, AlertTriangle, Eye
 } from 'lucide-react';
 import { exportToPDFPrint, buildExportFilename } from '@/lib/utils/export';
 
@@ -85,7 +85,7 @@ export default function FinancialStatementsPage() {
   const [navConfirm, setNavConfirm] = useState<{ message: string; action: () => void } | null>(null);
 
   const canEditReports =
-    userRole === 'super_admin' || userRole === 'admin' || userRole === 'treasurer';
+    userRole === 'super_admin' || userRole === 'admin' || userRole === 'bookkeeper';
 
   const MODE_LABELS = {
     auto: { label: 'View Only', hint: 'Generated from the ledger/transactions. Read-only.' },
@@ -535,16 +535,19 @@ export default function FinancialStatementsPage() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {(userRole === 'super_admin' || userRole === 'admin' || userRole === 'treasurer') && (
-            <>
-              <button
-                onClick={() => requestNav(() => setShowGenerateModal(true), 'You have unsaved changes. Generating a new report will start with the saved ledger figures.')}
-                disabled={isGenerating}
-                className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
-              >
-                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />} Generate FS Report
-              </button>
-            </>
+          {canEditReports ? (
+            <button
+              onClick={() => requestNav(() => setShowGenerateModal(true), 'You have unsaved changes. Generating a new report will start with the saved ledger figures.')}
+              disabled={isGenerating}
+              className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
+            >
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />} Generate FS Report
+            </button>
+          ) : (
+            <div className="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
+              <Eye className="w-4 h-4 text-amber-600" />
+              <span>Read &amp; View Only ({userRole === 'auditor' ? 'Auditor' : userRole === 'treasurer' ? 'Treasurer' : 'View Only'})</span>
+            </div>
           )}
         </div>
       </div>
@@ -626,7 +629,7 @@ export default function FinancialStatementsPage() {
                             <span className={`text-xs font-black truncate ${isActive ? 'text-emerald-800' : 'text-slate-900'}`}>
                               {s.title}
                             </span>
-                            {isActive && (
+                            {canEditReports && isActive && (
                               <div className="flex items-center gap-0.5 shrink-0">
                                 <button
                                   onClick={(e) => {

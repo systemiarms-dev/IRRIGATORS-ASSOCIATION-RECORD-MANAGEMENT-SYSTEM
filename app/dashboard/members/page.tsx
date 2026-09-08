@@ -8,7 +8,7 @@ import { getSelfProfileAction } from '@/app/actions/auth';
 import { Profile, UserRole, Association } from '@/types';
 import { formatDate } from '@/lib/utils/formatters';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Users, PlusCircle, Loader2, Trash2, Pencil, Building2, UserRound, MapPin, Phone, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
+import { Users, PlusCircle, Loader2, Trash2, Pencil, Building2, UserRound, MapPin, Phone, RefreshCw, ChevronUp, ChevronDown, Eye } from 'lucide-react';
 import { PhilippinePhoneInput } from '@/components/ui/philippine-phone-input';
 
 export default function MembersPage() {
@@ -24,6 +24,8 @@ export default function MembersPage() {
   const [bannerMsg, setBannerMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const canWrite = userRole === 'super_admin' || userRole === 'admin' || userRole === 'bookkeeper';
 
   const [formName, setFormName] = useState('');
   const [formLocation, setFormLocation] = useState('');
@@ -186,12 +188,19 @@ export default function MembersPage() {
           </div>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            onClick={openCreateModal}
-            className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95"
-          >
-            <PlusCircle className="w-4 h-4" /> Register Farmer Member
-          </button>
+          {canWrite ? (
+            <button
+              onClick={openCreateModal}
+              className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95"
+            >
+              <PlusCircle className="w-4 h-4" /> Register Farmer Member
+            </button>
+          ) : (
+            <div className="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
+              <Eye className="w-4 h-4 text-amber-600" />
+              <span>Read &amp; View Only ({userRole === 'auditor' ? 'Auditor' : userRole === 'treasurer' ? 'Treasurer' : 'View Only'})</span>
+            </div>
+          )}
           <button
             onClick={() => loadData()}
             disabled={loading}
@@ -241,22 +250,24 @@ export default function MembersPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => openEditModal(member)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
-                    title="Edit Member"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteMember(member)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                    title="Remove Member"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                {canWrite && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => openEditModal(member)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                      title="Edit Member"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteMember(member)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                      title="Remove Member"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5 text-[11px] text-slate-600">

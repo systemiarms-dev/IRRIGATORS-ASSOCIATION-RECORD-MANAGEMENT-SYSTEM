@@ -10,7 +10,7 @@ import { Transaction, BudgetCategory, Profile, TransactionType, UserRole, Associ
 import { formatPHP, formatDate } from '@/lib/utils/formatters';
 import TransactionFormModal from '@/components/forms/TransactionFormModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Wallet, PlusCircle, ArrowUpRight, ArrowDownLeft, FileCheck, RefreshCw, Loader2, Trash2, Printer, Download, Building2, Tag, Search } from 'lucide-react';
+import { Wallet, PlusCircle, ArrowUpRight, ArrowDownLeft, FileCheck, RefreshCw, Loader2, Trash2, Printer, Download, Building2, Tag, Search, Eye, AlertTriangle, ExternalLink } from 'lucide-react';
 import { exportToExcelCSV, buildExportFilename } from '@/lib/utils/export';
 
 export default function TreasurerPage() {
@@ -33,7 +33,20 @@ export default function TreasurerPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
+  const [previewVoucherTx, setPreviewVoucherTx] = useState<Transaction | null>(null);
+  const [voucherImageLoading, setVoucherImageLoading] = useState(true);
+  const [voucherImageError, setVoucherImageError] = useState(false);
+
   const [, startTransition] = useTransition();
+
+  React.useEffect(() => {
+    if (previewVoucherTx) {
+      setVoucherImageLoading(true);
+      setVoucherImageError(false);
+    }
+  }, [previewVoucherTx]);
+
+  const canWrite = userRole === 'super_admin' || userRole === 'admin' || userRole === 'bookkeeper';
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -229,12 +242,19 @@ export default function TreasurerPage() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95"
-          >
-            <PlusCircle className="w-4 h-4" /> Log Payment / Voucher
-          </button>
+          {canWrite ? (
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95"
+            >
+              <PlusCircle className="w-4 h-4" /> Log Payment / Voucher
+            </button>
+          ) : (
+            <div className="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
+              <Eye className="w-4 h-4 text-amber-600" />
+              <span>Read &amp; View Only ({userRole === 'auditor' ? 'Auditor' : userRole === 'treasurer' ? 'Treasurer' : 'View Only'})</span>
+            </div>
+          )}
 
           <button
             onClick={handleExportTransactionsExcel}
@@ -436,33 +456,46 @@ export default function TreasurerPage() {
                     <td className="py-3 px-3 text-center whitespace-nowrap">
                       {!tx.receipt_id ? (
                         <span className="text-slate-400 text-[10px]">No Receipt</span>
-                      ) : tx.receipt?.status === 'verified' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold" title={tx.receipt?.file_name || ''}>
-                          <FileCheck className="w-3 h-3" /> Verified
-                        </span>
-                      ) : tx.receipt?.status === 'flagged' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold" title={tx.receipt?.file_name || ''}>
-                          <FileCheck className="w-3 h-3" /> Flagged
-                        </span>
-                      ) : tx.receipt?.status === 'rejected' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold" title={tx.receipt?.file_name || ''}>
-                          <FileCheck className="w-3 h-3" /> Rejected
-                        </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold" title={tx.receipt?.file_name || ''}>
-                          <FileCheck className="w-3 h-3" /> Pending Review
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewVoucherTx(tx)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all hover:scale-105 active:scale-95 shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                          title="Click to view receipt voucher"
+                        >
+                          {tx.receipt?.status === 'verified' ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              <FileCheck className="w-3 h-3 text-emerald-600" /> Verified <Eye className="w-2.5 h-2.5 ml-0.5 opacity-70" />
+                            </span>
+                          ) : tx.receipt?.status === 'flagged' ? (
+                            <span className="inline-flex items-center gap-1 text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                              <FileCheck className="w-3 h-3 text-amber-600" /> Flagged <Eye className="w-2.5 h-2.5 ml-0.5 opacity-70" />
+                            </span>
+                          ) : tx.receipt?.status === 'rejected' ? (
+                            <span className="inline-flex items-center gap-1 text-rose-800 bg-rose-100 px-2 py-0.5 rounded-full">
+                              <FileCheck className="w-3 h-3 text-rose-600" /> Rejected <Eye className="w-2.5 h-2.5 ml-0.5 opacity-70" />
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
+                              <FileCheck className="w-3 h-3 text-slate-500" /> Review <Eye className="w-2.5 h-2.5 ml-0.5 opacity-70" />
+                            </span>
+                          )}
+                        </button>
                       )}
                     </td>
 
                     <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => setDeleteModalTx(tx)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        title="Delete Record"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {canWrite ? (
+                        <button
+                          onClick={() => setDeleteModalTx(tx)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="Delete Record"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-400 font-mono">View Only</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -517,6 +550,101 @@ export default function TreasurerPage() {
                 {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 {isDeleting ? 'Deleting...' : 'Delete Transaction'}
               </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Voucher Preview Lightbox Modal */}
+      {previewVoucherTx && previewVoucherTx.receipt && (
+        <Dialog open={Boolean(previewVoucherTx)} onOpenChange={() => setPreviewVoucherTx(null)}>
+          <DialogContent className="max-w-3xl p-4 bg-slate-950 text-white rounded-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="border-b border-slate-800 pb-2">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <DialogTitle className="text-sm font-bold text-white flex items-center gap-2">
+                    <FileCheck className="w-4 h-4 text-emerald-400" />
+                    Voucher: {previewVoucherTx.receipt.file_name}
+                  </DialogTitle>
+                  <DialogDescription className="text-[11px] text-slate-400 mt-0.5">
+                    Transaction {previewVoucherTx.transaction_number} &bull; {formatPHP(previewVoucherTx.amount)} &bull; {formatDate(previewVoucherTx.transaction_date)}
+                  </DialogDescription>
+                </div>
+                <button
+                  onClick={() => setPreviewVoucherTx(null)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white border border-slate-700 transition-colors"
+                >
+                  &larr; Close
+                </button>
+              </div>
+            </DialogHeader>
+
+            <div className="flex flex-col items-center justify-center p-4 min-h-[350px] relative">
+              {/* Image Loading State */}
+              {voucherImageLoading && !voucherImageError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/90 z-10 rounded-xl">
+                  <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+                  <div className="text-center space-y-1">
+                    <p className="text-xs font-bold text-slate-200">Loading voucher image...</p>
+                    <p className="text-[10px] text-slate-400">Fetching high-resolution file from storage</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Image Error State */}
+              {voucherImageError && (
+                <div className="flex flex-col items-center justify-center p-8 gap-3 text-center z-20">
+                  <div className="p-3 rounded-full bg-rose-950/80 text-rose-400 border border-rose-800/60">
+                    <AlertTriangle className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-rose-300">Unable to display voucher image</p>
+                    <p className="text-[10px] text-slate-400 max-w-sm">
+                      The file could not be rendered in preview mode. You can try opening it directly in a new browser tab.
+                    </p>
+                  </div>
+                  <a
+                    href={previewVoucherTx.receipt.file_path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-400 border border-slate-700 flex items-center gap-1.5 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Open File Link Directly
+                  </a>
+                </div>
+              )}
+
+              {/* Media Display */}
+              {!voucherImageError && (
+                previewVoucherTx.receipt.content_type?.includes('pdf') || previewVoucherTx.receipt.file_name?.endsWith('.pdf') ? (
+                  <iframe
+                    src={previewVoucherTx.receipt.file_path}
+                    className={`w-full h-[65vh] rounded-xl border border-slate-800 transition-opacity duration-300 ${
+                      voucherImageLoading ? 'opacity-0' : 'opacity-100'
+                    }`}
+                    title="PDF Voucher Preview"
+                    onLoad={() => setVoucherImageLoading(false)}
+                    onError={() => {
+                      setVoucherImageLoading(false);
+                      setVoucherImageError(true);
+                    }}
+                  />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={previewVoucherTx.receipt.file_path}
+                    alt={previewVoucherTx.receipt.file_name}
+                    onLoad={() => setVoucherImageLoading(false)}
+                    onError={() => {
+                      setVoucherImageLoading(false);
+                      setVoucherImageError(true);
+                    }}
+                    className={`max-h-[70vh] object-contain rounded-xl shadow-2xl transition-opacity duration-300 ${
+                      voucherImageLoading ? 'opacity-0 hidden' : 'opacity-100 block'
+                    }`}
+                  />
+                )
+              )}
             </div>
           </DialogContent>
         </Dialog>

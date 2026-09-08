@@ -3,12 +3,26 @@
 import React, { useState } from 'react';
 import {
   createTransactionAction,
-  uploadReceiptMetadataAction,
   createBudgetCategoryAction,
 } from '@/app/actions/transactions';
 import { BudgetCategory, TransactionType, Profile, Association } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { PlusCircle, X, Loader2, Wallet, Tag, MapPin, Hash, Building2, FileText, Search, Users } from 'lucide-react';
+import {
+  PlusCircle,
+  X,
+  Loader2,
+  Wallet,
+  Tag,
+  MapPin,
+  Hash,
+  Building2,
+  FileText,
+  Search,
+  Users,
+  AlertTriangle,
+  CheckCircle2,
+  Image as ImageIcon,
+} from 'lucide-react';
 
 interface TransactionFormModalProps {
   categories: BudgetCategory[];
@@ -24,6 +38,9 @@ const inputCls =
   'w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 font-sans focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400';
 const labelCls = 'text-[11px] font-bold text-slate-600';
 const CUSTOM_OPTION = '__custom__';
+
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit for images
+const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10MB limit for PDFs
 
 export default function TransactionFormModal({
   categories,
@@ -52,6 +69,13 @@ export default function TransactionFormModal({
 
   const [file, setFile] = useState<File | null>(null);
   const [receiptName, setReceiptName] = useState<string>('');
+  const [fileUploadError, setFileUploadError] = useState<{
+    fileName: string;
+    actualSize: string;
+    limitSize: string;
+    isImage: boolean;
+    reason: 'size' | 'type';
+  } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -119,12 +143,6 @@ export default function TransactionFormModal({
       let receiptId: string | null = null;
       if (file) {
         setUploading(true);
-        const base64Url = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => reject(new Error('Could not read the selected file. Please try a different file.'));
-          reader.readAsDataURL(file);
-        });
 
         // Use custom receipt name if provided, otherwise keep original filename
         const ext = file.name.split('.').pop() || '';
@@ -132,10 +150,28 @@ export default function TransactionFormModal({
           ? `${receiptName.trim()}.${ext}`
           : file.name;
 
-        const receiptRes = await uploadReceiptMetadataAction(base64Url, uploadName, file.size, file.type, selectedAssocId);
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
+        uploadFormData.append('fileName', uploadName);
+        if (selectedAssocId) {
+          uploadFormData.append('associationId', selectedAssocId);
+        }
+
+        const resUpload = await fetch('/api/upload-receipt', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        let receiptRes: any;
+        try {
+          receiptRes = await resUpload.json();
+        } catch {
+          receiptRes = { success: false, message: 'Invalid response from upload server.' };
+        }
+
         setUploading(false);
-        if (!receiptRes.success || !receiptRes.data) {
-          setErrorMsg(receiptRes.message || 'Failed to upload the receipt voucher. Please fix the file and try again.');
+        if (!resUpload.ok || !receiptRes.success || !receiptRes.data) {
+          setErrorMsg(receiptRes.message || 'Failed to upload the receipt voucher. Please try a different file.');
           return;
         }
         receiptId = receiptRes.data.id;
@@ -459,11 +495,22 @@ export default function TransactionFormModal({
           )}
 
           {/* Receipt / Voucher Attachment */}
-          <div className="space-y-1.5">
-            <label className={`${labelCls} flex items-center justify-between gap-2`}>
-              <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5 text-emerald-700" /> Receipt / Official Voucher (Optional)</span>
-              <span className="text-[10px] text-slate-400 font-medium">JPG, PNG, WebP, PDF &le; 10MB</span>
-            </label>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-1.5">
+              <label className={`${labelCls} flex items-center gap-1.5`}>
+                <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Receipt / Official Voucher (Optional)</span>
+              </label>
+              <div className="flex items-center gap-1.5 text-[10px]">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold">
+                  <ImageIcon className="w-3 h-3 text-emerald-600" /> Images &le; 5MB
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-semibold">
+                  PDF &le; 10MB
+                </span>
+              </div>
+            </div>
+
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,application/pdf"
@@ -471,6 +518,7 @@ export default function TransactionFormModal({
               onChange={(e) => {
                 const selected = e.target.files?.[0] || null;
                 setReceiptName('');
+                setFileUploadError(null);
 
                 if (!selected) {
                   setFile(null);
@@ -479,45 +527,143 @@ export default function TransactionFormModal({
 
                 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
                 const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-                const MAX_SIZE = 10 * 1024 * 1024;
 
                 const ext = (selected.name.split('.').pop() || '').toLowerCase();
                 const typeOk = ALLOWED_TYPES.includes(selected.type) || ALLOWED_EXTS.includes(ext);
                 if (!typeOk) {
                   setFile(null);
-                  setErrorMsg('Unsupported file type. Only JPG, PNG, WebP, and PDF files are allowed.');
+                  setFileUploadError({
+                    fileName: selected.name,
+                    actualSize: (selected.size / (1024 * 1024)).toFixed(2) + ' MB',
+                    limitSize: 'JPG, PNG, WebP, PDF only',
+                    isImage: false,
+                    reason: 'type',
+                  });
                   e.target.value = '';
                   return;
                 }
-                if (selected.size > MAX_SIZE) {
+
+                const isImage = selected.type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+                const maxAllowed = isImage ? MAX_IMAGE_SIZE_BYTES : MAX_PDF_SIZE_BYTES;
+                const maxAllowedLabel = isImage ? '5 MB' : '10 MB';
+
+                if (selected.size > maxAllowed) {
+                  const actualMB = (selected.size / (1024 * 1024)).toFixed(2) + ' MB';
                   setFile(null);
-                  setErrorMsg('File is too large. Maximum allowed size is 10MB.');
+                  setFileUploadError({
+                    fileName: selected.name,
+                    actualSize: actualMB,
+                    limitSize: maxAllowedLabel,
+                    isImage,
+                    reason: 'size',
+                  });
                   e.target.value = '';
                   return;
                 }
-                setErrorMsg(null);
+
+                setFileUploadError(null);
                 setFile(selected);
               }}
               className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             />
-            {file && (
-              <div className="mt-2 space-y-1">
-                <label className="text-[10px] font-bold text-slate-500">Receipt Name (optional)</label>
-                <input
-                  type="text"
-                  value={receiptName}
-                  onChange={(e) => setReceiptName(e.target.value)}
-                  placeholder={file.name.replace(/\.[^.]+$/, '')}
-                  className="w-full text-xs p-2 border rounded-lg border-slate-300"
-                />
-                <p className="text-[10px] text-slate-400 font-medium">
-                  Leave blank to keep original name. Extension (.jpg, .png, etc.) is preserved automatically.
-                </p>
+
+            {/* Oversized / Format Error Notification Banner */}
+            {fileUploadError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 border-2 border-rose-300 text-rose-900 shadow-sm animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-full bg-rose-100 text-rose-700 shrink-0 mt-0.5">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs font-black text-rose-900 flex items-center gap-1.5">
+                        {fileUploadError.reason === 'size'
+                          ? `File Too Large • Upload Blocked (${fileUploadError.isImage ? 'Image' : 'Document'})`
+                          : 'Unsupported File Format'}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setFileUploadError(null)}
+                        className="text-rose-400 hover:text-rose-800 p-0.5 transition-colors"
+                        aria-label="Dismiss notification"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {fileUploadError.reason === 'size' ? (
+                      <div className="mt-1.5 space-y-2">
+                        <p className="text-[11px] text-rose-800 leading-snug">
+                          The selected {fileUploadError.isImage ? 'image' : 'file'}{' '}
+                          <strong className="font-bold text-rose-950">&ldquo;{fileUploadError.fileName}&rdquo;</strong> exceeds the allowable upload size.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-200 text-rose-950 text-[10px] font-bold border border-rose-300">
+                            Your File: {fileUploadError.actualSize} (Too Large)
+                          </span>
+                          <span className="text-rose-400 font-black text-xs">&gt;</span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                            Allowed Limit: Max {fileUploadError.limitSize}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-rose-700 font-medium">
+                          💡 <strong>Tip:</strong> Please compress the image, choose a lower camera resolution, or crop unnecessary edges before attaching.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-rose-800 mt-1">
+                        File &ldquo;{fileUploadError.fileName}&rdquo; is not supported. Please choose a JPG, PNG, WebP image or PDF document.
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
-            <p className="text-[10px] text-slate-400 font-medium">
-              {file ? `Voucher attached: ${receiptName.trim() ? receiptName.trim() + '.' + file.name.split('.').pop() : file.name}` : 'No voucher uploaded — the record shows "Pending Voucher" and nothing is auto-created until you attach a file.'}
-            </p>
+
+            {/* Valid File Attached Card */}
+            {file && (
+              <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold text-emerald-900 truncate">{file.name}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-bold shrink-0">
+                      {(file.size / (1024 * 1024)).toFixed(2)} MB • OK
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFile(null);
+                      setReceiptName('');
+                    }}
+                    className="text-slate-400 hover:text-rose-600 p-1"
+                    title="Remove file"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-600">Voucher / Receipt Display Name (optional)</label>
+                  <input
+                    type="text"
+                    value={receiptName}
+                    onChange={(e) => setReceiptName(e.target.value)}
+                    placeholder={file.name.replace(/\.[^.]+$/, '')}
+                    className="w-full text-xs p-2 bg-white border rounded-lg border-slate-300 focus:ring-2 focus:ring-emerald-300 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    Leave blank to keep original filename. File extension is preserved automatically.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!file && !fileUploadError && (
+              <p className="text-[10px] text-slate-400 font-medium">
+                No voucher uploaded — the record shows &ldquo;Pending Voucher&rdquo; and nothing is auto-created until you attach a file.
+              </p>
+            )}
           </div>
 
           {/* Actions */}
