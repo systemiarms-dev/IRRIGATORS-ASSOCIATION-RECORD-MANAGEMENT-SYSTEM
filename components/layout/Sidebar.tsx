@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   Save,
   X,
-  Loader2
+  Loader2,
+  BookOpen
 } from 'lucide-react';
 import InstallAppButton from '@/components/pwa/InstallAppButton';
 import { UserRole } from '@/types';
@@ -107,6 +108,14 @@ export default function Sidebar({
           roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'],
           badge: 'FS1 - FS4',
           description: 'Compile official NIA reports',
+        },
+        {
+          label: 'Chart of Accounts',
+          href: '/dashboard/chart-of-accounts',
+          icon: BookOpen,
+          roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'],
+          badge: 'Categories',
+          description: 'Budget lines & categories',
         },
       ],
     },

@@ -53,12 +53,15 @@ function isImageVariant(declared: string, sniffed: string): boolean {
 export async function createBudgetCategoryAction(input: {
   name: string;
   category_type: 'collection' | 'disbursement';
+  code?: string;
+  allocated_amount?: number;
+  description?: string;
   association_id?: string;
 }): Promise<ActionResponse<BudgetCategory>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can add custom categories.' };
+  if (user.role === 'treasurer' || user.role === 'auditor') {
+    return { success: false, message: 'You have read-only access. Only bookkeepers and administrators can manage chart of accounts categories.' };
   }
   if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
     return UNAUTHORIZED_RESPONSE;
@@ -66,44 +69,114 @@ export async function createBudgetCategoryAction(input: {
 
   const name = (input.name || '').trim();
   if (name.length < 2) {
-    return { success: false, message: 'Please enter a custom category name (at least 2 characters).' };
+    return { success: false, message: 'Please enter a category name (at least 2 characters).' };
   }
   if (!['collection', 'disbursement'].includes(input.category_type)) {
     return { success: false, message: 'Invalid category type.' };
   }
 
-  // Non-super admins/treasurers may only create categories in their own association;
-  // super admins must explicitly pick one so a custom category is never orphaned.
+  // Non-super admins may only create categories in their own association;
+  // super admins must explicitly pick one.
   let targetAssoc: string | null = null;
   if (user.role === 'super_admin') {
     if (!input.association_id) {
       return {
         success: false,
-        message: 'Please choose the target Irrigators Association before adding a custom category. It cannot be blank when the scope is All Associations (Consolidated).',
+        message: 'Please choose the target Irrigators Association before adding a budget category.',
       };
     }
     targetAssoc = input.association_id;
   } else {
     targetAssoc = user.association_id || null;
     if (!targetAssoc) {
-      return { success: false, message: 'Your account is not linked to an association. Please ask the head admin to link your account, then retry.' };
+      return { success: false, message: 'Your account is not linked to an association. Please contact the administrator.' };
     }
+  }
+
+  const prefix = input.category_type === 'collection' ? 'REC' : 'DISB';
+  let categoryCode = '';
+  if (input.code && input.code.trim()) {
+    categoryCode = input.code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '_');
+  } else {
+    const slug = name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 10);
+    categoryCode = `${prefix}-${slug}`;
   }
 
   try {
     const category: BudgetCategory = {
       id: `cat-${Date.now()}`,
-      code: `${input.category_type === 'collection' ? 'REC' : 'DISB'}-CUSTOM-${Date.now()}`,
+      code: categoryCode,
       name,
       category_type: input.category_type,
-      allocated_amount: 0,
+      allocated_amount: typeof input.allocated_amount === 'number' ? input.allocated_amount : 0,
+      description: input.description?.trim() || null as any,
       is_active: true,
       association_id: targetAssoc,
     };
     const created = await localDb.createBudgetCategory(category);
-    return { success: true, message: 'Custom category added to the chart of accounts.', data: created };
+    return { success: true, message: `Category "${name}" added to Chart of Accounts.`, data: created };
   } catch (error: any) {
-    return { success: false, message: error.message || 'Error creating custom category.' };
+    return { success: false, message: error.message || 'Error creating budget category.' };
+  }
+}
+
+/**
+ * Safely delete an association-specific budget category from the Chart of Accounts.
+ * Prevents deletion of standard NIA classifications or categories with active ledger transactions.
+ */
+export async function deleteBudgetCategoryAction(id: string): Promise<ActionResponse> {
+  const user = await requireUser();
+  if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer' || user.role === 'auditor') {
+    return { success: false, message: 'You have read-only access. Only bookkeepers and administrators can remove categories.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
+
+  const coreStandardIds = [
+    'cat-1', 'cat-2', 'cat-3', 'cat-4', 'cat-5', 'cat-6', 'cat-7', 'cat-8',
+    'cat-9', 'cat-10', 'cat-11', 'cat-12', 'cat-13', 'cat-14', 'cat-15', 'cat-16', 'cat-17'
+  ];
+  if (coreStandardIds.includes(id)) {
+    return { success: false, message: 'Standard NIA Chart of Accounts categories cannot be deleted.' };
+  }
+
+  try {
+    const allCats = await localDb.getBudgetCategories();
+    const target = allCats.find((c) => c.id === id);
+    if (!target) {
+      return { success: false, message: 'Budget category not found.' };
+    }
+
+    if (!target.association_id) {
+      return { success: false, message: 'Official standard system categories cannot be deleted.' };
+    }
+
+    if (user.role !== 'super_admin' && target.association_id !== user.association_id) {
+      return UNAUTHORIZED_RESPONSE;
+    }
+
+    // Verify no transactions use this category before deleting
+    const storageClient = getSupabaseServerClient();
+    if (storageClient) {
+      const { count } = await storageClient
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('category_id', id);
+
+      if (count && count > 0) {
+        return {
+          success: false,
+          message: `Cannot delete "${target.name}": It is linked to ${count} transaction(s). Reassign or delete those transactions first.`,
+        };
+      }
+    }
+
+    await localDb.deleteBudgetCategory(id);
+    return { success: true, message: `Category "${target.name}" was removed from the Chart of Accounts.` };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Error removing budget category.' };
   }
 }
 

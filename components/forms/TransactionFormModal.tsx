@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import {
   createTransactionAction,
-  createBudgetCategoryAction,
 } from '@/app/actions/transactions';
 import { BudgetCategory, TransactionType, Profile, Association } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -127,17 +126,24 @@ export default function TransactionFormModal({
 
     try {
       let finalCategoryId = categoryId;
+      let finalParticulars = particulars ? particulars.trim() : '';
+
       if (isCustomCategory) {
-        const ccRes = await createBudgetCategoryAction({
-          name: customCategory.trim(),
-          category_type: type,
-          association_id: isSuperAdmin ? selectedAssocId : undefined,
-        });
-        if (!ccRes.success || !ccRes.data) {
-          setErrorMsg(ccRes.message || 'Failed to create the custom category. Please try again.');
-          return;
+        // Map to standard miscellaneous line item without cluttering the budget_categories table
+        const fallbackCat = filteredCategories.find((c) =>
+          type === 'collection'
+            ? (c.code === 'REC-DON' || c.code === 'REC-OTHER' || c.name.toLowerCase().includes('other') || c.name.toLowerCase().includes('donations'))
+            : (c.code === 'DISB-MISC' || c.code === 'DISB-OTHER' || c.name.toLowerCase().includes('miscellaneous') || c.name.toLowerCase().includes('other') || c.code === 'DISB-REPAIR')
+        ) || filteredCategories[0];
+
+        if (fallbackCat) {
+          finalCategoryId = fallbackCat.id;
         }
-        finalCategoryId = ccRes.data.id;
+
+        const customNote = customCategory.trim();
+        if (customNote) {
+          finalParticulars = finalParticulars ? `[${customNote}] ${finalParticulars}` : `[${customNote}]`;
+        }
       }
 
       let receiptId: string | null = null;
@@ -185,7 +191,7 @@ export default function TransactionFormModal({
         voucher_number: voucherNumber || null,
         payee_name: payeeName || null,
         lateral_section: lateralSection || null,
-        particulars: particulars || null,
+        particulars: finalParticulars || null,
         member_id: type === 'collection' && memberIds.length === 1 ? memberIds[0] || null : null,
         member_ids: type === 'collection' && memberIds.length > 0 ? memberIds : null,
         receipt_id: receiptId,
@@ -346,24 +352,21 @@ export default function TransactionFormModal({
                   [{c.code}] {c.name}
                 </option>
               ))}
-              <option value={CUSTOM_OPTION}>-- Custom / Other (type new line below) --</option>
+              <option value={CUSTOM_OPTION}>-- Custom / Other (one-time note below) --</option>
             </select>
             {isCustomCategory && (
               <div className="pt-1.5 space-y-1.5">
                 <input
                   type="text"
                   autoFocus
-                  placeholder="e.g. Barangay Share, Paluwagan Dues"
+                  placeholder="e.g. Barangay Share, Paluwagan Dues, Special Canal Clearing"
                   value={customCategory}
                   onChange={(e) => setCustomCategory(e.target.value)}
                   className={inputCls}
                 />
-                {customCategory.trim() && (
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    A new {type === 'collection' ? 'collection' : 'disbursement'} line will be created on save — no
-                    duplicate entry.
-                  </p>
-                )}
+                <p className="text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 font-medium">
+                  <strong>One-time transaction note:</strong> This custom description is saved with this transaction (in particulars) and will not clutter the permanent dropdown. To add permanent categories for this association, use the <strong>Chart of Accounts</strong>.
+                </p>
               </div>
             )}
           </div>

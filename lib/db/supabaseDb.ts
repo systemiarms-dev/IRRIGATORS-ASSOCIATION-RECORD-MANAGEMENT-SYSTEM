@@ -343,10 +343,7 @@ class SupabaseDatabaseService {
     if (associationId && associationId !== 'all') {
       const specific = all.filter((c) => c.association_id === associationId);
       const universal = all.filter((c) => !c.association_id);
-      if (specific.length > 0) {
-        return [...specific, ...universal];
-      }
-      return all;
+      return [...universal, ...specific];
     }
     return all;
   }
@@ -357,6 +354,14 @@ class SupabaseDatabaseService {
     if (error) throw new Error(error.message || 'Error creating budget category');
     invalidateCache('bc:');
     return data as BudgetCategory;
+  }
+
+  public async deleteBudgetCategory(id: string): Promise<boolean> {
+    const client = this.getClient();
+    const { error } = await client.from('budget_categories').delete().eq('id', id);
+    if (error) throw new Error(error.message || 'Error deleting budget category');
+    invalidateCache('bc:');
+    return true;
   }
 
   // ==========================================

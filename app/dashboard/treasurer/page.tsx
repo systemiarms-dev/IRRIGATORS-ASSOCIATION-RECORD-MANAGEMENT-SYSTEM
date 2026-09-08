@@ -10,7 +10,8 @@ import { Transaction, BudgetCategory, Profile, TransactionType, UserRole, Associ
 import { formatPHP, formatDate } from '@/lib/utils/formatters';
 import TransactionFormModal from '@/components/forms/TransactionFormModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Wallet, PlusCircle, ArrowUpRight, ArrowDownLeft, FileCheck, RefreshCw, Loader2, Trash2, Printer, Download, Building2, Tag, Search, Eye, AlertTriangle, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { Wallet, PlusCircle, ArrowUpRight, ArrowDownLeft, FileCheck, RefreshCw, Loader2, Trash2, Printer, Download, Building2, Tag, Search, Eye, AlertTriangle, ExternalLink, BookOpen } from 'lucide-react';
 import { exportToExcelCSV, buildExportFilename } from '@/lib/utils/export';
 
 export default function TreasurerPage() {
@@ -255,6 +256,15 @@ export default function TreasurerPage() {
               <span>Read &amp; View Only ({userRole === 'auditor' ? 'Auditor' : userRole === 'treasurer' ? 'Treasurer' : 'View Only'})</span>
             </div>
           )}
+
+          <Link
+            href="/dashboard/chart-of-accounts"
+            className="px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+            title="Manage Chart of Accounts"
+          >
+            <BookOpen className="w-4 h-4 text-emerald-700" />
+            <span>Chart of Accounts</span>
+          </Link>
 
           <button
             onClick={handleExportTransactionsExcel}
