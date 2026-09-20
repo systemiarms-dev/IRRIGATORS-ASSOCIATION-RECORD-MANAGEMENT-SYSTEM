@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import {
   createTransactionAction,
 } from '@/app/actions/transactions';
-import { BudgetCategory, TransactionType, Profile, Association } from '@/types';
+import { BudgetCategory, TransactionType, Profile, Association, Transaction } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   PlusCircle,
@@ -29,7 +29,7 @@ interface TransactionFormModalProps {
   associations?: Association[];
   defaultAssociationId?: string;
   isSuperAdmin?: boolean;
-  onSuccess: () => void;
+  onSuccess: (newTx?: Transaction) => void;
   onClose: () => void;
 }
 
@@ -205,7 +205,7 @@ export default function TransactionFormModal({
         return;
       }
 
-      onSuccess();
+      onSuccess(res.data);
       onClose();
     } catch (err: any) {
       setErrorMsg(err?.message || 'Unexpected error while saving the transaction. Please try again.');

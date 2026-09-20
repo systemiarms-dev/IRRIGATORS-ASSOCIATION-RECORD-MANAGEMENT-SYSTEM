@@ -381,7 +381,9 @@ class SupabaseDatabaseService {
       query = query.eq('type', typeFilter);
     }
 
-    const { data: txs, error } = await query.order('transaction_date', { ascending: false });
+    const { data: txs, error } = await query
+      .order('transaction_date', { ascending: false })
+      .order('created_at', { ascending: false });
     if (error) throw new Error(error.message || 'Error fetching transactions');
 
     // Join related categories, profiles, receipts, and associations reliably

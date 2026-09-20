@@ -524,8 +524,23 @@ export default function TreasurerPage() {
           defaultAssociationId={userRole === 'super_admin' ? (selectedAssocId !== 'all' ? selectedAssocId : '') : (userAssocId || undefined)}
           isSuperAdmin={userRole === 'super_admin'}
           onClose={() => setShowModal(false)}
-          onSuccess={() => {
-            setBannerMsg({ type: 'success', text: 'Transaction logged to financial ledger.' });
+          onSuccess={(createdTx) => {
+            setBannerMsg({
+              type: 'success',
+              text: `Transaction ${createdTx?.transaction_number || ''} logged to financial ledger successfully.`,
+            });
+            setSearchQuery('');
+            setDateFrom('');
+            setDateTo('');
+            if (createdTx) {
+              if (typeFilter !== 'all' && typeFilter !== createdTx.type) {
+                setTypeFilter('all');
+              }
+              if (userRole === 'super_admin' && selectedAssocId !== 'all' && createdTx.association_id && selectedAssocId !== createdTx.association_id) {
+                setSelectedAssocId(createdTx.association_id);
+              }
+              setTransactions((prev) => [createdTx, ...prev.filter((t) => t.id !== createdTx.id)]);
+            }
             loadData();
           }}
         />
