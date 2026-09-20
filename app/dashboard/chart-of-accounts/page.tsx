@@ -18,6 +18,7 @@ import {
   Layers,
   Sparkles,
   ChevronRight,
+  ChevronDown,
   X,
   Wallet,
 } from 'lucide-react';
@@ -216,59 +217,113 @@ export default function ChartOfAccountsPage() {
   const selectedAssocObj = associations.find((a) => a.id === selectedAssocId);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
+      {/* Super Admin Dedicated Association Selector Strip */}
+      {isSuperAdmin && (
+        <div className="p-3 sm:p-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 shrink-0">
+                <Building2 className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-slate-800 tracking-tight flex items-center gap-1.5">
+                  <span>Scope by Association</span>
+                  <span className="hidden sm:inline-block text-[11px] text-slate-400 font-normal">
+                    (Super Admin Mode)
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium truncate hidden xs:block">
+                  Choose which Irrigators Association chart of accounts to inspect or customize
+                </p>
+              </div>
+            </div>
+
+            {selectedAssocObj && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                Active: {selectedAssocObj.code}
+              </span>
+            )}
+          </div>
+
+          {/* Mobile Full-Width Dropdown Selector (< sm screens) */}
+          <div className="block sm:hidden">
+            <div className="relative">
+              <select
+                value={selectedAssocId}
+                onChange={(e) => {
+                  setSelectedAssocId(e.target.value);
+                  setFormAssocId(e.target.value);
+                }}
+                className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl px-3.5 py-2.5 pr-8 focus:ring-2 focus:ring-emerald-600 focus:outline-none appearance-none cursor-pointer truncate shadow-2xs"
+              >
+                {associations.map((a) => (
+                  <option key={a.id} value={a.id} className="text-slate-900 font-semibold py-1">
+                    {a.code} — {a.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-500 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+
+          {/* Quick-Tap Horizontal Scrollable Pills (All Screens) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 pt-0.5">
+            {associations.map((assoc) => {
+              const isSelected = selectedAssocId === assoc.id;
+              return (
+                <button
+                  key={assoc.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedAssocId(assoc.id);
+                    setFormAssocId(assoc.id);
+                  }}
+                  className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-700/20'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="font-extrabold">{assoc.code}</span>
+                  <span className="text-[11px] font-medium opacity-85">&bull; {assoc.name.split(' ')[0]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white shadow-lg">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-emerald-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white shadow-lg">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-emerald-200 shrink-0">
             <BookOpen className="w-6 h-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black tracking-tight">Chart of Accounts</h1>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-700/80 text-emerald-100 border border-emerald-500/40">
-                Official NIA &amp; IA Ledger Classifications
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-black tracking-tight">Chart of Accounts</h1>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-700/80 text-emerald-100 border border-emerald-500/40 shrink-0">
+                Official NIA &amp; IA Ledger
               </span>
             </div>
-            <p className="text-xs text-emerald-200/90 mt-0.5">
-              Authorized budget line items selectable when logging collections and disbursements.
+            <p className="text-xs text-emerald-200/90 mt-0.5 truncate max-w-xl">
+              {selectedAssocObj ? `Scoped to ${selectedAssocObj.name} (${selectedAssocObj.code})` : 'Authorized budget line items selectable when logging collections and disbursements.'}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Association Scoping */}
-          {isSuperAdmin ? (
-            <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-white/15 text-xs">
-              <Building2 className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
-              <select
-                value={selectedAssocId}
-                onChange={(e) => setSelectedAssocId(e.target.value)}
-                className="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer"
-              >
-                {associations.map((a) => (
-                  <option key={a.id} value={a.id} className="text-slate-900 font-medium">
-                    {a.name} ({a.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-white/15 text-xs">
-              <Building2 className="w-3.5 h-3.5 text-emerald-200" />
-              <span className="font-bold text-emerald-100">{selectedAssocObj?.name || 'Your Association'}</span>
-            </div>
-          )}
-
+        {/* Action Controls */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Role indicator or Add Button */}
           {isReadOnly ? (
-            <div className="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/30 text-amber-200 text-xs font-bold flex items-center gap-1.5">
+            <div className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-amber-500/20 border border-amber-400/30 text-amber-200 text-xs font-bold flex items-center justify-center gap-1.5">
               <span>Read &amp; View Only ({currentUser?.role === 'auditor' ? 'Auditor' : 'Treasurer'})</span>
             </div>
           ) : (
             <button
               onClick={handleOpenAddModal}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-emerald-900 hover:bg-emerald-50 text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95"
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-emerald-900 hover:bg-emerald-50 text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95 shrink-0"
             >
               <PlusCircle className="w-4 h-4 text-emerald-700" />
               <span>Add Budget Category</span>
