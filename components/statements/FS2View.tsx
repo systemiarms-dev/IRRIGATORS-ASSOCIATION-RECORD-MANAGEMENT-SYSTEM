@@ -93,7 +93,7 @@ export default function FS2View({ data, editable = false, edits, onFieldChange }
               {cell('cashFlows.netSurplus.prior', cf.netSurplus.prior, true)}
             </tr>
             <tr>
-              <td className="py-2 px-3">Inventory of Supplies/Equipment Depreciation</td>
+              <td className="py-2 px-3">Depreciation of Non-Current Assets</td>
               {cellSub('cashFlows.depreciation.current', cf.depreciation.current)}
               {cellSub('cashFlows.depreciation.prior', cf.depreciation.prior)}
             </tr>
@@ -137,9 +137,9 @@ export default function FS2View({ data, editable = false, edits, onFieldChange }
               {cell('financialCondition.assets.currentAssets.current', fc.assets.currentAssets.current)}
             </tr>
             <tr>
-              <td className="py-2 px-3">Inventory of Supplies/Equipment</td>
-              {cellSub('financialCondition.assets.inventorySupplies.prior', fc.assets.inventorySupplies.prior)}
-              {cellSub('financialCondition.assets.inventorySupplies.current', fc.assets.inventorySupplies.current)}
+              <td className="py-2 px-3">Non-Current Assets</td>
+              {cell('financialCondition.assets.officeBuilding.prior', fc.assets.officeBuilding.prior)}
+              {cell('financialCondition.assets.officeBuilding.current', fc.assets.officeBuilding.current)}
             </tr>
             <tr className="font-extrabold border-t-2 border-b-2 border-slate-900 bg-slate-50">
               <td className="py-2 px-1">Total Assets</td>
