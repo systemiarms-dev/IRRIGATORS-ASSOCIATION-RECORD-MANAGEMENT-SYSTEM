@@ -16,7 +16,6 @@ import {
   AlertTriangle,
   Info,
   Layers,
-  Sparkles,
   ChevronRight,
   ChevronDown,
   X,
@@ -751,7 +750,6 @@ export default function ChartOfAccountsPage() {
                       <th className="py-3 px-4 text-left">Category Name / Line Item</th>
                       <th className="py-3 px-3 text-left">Classification</th>
                       <th className="py-3 px-3 text-left">Flow Type</th>
-                      <th className="py-3 px-3 text-left">Scope &amp; Authority</th>
                       <th className="py-3 px-4 text-right">Action</th>
                     </tr>
                   </thead>
@@ -815,21 +813,6 @@ export default function ChartOfAccountsPage() {
                               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700">
                                 <ArrowUpRight className="w-3 h-3 text-rose-600" />
                                 Money OUT
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Scope */}
-                          <td className="py-3 px-3 whitespace-nowrap">
-                            {isCoreStandard ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                                <Lock className="w-2.5 h-2.5 text-slate-500" />
-                                NIA Standard
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
-                                IA Custom
                               </span>
                             )}
                           </td>
