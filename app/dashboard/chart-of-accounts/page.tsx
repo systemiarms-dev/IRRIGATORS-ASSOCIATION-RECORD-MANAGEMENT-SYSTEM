@@ -823,16 +823,16 @@ export default function ChartOfAccountsPage() {
                 )}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-slate-800">
+              <div className="overflow-x-auto -mx-0">
+                <table className="w-full text-xs text-slate-800 min-w-[540px]">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold tracking-wider">
-                      <th className="py-3 px-4 text-left">Code</th>
-                      <th className="py-3 px-4 text-left">Category Name / Line Item</th>
-                      <th className="py-3 px-3 text-left">Classification</th>
-                      <th className="py-3 px-3 text-left">Flow Type</th>
+                      <th className="py-3 px-3 sm:px-4 text-left">Code</th>
+                      <th className="py-3 px-3 sm:px-4 text-left">Category Name / Line Item</th>
+                      <th className="py-3 px-3 text-left hidden sm:table-cell">Classification</th>
+                      <th className="py-3 px-3 text-left hidden md:table-cell">Flow Type</th>
                       <th className="py-3 px-3 text-center">Status</th>
-                      <th className="py-3 px-4 text-right">Action</th>
+                      <th className="py-3 px-3 sm:px-4 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
@@ -843,28 +843,44 @@ export default function ChartOfAccountsPage() {
 
                       return (
                         <tr key={c.id} className={`hover:bg-slate-50/80 transition-colors ${!isActive ? 'opacity-60 bg-slate-50/40' : ''}`}>
-                          <td className="py-3 px-4 font-mono font-bold text-slate-800 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-800 text-[11px]">
+                          <td className="py-3 px-3 sm:px-4 font-mono font-bold text-slate-800 whitespace-nowrap">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-800 text-[10px] sm:text-[11px]">
                               {c.code}
                             </span>
                           </td>
 
-                          <td className="py-3 px-4 max-w-[260px]">
-                            <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                              <span>{c.name}</span>
+                          <td className="py-3 px-3 sm:px-4 max-w-[180px] sm:max-w-[260px]">
+                            <div className="flex flex-wrap items-center gap-1 font-bold text-slate-900">
+                              <span className="break-words min-w-0">{c.name}</span>
                               {isStatutory && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0" title="Standard statutory NIA Financial Statement line item">
+                                <span className="px-1.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0" title="Standard statutory NIA Financial Statement line item">
                                   NIA Core
                                 </span>
                               )}
                             </div>
+                            {/* Classification shown inline on mobile */}
+                            <div className="sm:hidden mt-1">
+                              {classification === 'current_asset' ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-blue-800 border border-blue-200">Current Asset</span>
+                              ) : classification === 'non_current_asset' ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">Non-Current Asset</span>
+                              ) : classification === 'current_liability' ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200">Current Liability</span>
+                              ) : classification === 'non_current_liability' ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-orange-50 text-orange-800 border border-orange-200">Non-Current Liability</span>
+                              ) : c.category_type === 'collection' ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">Collection</span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-800 border border-rose-200">Disbursement</span>
+                              )}
+                            </div>
                             {c.description && (
-                              <div className="text-[11px] text-slate-500 truncate mt-0.5">{c.description}</div>
+                              <div className="text-[11px] text-slate-500 truncate mt-0.5 hidden sm:block">{c.description}</div>
                             )}
                           </td>
 
-                          {/* Classification Badge */}
-                          <td className="py-3 px-3 whitespace-nowrap">
+                          {/* Classification Badge - desktop only */}
+                          <td className="py-3 px-3 whitespace-nowrap hidden sm:table-cell">
                             {classification === 'current_asset' ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
                                 🏢 Current Asset
@@ -892,8 +908,8 @@ export default function ChartOfAccountsPage() {
                             )}
                           </td>
 
-                          {/* Flow Type */}
-                          <td className="py-3 px-3 whitespace-nowrap">
+                          {/* Flow Type - desktop only */}
+                          <td className="py-3 px-3 whitespace-nowrap hidden md:table-cell">
                             {c.category_type === 'collection' ? (
                               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
                                 <ArrowDownLeft className="w-3 h-3 text-emerald-600" />
@@ -912,17 +928,18 @@ export default function ChartOfAccountsPage() {
                             {isActive ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
-                                Active
+                                <span className="hidden sm:inline">Active</span>
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
-                                Inactive
+                                <span className="hidden sm:inline">Inactive</span>
+                                <span className="sm:hidden">Off</span>
                               </span>
                             )}
                           </td>
 
                           {/* Action */}
-                          <td className="py-3 px-4 text-right">
+                          <td className="py-3 px-3 sm:px-4 text-right">
                             {isReadOnly ? (
                               <span className="text-slate-400 text-[10px] italic">View Only</span>
                             ) : (
@@ -1006,7 +1023,7 @@ export default function ChartOfAccountsPage() {
               </div>
               <div>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Acquisition Cost</div>
-                <div className="text-lg font-black text-blue-900">₱{formatPHP(assetStats.totalCost)}</div>
+                <div className="text-sm sm:text-lg font-black text-blue-900 truncate">{formatPHP(assetStats.totalCost)}</div>
               </div>
             </div>
 
@@ -1016,7 +1033,7 @@ export default function ChartOfAccountsPage() {
               </div>
               <div>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Annual Depreciation</div>
-                <div className="text-lg font-black text-amber-900">₱{formatPHP(assetStats.totalAnnualDep)}/yr</div>
+                <div className="text-sm sm:text-lg font-black text-amber-900 truncate">{formatPHP(assetStats.totalAnnualDep)}/yr</div>
               </div>
             </div>
 
@@ -1026,7 +1043,7 @@ export default function ChartOfAccountsPage() {
               </div>
               <div>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Net Book Value</div>
-                <div className="text-lg font-black text-teal-900">₱{formatPHP(assetStats.totalNetValue)}</div>
+                <div className="text-sm sm:text-lg font-black text-teal-900 truncate">{formatPHP(assetStats.totalNetValue)}</div>
               </div>
             </div>
           </div>
@@ -1065,17 +1082,17 @@ export default function ChartOfAccountsPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-xs text-slate-800">
+                <table className="w-full text-xs text-slate-800 min-w-[700px]">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold tracking-wider">
                       <th className="py-3 px-4 text-left">Equipment / Asset Name</th>
-                      <th className="py-3 px-3 text-left">Type</th>
-                      <th className="py-3 px-3 text-left">Date Acquired</th>
-                      <th className="py-3 px-3 text-right">Cost (₱)</th>
-                      <th className="py-3 px-3 text-center">Depreciation %</th>
-                      <th className="py-3 px-3 text-right">Annual Dep. (₱/yr)</th>
-                      <th className="py-3 px-3 text-right">Accumulated Dep. (₱)</th>
-                      <th className="py-3 px-3 text-right font-black text-emerald-900">Net Book Value (₱)</th>
+                      <th className="py-3 px-3 text-left hidden sm:table-cell">Type</th>
+                      <th className="py-3 px-3 text-left hidden md:table-cell">Date Acquired</th>
+                      <th className="py-3 px-3 text-right">Cost</th>
+                      <th className="py-3 px-3 text-center">Dep. %</th>
+                      <th className="py-3 px-3 text-right hidden sm:table-cell">Annual Dep./yr</th>
+                      <th className="py-3 px-3 text-right hidden lg:table-cell">Accum. Dep.</th>
+                      <th className="py-3 px-3 text-right font-black text-emerald-900">Net Book Value</th>
                       <th className="py-3 px-4 text-right">Action</th>
                     </tr>
                   </thead>
@@ -1084,36 +1101,42 @@ export default function ChartOfAccountsPage() {
                       const netVal = asset.net_book_value ?? asset.netBookValue ?? 0;
                       return (
                         <tr key={asset.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3 px-4 max-w-[240px]">
-                            <div className="font-bold text-slate-900">{asset.name}</div>
+                          <td className="py-3 px-4 max-w-[200px]">
+                            <div className="font-bold text-slate-900 truncate">{asset.name}</div>
                             {asset.notes && (
                               <div className="text-[10px] text-slate-500 truncate mt-0.5">{asset.notes}</div>
                             )}
+                            {/* Type shown inline on mobile */}
+                            <div className="sm:hidden mt-1">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200 capitalize">
+                                {asset.asset_type.replace('_', ' ')}
+                              </span>
+                            </div>
                           </td>
-                          <td className="py-3 px-3 whitespace-nowrap capitalize">
+                          <td className="py-3 px-3 whitespace-nowrap capitalize hidden sm:table-cell">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                               {asset.asset_type.replace('_', ' ')}
                             </span>
                           </td>
-                          <td className="py-3 px-3 whitespace-nowrap font-mono text-slate-700">
+                          <td className="py-3 px-3 whitespace-nowrap font-mono text-slate-700 hidden md:table-cell">
                             {asset.date_acquired}
                           </td>
                           <td className="py-3 px-3 whitespace-nowrap text-right font-mono font-bold text-slate-900">
-                            ₱{formatPHP(asset.acquisition_cost)}
+                            {formatPHP(asset.acquisition_cost)}
                           </td>
                           <td className="py-3 px-3 whitespace-nowrap text-center">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                              {asset.depreciation_rate}% / yr
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              {asset.depreciation_rate}%
                             </span>
                           </td>
-                          <td className="py-3 px-3 whitespace-nowrap text-right font-mono font-bold text-rose-700">
-                            ₱{formatPHP(asset.annual_depreciation || 0)}
+                          <td className="py-3 px-3 whitespace-nowrap text-right font-mono font-bold text-rose-700 hidden sm:table-cell">
+                            {formatPHP(asset.annual_depreciation || 0)}
                           </td>
-                          <td className="py-3 px-3 whitespace-nowrap text-right font-mono text-slate-600">
-                            ₱{formatPHP(asset.accumulated_depreciation || 0)}
+                          <td className="py-3 px-3 whitespace-nowrap text-right font-mono text-slate-600 hidden lg:table-cell">
+                            {formatPHP(asset.accumulated_depreciation || 0)}
                           </td>
                           <td className="py-3 px-3 whitespace-nowrap text-right font-mono font-black text-emerald-800 bg-emerald-50/40">
-                            ₱{formatPHP(netVal)}
+                            {formatPHP(netVal)}
                           </td>
                           <td className="py-3 px-4 text-right">
                             {isReadOnly ? (
@@ -1453,19 +1476,19 @@ export default function ChartOfAccountsPage() {
                     <div className="p-2 rounded-lg bg-white border border-emerald-100">
                       <div className="text-[9px] font-bold text-slate-400 uppercase">Annual Dep.</div>
                       <div className="text-xs font-black text-rose-700 mt-0.5">
-                        ₱{formatPHP(modalLiveCalc.annualDepreciation)}/yr
+                        {formatPHP(modalLiveCalc.annualDepreciation)}/yr
                       </div>
                     </div>
                     <div className="p-2 rounded-lg bg-white border border-emerald-100">
                       <div className="text-[9px] font-bold text-slate-400 uppercase">Accumulated Dep.</div>
                       <div className="text-xs font-black text-slate-700 mt-0.5">
-                        ₱{formatPHP(modalLiveCalc.accumulatedDepreciation)}
+                        {formatPHP(modalLiveCalc.accumulatedDepreciation)}
                       </div>
                     </div>
                     <div className="p-2 rounded-lg bg-white border border-emerald-100">
                       <div className="text-[9px] font-bold text-slate-400 uppercase">Net Book Value</div>
                       <div className="text-xs font-black text-emerald-800 mt-0.5">
-                        ₱{formatPHP(modalLiveCalc.netBookValue)}
+                        {formatPHP(modalLiveCalc.netBookValue)}
                       </div>
                     </div>
                   </div>
