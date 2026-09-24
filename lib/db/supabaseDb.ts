@@ -318,32 +318,13 @@ class SupabaseDatabaseService {
       const client = this.getClient();
       const { data, error } = await client.from('budget_categories').select('*').order('code', { ascending: true });
       if (error) {
-        console.warn('Error fetching budget categories from Supabase, returning standard chart:', error.message);
+        console.warn('Error fetching budget categories from Supabase:', error.message);
       }
-      return (data && data.length > 0 ? data : [
-      { id: 'cat-1', code: 'REC-ISF', name: 'Irrigation Service Fee (ISF) Collections', category_type: 'collection', allocated_amount: 100000, is_active: true },
-      { id: 'cat-2', code: 'REC-MEM', name: 'Membership Fees & Annual Dues', category_type: 'collection', allocated_amount: 50000, is_active: true },
-      { id: 'cat-3', code: 'REC-SUB', name: 'O&M Subsidy & Canal Remuneration', category_type: 'collection', allocated_amount: 150000, is_active: true },
-      { id: 'cat-4', code: 'REC-FIN', name: 'Fines, Penalties & Interest', category_type: 'collection', allocated_amount: 20000, is_active: true },
-      { id: 'cat-15', code: 'REC-DON', name: 'Donations, Grants & Other Income', category_type: 'collection', allocated_amount: 30000, is_active: true },
-      { id: 'cat-5', code: 'DISB-CLEAR', name: 'Canal Clearing, Repair & Maintenance', category_type: 'disbursement', allocated_amount: 80000, is_active: true },
-      { id: 'cat-6', code: 'DISB-SUPP', name: 'Office & Field Supplies', category_type: 'disbursement', allocated_amount: 30000, is_active: true },
-      { id: 'cat-7', code: 'DISB-HON', name: 'Honorarium, Salaries & Wages', category_type: 'disbursement', allocated_amount: 60000, is_active: true },
-      { id: 'cat-8', code: 'DISB-TRAV', name: 'Travel, Meeting & Rep Expenses', category_type: 'disbursement', allocated_amount: 25000, is_active: true },
-      { id: 'cat-9', code: 'DISB-TAX', name: 'Registration, Tax & Licenses', category_type: 'disbursement', allocated_amount: 15000, is_active: true },
-      { id: 'cat-10', code: 'DISB-SHARE', name: 'Distributed IA Share to Laterals', category_type: 'disbursement', allocated_amount: 20000, is_active: true },
-      { id: 'cat-11', code: 'DISB-LATERAL', name: 'Lateral Share Distribution', category_type: 'disbursement', allocated_amount: 35000, is_active: true },
-      { id: 'cat-12', code: 'DISB-REPAIR', name: 'Repair & Maintenance', category_type: 'disbursement', allocated_amount: 50000, is_active: true },
-      { id: 'cat-13', code: 'DISB-PROF', name: 'Professional Fee', category_type: 'disbursement', allocated_amount: 25000, is_active: true },
-      { id: 'cat-14', code: 'DISB-FED', name: 'Federation Share', category_type: 'disbursement', allocated_amount: 30000, is_active: true },
-      { id: 'cat-16', code: 'DISB-PISO', name: 'Piso Mula sa Puso', category_type: 'disbursement', allocated_amount: 15000, is_active: true },
-    ]) as BudgetCategory[];
+      return (data || []) as BudgetCategory[];
     }, 60_000);
 
     if (associationId && associationId !== 'all') {
-      const specific = all.filter((c) => c.association_id === associationId);
-      const universal = all.filter((c) => !c.association_id);
-      return [...universal, ...specific];
+      return all.filter((c) => c.association_id === associationId);
     }
     return all;
   }

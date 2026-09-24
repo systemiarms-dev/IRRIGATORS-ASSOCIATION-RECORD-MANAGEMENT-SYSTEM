@@ -50,6 +50,43 @@ export default function FS3View({ data, editable = false, edits, onFieldChange }
     </div>
   );
 
+  // Dynamic receipts: standard items with non-zero or pinned values, plus extraReceipts
+  const standardReceiptList = [
+    { label: 'Membership Fees', path: 'cashReceipts.membershipFees', value: r.membershipFees },
+    { label: 'Annual or Seasonal Dues', path: 'cashReceipts.annualDues', value: r.annualDues },
+    { label: 'Fees and Penalties', path: 'cashReceipts.feesPenalties', value: r.feesPenalties },
+    { label: 'Donations/Contributions', path: 'cashReceipts.donationsContributions', value: r.donationsContributions },
+    { label: 'Interest Earned (Bank)', path: 'cashReceipts.interestEarned', value: r.interestEarned },
+    { label: 'Operation Compensation (IA Subsidy)', path: 'cashReceipts.iaSubsidy', value: r.iaSubsidy },
+    { label: 'Canal Remuneration', path: 'cashReceipts.canalRemuneration', value: r.canalRemuneration },
+    { label: 'O and M Fee', path: 'cashReceipts.omFee', value: r.omFee },
+    { label: 'Other Income', path: 'cashReceipts.otherIncome', value: r.otherIncome },
+  ].filter((item) => Number(item.value || 0) !== 0 || forced(item.path));
+
+  const extraReceiptList = (data.extraReceipts || []).filter((x) => Number(x.current || 0) !== 0);
+  const totalReceiptItemsCount = standardReceiptList.length + extraReceiptList.length;
+
+  // Dynamic disbursements: standard items with non-zero or pinned values, plus extraDisbursements
+  const standardDisbursementList = [
+    { label: 'Registration, Permit & Notarial fees', path: 'cashDisbursements.registrationPermits', value: d.registrationPermits },
+    { label: 'Travel and Rep. Expenses', path: 'cashDisbursements.travelRep', value: d.travelRep },
+    { label: 'Meeting Expenses', path: 'cashDisbursements.meetingExpenses', value: d.meetingExpenses },
+    { label: 'Office Equipment/Supplies', path: 'cashDisbursements.officeSupplies', value: d.officeSupplies },
+    { label: 'Honorarium/Salaries/Wages', path: 'cashDisbursements.salariesWages', value: d.salariesWages },
+    { label: 'Canal Clearing, Repair and Maintenance Expenses', path: 'cashDisbursements.canalClearingRepair', value: d.canalClearingRepair },
+    { label: 'Snacks (Meetings)', path: 'cashDisbursements.snacksMeetings', value: d.snacksMeetings },
+    { label: 'Collection Expenses', path: 'cashDisbursements.collectionExpenses', value: d.collectionExpenses },
+    { label: 'Misc. Expenses', path: 'cashDisbursements.miscExpenses', value: d.miscExpenses },
+    { label: 'Other Expenses', path: 'cashDisbursements.otherExpenses', value: d.otherExpenses },
+    { label: 'Distributed IA Share to Laterals', path: 'cashDisbursements.distributedIAShare', value: d.distributedIAShare },
+    { label: 'Professional Fee', path: 'cashDisbursements.professionalFee', value: (d as any).professionalFee },
+    { label: 'Federation Share', path: 'cashDisbursements.federationShare', value: (d as any).federationShare },
+    { label: 'Piso Mula sa Puso', path: 'cashDisbursements.pisoMulaSaPuso', value: (d as any).pisoMulaSaPuso },
+  ].filter((item) => Number(item.value || 0) !== 0 || forced(item.path));
+
+  const extraDisbursementList = (data.extraDisbursements || []).filter((x) => Number(x.current || 0) !== 0);
+  const totalDisbursementItemsCount = standardDisbursementList.length + extraDisbursementList.length;
+
   return (
     <div className="bg-white text-slate-900 p-4 sm:p-6 rounded-xl shadow-2xl space-y-4 w-[210mm] max-w-full mx-auto overflow-x-auto print:overflow-visible border border-slate-300 print:shadow-none print:border-none print:p-0 print:space-y-1.5 print:text-[8pt] print:leading-tight printable-statement">
       {/* Header */}
@@ -92,15 +129,25 @@ export default function FS3View({ data, editable = false, edits, onFieldChange }
         </div>
 
         <div className="space-y-0.5 text-xs print:text-[8pt]">
-          {row('1 Membership Fees', 'cashReceipts.membershipFees', r.membershipFees)}
-          {row('2 Annual or Seasonal Dues', 'cashReceipts.annualDues', r.annualDues)}
-          {row('3 Fees and Penalties', 'cashReceipts.feesPenalties', r.feesPenalties)}
-          {row('4 Donations/Contributions', 'cashReceipts.donationsContributions', r.donationsContributions)}
-          {row('5 Interest Earned (Bank)', 'cashReceipts.interestEarned', r.interestEarned)}
-          {row('6 Operation Compensation (IA Subsidy)', 'cashReceipts.iaSubsidy', r.iaSubsidy)}
-          {row('7 Canal Remuneration', 'cashReceipts.canalRemuneration', r.canalRemuneration)}
-          {row('8 O and M Fee', 'cashReceipts.omFee', r.omFee)}
-          {row('9 Other Income', 'cashReceipts.otherIncome', r.otherIncome)}
+          {totalReceiptItemsCount === 0 && (
+            <div className="py-1.5 text-center text-slate-400 italic">
+              No cash receipts recorded for this period
+            </div>
+          )}
+
+          {standardReceiptList.map((item, idx) => (
+            row(`${idx + 1} ${item.label}`, item.path, item.value)
+          ))}
+
+          {extraReceiptList.map((item, idx) => (
+            <div key={`er-${idx}`} className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-0.5 border-b border-slate-100 min-w-0">
+              <span>{`${standardReceiptList.length + idx + 1} ${item.label}`}</span>
+              <span className="font-mono shrink-0">
+                <NumberField value={item.current} editable={false} emptyWhenZero />
+              </span>
+            </div>
+          ))}
+
           {totalRow('Total Receipts', 'cashReceipts.total', r.total)}
         </div>
       </div>
@@ -112,17 +159,25 @@ export default function FS3View({ data, editable = false, edits, onFieldChange }
         </div>
 
         <div className="space-y-0.5 text-xs print:text-[8pt]">
-          {row('1 Registration, Permit & Notarial fees', 'cashDisbursements.registrationPermits', d.registrationPermits)}
-          {row('2 Travel and Rep. Expenses', 'cashDisbursements.travelRep', d.travelRep)}
-          {row('3 Meeting Expenses', 'cashDisbursements.meetingExpenses', d.meetingExpenses)}
-          {row('4 Office Equipment/Supplies', 'cashDisbursements.officeSupplies', d.officeSupplies)}
-          {row('5 Honorarium/Salaries/Wages', 'cashDisbursements.salariesWages', d.salariesWages)}
-          {row('6 Canal Clearing, Repair and Maintenance Expenses', 'cashDisbursements.canalClearingRepair', d.canalClearingRepair)}
-          {row('7 Snacks(Meetings)', 'cashDisbursements.snacksMeetings', d.snacksMeetings)}
-          {row('8 Collection Expenses', 'cashDisbursements.collectionExpenses', d.collectionExpenses)}
-          {row('9 Misc. Expenses', 'cashDisbursements.miscExpenses', d.miscExpenses)}
-          {row('10 Other Expenses', 'cashDisbursements.otherExpenses', d.otherExpenses)}
-          {row('11 Distributed IA Share to Laterals', 'cashDisbursements.distributedIAShare', d.distributedIAShare)}
+          {totalDisbursementItemsCount === 0 && (
+            <div className="py-1.5 text-center text-slate-400 italic">
+              No cash disbursements recorded for this period
+            </div>
+          )}
+
+          {standardDisbursementList.map((item, idx) => (
+            row(`${idx + 1} ${item.label}`, item.path, item.value)
+          ))}
+
+          {extraDisbursementList.map((item, idx) => (
+            <div key={`ed-${idx}`} className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-0.5 border-b border-slate-100 min-w-0">
+              <span>{`${standardDisbursementList.length + idx + 1} ${item.label}`}</span>
+              <span className="font-mono shrink-0">
+                <NumberField value={item.current} editable={false} emptyWhenZero />
+              </span>
+            </div>
+          ))}
+
           {totalRow('Total Disbursement (Expenses)', 'cashDisbursements.total', d.total)}
         </div>
       </div>

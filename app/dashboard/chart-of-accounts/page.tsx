@@ -108,12 +108,6 @@ export default function ChartOfAccountsPage() {
     });
   }, [currentUser, selectedAssocId, isSuperAdmin]);
 
-  // Core standard categories IDs that cannot be deleted
-  const coreStandardIds = useMemo(() => new Set([
-    'cat-1', 'cat-2', 'cat-3', 'cat-4', 'cat-5', 'cat-6', 'cat-7', 'cat-8',
-    'cat-9', 'cat-10', 'cat-11', 'cat-12', 'cat-13', 'cat-14', 'cat-15', 'cat-16', 'cat-17'
-  ]), []);
-
   // Filtered categories
   const filteredCategories = useMemo(() => {
     return categories.filter((c) => {
@@ -121,7 +115,7 @@ export default function ChartOfAccountsPage() {
       if (typeFilter !== 'all' && c.category_type !== typeFilter) return false;
 
       // Scope match
-      const isCustom = !!c.association_id && !coreStandardIds.has(c.id);
+      const isCustom = !!c.association_id;
       if (scopeFilter === 'standard' && isCustom) return false;
       if (scopeFilter === 'custom' && !isCustom) return false;
 
@@ -135,16 +129,16 @@ export default function ChartOfAccountsPage() {
       }
       return true;
     });
-  }, [categories, typeFilter, scopeFilter, searchQuery, coreStandardIds]);
+  }, [categories, typeFilter, scopeFilter, searchQuery]);
 
   // Stats
   const stats = useMemo(() => {
     const total = categories.length;
     const collections = categories.filter((c) => c.category_type === 'collection').length;
     const disbursements = categories.filter((c) => c.category_type === 'disbursement').length;
-    const customCount = categories.filter((c) => !!c.association_id && !coreStandardIds.has(c.id)).length;
+    const customCount = categories.filter((c) => !!c.association_id).length;
     return { total, collections, disbursements, customCount };
-  }, [categories, coreStandardIds]);
+  }, [categories]);
 
   // Open add modal
   function handleOpenAddModal() {
@@ -500,8 +494,8 @@ export default function ChartOfAccountsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredCategories.map((c) => {
-                  const isCoreStandard = coreStandardIds.has(c.id) || !c.association_id;
-                  const isAssocCustom = !isCoreStandard && !!c.association_id;
+                  const isCoreStandard = !c.association_id;
+                  const isAssocCustom = !!c.association_id;
                   const assocName = associations.find((a) => a.id === c.association_id)?.code || 'IA';
 
                   return (

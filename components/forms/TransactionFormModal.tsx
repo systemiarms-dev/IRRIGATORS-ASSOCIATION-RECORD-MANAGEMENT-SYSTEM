@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import {
   createTransactionAction,
+  createBudgetCategoryAction,
 } from '@/app/actions/transactions';
 import { BudgetCategory, TransactionType, Profile, Association, Transaction } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -79,7 +80,8 @@ export default function TransactionFormModal({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const filteredCategories = (categories && categories.length > 0 ? categories : []).filter((c) => c.category_type === type);
+  const filteredCategories = (categories && categories.length > 0 ? categories : [])
+    .filter((c) => c.category_type === type && (!selectedAssocId || c.association_id === selectedAssocId));
   const isCustomCategory = categoryId === CUSTOM_OPTION;
   const filteredMembers = members.filter((m) => !m.association_id || m.association_id === selectedAssocId);
 
@@ -129,12 +131,22 @@ export default function TransactionFormModal({
       let finalParticulars = particulars ? particulars.trim() : '';
 
       if (isCustomCategory) {
-        // Map to standard miscellaneous line item without cluttering the budget_categories table
-        const fallbackCat = filteredCategories.find((c) =>
+        let fallbackCat = filteredCategories.find((c) =>
           type === 'collection'
-            ? (c.code === 'REC-DON' || c.code === 'REC-OTHER' || c.name.toLowerCase().includes('other') || c.name.toLowerCase().includes('donations'))
-            : (c.code === 'DISB-MISC' || c.code === 'DISB-OTHER' || c.name.toLowerCase().includes('miscellaneous') || c.name.toLowerCase().includes('other') || c.code === 'DISB-REPAIR')
+            ? (c.name.toLowerCase().includes('other') || c.name.toLowerCase().includes('custom') || c.name.toLowerCase().includes('donation') || c.name.toLowerCase().includes('misc') || c.code === 'REC-DON')
+            : (c.name.toLowerCase().includes('other') || c.name.toLowerCase().includes('custom') || c.name.toLowerCase().includes('misc') || c.code === 'DISB-MISC')
         ) || filteredCategories[0];
+
+        if (!fallbackCat) {
+          const createRes = await createBudgetCategoryAction({
+            name: customCategory.trim(),
+            category_type: type,
+            association_id: selectedAssocId || undefined,
+          });
+          if (createRes.success && createRes.data) {
+            fallbackCat = createRes.data;
+          }
+        }
 
         if (fallbackCat) {
           finalCategoryId = fallbackCat.id;
@@ -346,7 +358,9 @@ export default function TransactionFormModal({
               }}
               className={inputCls}
             >
-              <option value="">-- Select Budget Line Item --</option>
+              <option value="">
+                {filteredCategories.length > 0 ? '-- Select Budget Line Item --' : '-- No categories defined for this IA --'}
+              </option>
               {filteredCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   [{c.code}] {c.name}

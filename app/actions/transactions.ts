@@ -134,14 +134,6 @@ export async function deleteBudgetCategoryAction(id: string): Promise<ActionResp
     return UNAUTHORIZED_RESPONSE;
   }
 
-  const coreStandardIds = [
-    'cat-1', 'cat-2', 'cat-3', 'cat-4', 'cat-5', 'cat-6', 'cat-7', 'cat-8',
-    'cat-9', 'cat-10', 'cat-11', 'cat-12', 'cat-13', 'cat-14', 'cat-15', 'cat-16', 'cat-17'
-  ];
-  if (coreStandardIds.includes(id)) {
-    return { success: false, message: 'Standard NIA Chart of Accounts categories cannot be deleted.' };
-  }
-
   try {
     const allCats = await localDb.getBudgetCategories();
     const target = allCats.find((c) => c.id === id);
@@ -149,11 +141,7 @@ export async function deleteBudgetCategoryAction(id: string): Promise<ActionResp
       return { success: false, message: 'Budget category not found.' };
     }
 
-    if (!target.association_id) {
-      return { success: false, message: 'Official standard system categories cannot be deleted.' };
-    }
-
-    if (user.role !== 'super_admin' && target.association_id !== user.association_id) {
+    if (user.role !== 'super_admin' && target.association_id && target.association_id !== user.association_id) {
       return UNAUTHORIZED_RESPONSE;
     }
 
@@ -266,6 +254,10 @@ export async function createTransactionAction(payload: CreateTransactionPayload)
   const category = allCats.find((c) => c.id === payload.category_id);
   if (!category || category.category_type !== payload.type) {
     return { success: false, message: 'Invalid budget category for this transaction type.' };
+  }
+
+  if (category.association_id && category.association_id !== targetAssociationId) {
+    return { success: false, message: 'The selected budget category does not belong to this Irrigators Association.' };
   }
 
   let member: Profile | undefined;

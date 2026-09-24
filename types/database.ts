@@ -238,6 +238,8 @@ export interface FS3Data {
     pisoMulaSaPuso: number;
     total: number;
   };
+  extraReceipts?: Array<{ label: string; current: number; prior: number }>;
+  extraDisbursements?: Array<{ label: string; current: number; prior: number }>;
   cashBalanceThisYear: number;
   fundBalanceLastReport: number;
   totalCashBalance: number;

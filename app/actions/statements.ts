@@ -167,8 +167,8 @@ export async function generateStatementAction(
     const map = new Map<string, { label: string; current: number; prior: number }>();
     const add = (tx: any, isCurrent: boolean) => {
       if (tx.type !== expectedType) return;
-      if (!tx.category || !tx.category.code || isKnown(tx.category.code)) return;
-      const label = (tx.category.name || '').trim() || tx.category.code;
+      if (tx.category?.code && isKnown(tx.category.code)) return;
+      const label = (tx.category?.name || '').trim() || (tx.category?.code || '').trim() || (tx.particulars || '').trim() || 'Other / Miscellaneous';
       if (!label) return;
       const entry = map.get(label) || { label, current: 0, prior: 0 };
       if (isCurrent) entry.current += Number(tx.amount || 0);
@@ -429,6 +429,8 @@ export async function generateStatementAction(
       pisoMulaSaPuso: fs1.disbursements.pisoMulaSaPuso.current,
       total: fs1.disbursements.total.current,
     },
+    extraReceipts,
+    extraDisbursements,
     cashBalanceThisYear: fs1.netSurplus.current,
     fundBalanceLastReport: fundBalanceBeginningCurrent,
     totalCashBalance: fundBalanceEndCurrent,
