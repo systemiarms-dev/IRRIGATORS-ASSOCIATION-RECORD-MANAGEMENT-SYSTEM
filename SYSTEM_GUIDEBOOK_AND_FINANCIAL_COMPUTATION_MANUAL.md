@@ -33,53 +33,199 @@ The system enforces strict **Separation of Duties (SoD)** to prevent financial f
 
 ---
 
-## 3. Module-by-Module Operational Handbook
+## 3. Sidebar Navigation & Module-by-Module Operational Handbook
 
-### 3.1 Authentication & Association Scoping
-1. Navigate to the Login screen.
-2. Enter your authorized credentials (Email/Username and Password).
-3. The system automatically scopes your dashboard to your assigned Irrigators Association. Super Admins have access to a global association dropdown selector in the top navigation bar.
+The system sidebar is divided into three distinct operational suites: **Core Management**, **Financial Suite**, and **Administration**.
 
-### 3.2 Farmer Beneficiary & Land Registry
-- **Adding a Member:** Navigate to **Members** &rarr; click **Add New Member**. Fill in First Name, Last Name, Contact Number, TIN, and Turnout Service Area Group (TSAG / Lateral).
-- **Land Parcel Encoding:** Under the member's profile, click **Add Parcel**. Encode Farm Area (hectares), Lot Number, Cadastral Lot, Water Source (Lateral A, B, Main Canal), and Crop Classification (Rice, Corn, High Value).
+```
+[Core Management]
+├── Overview Dashboard         (/dashboard)
+├── Irrigators Associations    (/dashboard/associations) [Super Admin]
+└── Farmer Members             (/dashboard/members)
 
-### 3.3 Recording Collections (Money IN)
-1. Navigate to **Transactions** &rarr; click **New Collection**.
-2. **Required Fields:**
-   - **Transaction Date:** Date payment was actually received.
-   - **Farmer Beneficiary:** Select member from dropdown (or leave unassigned for institutional subsidies).
-   - **Budget Category:** Select the appropriate income account (e.g., `REC-ISF`, `REC-MEM`, `REC-SUB`, `REC-CBU`, `REC-DON`).
-   - **Amount (₱):** Numeric value received.
-   - **Payment Method / Fund:** Select `Cash on Hand` (Physical Vault), `Bank Regular` (LBP / DBP Operating Account), or `Bank CBU` (Capital Build-Up Account).
-   - **Reference / Receipt #:** Official Collection Receipt (CR) or Official Receipt (OR) series number.
-3. Click **Save Transaction**. The ledger, cash balances, and financial statement drafts update instantly.
+[Financial Suite]
+├── Collections & Expenses     (/dashboard/treasurer)
+├── Verification & Audit Queue (/dashboard/auditor)
+├── Financial Statements       (/dashboard/statements)
+└── Chart of Accounts          (/dashboard/chart-of-accounts)
 
-### 3.4 Recording Disbursements & Vouchers (Money OUT)
-1. Navigate to **Transactions** &rarr; click **New Disbursement**.
-2. **Required Fields:**
-   - **Transaction Date:** Date payment or release was made.
-   - **Disbursement Voucher #:** DV number (e.g., `DV-2026-001`).
-   - **Check # / Reference:** Bank check number or cash release slip.
-   - **Budget Category:** Select expense account (e.g., `DISB-CLEAR`, `DISB-HON`, `DISB-SUPP`, `DISB-REPAIR`, `DISB-TAX`).
-   - **Amount (₱):** Actual disbursement.
-   - **Payment Source:** Cash on Hand, Bank Regular, or Bank CBU.
-   - **Particulars:** Clear operational justification (e.g., *Canal desilting along Lateral B Station 0+500*).
-3. Click **Save Disbursement**. The system credits cash/bank and debits the designated expense account.
+[Administration]
+├── User Account Manager       (/dashboard/admin) [Super Admin / Admin]
+└── My Account Settings        (/dashboard/account)
+```
 
-### 3.5 Chart of Accounts Governance
-The system comes pre-configured with the **21 Official NIA Statutory Accounts**.
-- **Soft Deactivation:** If an association does not utilize a specific statutory account, toggling it "Inactive" hides it from the transaction dropdown without breaking existing ledger records.
-- **Statutory Protection:** Core NIA accounts cannot be permanently deleted.
-- **One-Click Restore:** If standard accounts are missing, clicking **Restore Standard Accounts** regenerates all 21 official accounts in under a second.
+### 3.1 Overview Dashboard (`/dashboard`)
+1. **Association Scope Bar (for Super Admin):** Quick-tap buttons allow switching between **`All Associations (Consolidated)`** or specific IAs (e.g. `NLFIA • Nangurisan`).
+2. **Executive Header Action Buttons:**
+   - **`Log Payment / Voucher`**: Directly opens the financial transaction modal.
+   - **`Open Auditor Queue`**: Navigates straight to the internal audit and receipt verification queue.
+3. **Real-Time Key KPI Metric Cards:**
+   - **`Total Collections`**: Member ISF & subsidies cash inflow.
+   - **`Total Disbursements`**: Canal clearing, payroll honoraria, repairs, and operational outflow.
+   - **`Ending Net Cash`**: Displays net surplus balance (or deficit balance).
+   - **`Pending Vouchers`**: Real-time counter of vouchers awaiting audit examination.
+4. **Association Financial Summary Table (Consolidated View):**
+   - Header title: **`IARMS • Association Financial Summary`**.
+   - Navigation link: **`Manage IAs`** (leads to `/dashboard/associations`).
+   - Displays per-IA breakdown of Collections, Disbursements, and Net Cash Flow with quick **`Filter View`** buttons.
+5. **Interactive Visual Analytics:**
+   - **`Monthly Cash Inflow vs. Outflow`**: 12-month comparative trend line chart.
+   - **`Expense Breakdown by NIA Category`**: Pie/donut chart showing operational allocation and utilization across statutory accounts.
 
-### 3.6 Fixed Asset Registry & Straight-Line Depreciation
-1. Navigate to **Fixed Assets** &rarr; click **Add Asset**.
-2. Encode Asset Name, Serial Number, Date Acquired, Acquisition Cost (₱), Useful Life (Years), and Salvage Value.
-3. The system automatically executes straight-line monthly and annual depreciation:
-   - **Annual Depreciation** = (Acquisition Cost - Salvage Value) / Useful Life in Years
-   - **Net Book Value (NBV)** = Acquisition Cost - Accumulated Depreciation
-4. NBV is automatically transmitted to **FS-2 (Non-Current Assets)** and **FS-4 (Fixed Assets)**.
+### 3.2 Irrigators Associations (`/dashboard/associations`) &mdash; *Super Admin Only*
+1. **Header Banner & Registration Action:**
+   - Click the **`Register New Association`** button in the top banner.
+2. **Register New Irrigators Association Modal:**
+   - Official NIA profile fields: `Official Association Name *`, `Short Code (Acronym) *`, `Former Name (if applicable)`, `Mailing / Office Address`, `IA President Full Name`, `President / Office Contact Number`, `SEC Registration Number`, `Association TIN Number`, `Total Service Area (ha)`, `Operational Area (ha)`, `Turnout Service Area Groups (TSAGs)`, and `IMT Contract Type`.
+   - Action buttons: Click **`Create Association`** (or **`Save Changes`** when editing) to persist, or **`Cancel`**.
+3. **Statutory Account Auto-Provisioning:** Upon association registration, the system automatically initializes the **21 Official NIA Statutory Chart of Accounts** for that new IA.
+4. **Managing Existing Associations:**
+   - Click **`Edit Profile`** (Pencil icon) to modify association parameters.
+   - Click the **Trash icon** to open the **`Confirm Association Removal`** modal &rarr; click **`Delete Association`** or **`Cancel`**.
+
+### 3.3 Farmer Members (`/dashboard/members`)
+1. **Header Banner & Member Registration:**
+   - Click the **`Register Farmer Member`** button in the top banner.
+   - Click the **`RefreshCw icon`** to refresh member data.
+   - For Auditor/Treasurer roles, a read-only badge indicates `Read & View Only`.
+2. **Register Farmer Member Modal:**
+   - **`Target Irrigators Association *`**: Select target IA (for Super Admins).
+   - **`Full Name *`**: Complete legal name of the farmer member.
+   - **`Farm Location / Sector`**: Turnout Service Area Group (TSAG), lateral canal location, or barangay (e.g., *Lateral B Station 0+500, Sta. Cruz*).
+   - **`Farm Size (hectares)`**: Cultivated land area with precision **`+ 0.25 ha`** and **`- 0.25 ha`** quick stepper buttons.
+   - **`Mobile Number`**: 11-digit Philippine mobile format (starting with `09`).
+   - Action buttons: Click **`Register Member`** (or **`Save Changes`** when editing) to persist, or **`Cancel`**.
+3. **Member Directory & Card Actions:**
+   - Click **`Edit Member`** (Pencil icon) to update parcel size or contact info.
+   - Click **`Remove Member`** (Trash icon) to open the **`Remove Farmer Member`** confirmation dialog &rarr; click **`Remove Member`** or **`Cancel`**.
+
+### 3.4 Collections & Expenses Ledger (`/dashboard/treasurer`)
+This is the double-entry bookkeeping engine for all daily cash, bank, and voucher movements.
+1. **Header Banner Actions:**
+   - Click **`Log Payment / Voucher`** to record financial movements.
+   - Click **`Chart of Accounts`** to open budget line configurations.
+   - Click **`Export CSV`** (tooltip: *Export to Excel CSV*) to export the filtered ledger to spreadsheet format.
+2. **Summary Metric Cards & Fund Breakdown:**
+   - Cards display `Filtered Collections`, `Filtered Disbursements`, and `Net Ledger Balance`.
+   - Continuity strip tracks real-time balances: `Cash on Hand` (Vault & Petty Cash Box), `Bank (Regular Fund)` (General Operations), and `Bank (CBU Fund)` (Capital Build-Up Equity).
+3. **Filter Tabs & Search:**
+   - Type filter tabs: **`All Ledger Records (N)`**, **`Collections (Money IN) (N)`**, and **`Disbursements (Money OUT) (N)`**.
+   - Search input: `Search by Tx #, Voucher #, Payee, Particulars...` with **`From:`** and **`To:`** date pickers and **`Clear`** filter button.
+   - Click **`Refresh`** to reload transactions.
+4. **Log New Financial Transaction / Voucher Modal:**
+   - **Transaction Type Toggle:** Choose **`Money IN (Collection)`** or **`Money OUT (Disbursement / Expense)`**.
+   - **Cash Destination / Source Selector:**
+     - Select **`Cash on Hand`** (Vault / Petty Cash Box) with live `Avail: ₱...` display.
+     - OR select **`Cash in Bank`** (Official IA Bank Accounts) &rarr; choose **`Regular Fund`** (Operating & Admin Expenses) or **`CBU Fund`** (Capital Build-Up Equity) with live available balance guards.
+     - *Live Insufficient Balance Guard:* Disallows disbursement submission if amount exceeds the selected fund balance.
+   - **`Transaction Date *`**: Date money was collected or disbursed.
+   - **`Transaction Amount (PHP) *`**: Numeric peso amount.
+   - **`NIA Budget Category *`**: Select statutory account (or choose `+ Add Custom Budget Category`).
+   - **`Associated Farmer Members / Beneficiaries`**: Multi-select picker with real-time member search.
+   - **`Official Voucher / Receipt # (Optional)`**: Collection Receipt (CR) or Disbursement Voucher (DV) number.
+   - **`Payee / Payer Name`**: Farmer, contractor, or officer name.
+   - **`Lateral / Turnout Section`**: Turnout service section.
+   - **`Particulars / Operational Notes`**: Complete operational audit narrative.
+   - **`Attach Receipt / Voucher (Optional)`**: Upload receipt photo or PDF (up to 10MB).
+   - Action buttons: Click **`Save to Ledger`** (or **`Cancel`**).
+5. **Ledger Table Row Actions:**
+   - **Receipt Status Button:** Click the status pill (`Verified`, `Flagged`, `Rejected`, or `Review`) to open the **Voucher Preview** lightbox modal.
+   - **`Delete Record`** (Trash icon): Opens the **`Confirm Transaction Deletion`** dialog &rarr; click **`Delete Transaction`** or **`Cancel`**.
+
+### 3.5 Verification & Audit Queue (`/dashboard/auditor`)
+1. **Header Banner Actions:**
+   - Click **`Verify All Pending (N)`** (switches to **`Confirm — Verify All?`**) to batch-approve pending receipts.
+   - Click **`Refresh Queue`** to update audit submissions.
+2. **Status Filter Tabs:**
+   - Filter items by **`Pending Review (N)`**, **`Verified (N)`**, **`Flagged (N)`**, **`Rejected (N)`**, or **`All Items (N)`**.
+3. **Audit Examination & Lightbox Preview:**
+   - Click any voucher thumbnail or link to open the full-screen **Voucher Preview** lightbox with zoom and PDF document rendering.
+   - Click **`Open File Link Directly`** or **`← Back`** to return.
+4. **Audit Decision Modal:**
+   - Click the **`Audit Decision`** button on any pending queue card to open the **`Auditor Verification Decision`** modal.
+   - Enter audit findings in **`Auditor Notes / Findings`** (textarea).
+   - Action buttons:
+     - Click **`Verify`** (green) to confirm compliance and approve voucher for official statement inclusion.
+     - Click **`Flag`** (orange) if voucher shows discrepancies with audit notes.
+     - Click **`Reject`** (red) if invalid or unauthorized.
+
+### 3.6 Financial Statements (`/dashboard/statements`)
+1. **Header Banner & Statement Compilation:**
+   - Click the **`Generate FS Report`** button in the top banner.
+2. **Generate Official FS Report (FS1 – FS4) Modal:**
+   - Select **`Target Irrigators Association *`** (for Super Admins).
+   - Configure **`Comparative Reporting Period`**:
+     - Select **`Reporting Year (Current) *`** (e.g. `CY 2026`).
+     - **`Comparative Prior Year *`** is automatically locked to `CY 2025 (Prior Year)`.
+   - Enter **`Report Title`** (e.g. `Annual Financial Statement CY 2026`).
+   - Review or modify **`Period Start Date *`** and **`Period End Date *`**.
+   - Input **`Authorized Signatories`**: **`IA President`**, **`IA Treasurer`**, and **`IA Auditor`**.
+   - Action buttons: Click **`Generate FS Report`** (or **`Cancel`**).
+3. **Exploring the 4 Official Statements:** Use the top sub-tabs:
+   - **`FS1: Receipts & Expenses`**: Comparative Statement of Cash Receipts & Disbursements.
+   - **`FS2: Cash Flows`**: Statement of Financial Condition & Cash Flows.
+   - **`FS3: Cash Statement`**: Statement of Cash Receipts, Disbursements & Section F Composition.
+   - **`FS4: Balance Sheet`**: Statement of Net Worth & Balance Sheet.
+4. **Active Statement Management (Left Panel):**
+   - Displays all compiled statements under **`Active Statement`**.
+   - Click **`Rename statement`** (Pencil icon) to edit statement title inline (press Enter to confirm).
+   - Click **`Delete statement`** (Trash icon) to open the **`Confirm Statement Deletion`** dialog &rarr; click **`Delete Statement`** or **`Cancel`**.
+5. **Mode Switcher Bar & In-Line Adjustments:**
+   - **`View Only`** (Layers icon): Read-only view generated from the ledger and transactions.
+   - **`Edit`** (Pencil icon): Click directly on line items to input Certified Public Accountant (CPA) adjustments. All totals, net surplus, cash balances, and equity auto-recompute in real-time across all 4 sheets.
+   - Action buttons: Click **`Save Changes`** (Save icon) or **`Discard`** (X icon).
+6. **Print & PDF Export:**
+   - While in **`View Only`** mode, click **`Print {FS_TAB_LABEL}`** (e.g., **`Print FS1: Receipts & Expenses`**, **`Print FS2: Cash Flows`**, **`Print FS3: Cash Statement`**, or **`Print FS4: Balance Sheet`**) to generate official, borderless, audit-ready NIA printouts.
+
+### 3.7 Chart of Accounts & Fixed Asset Registry (`/dashboard/chart-of-accounts`)
+1. **View Switcher Navigation Tabs:**
+   - **`Chart of Accounts (N)`** (BookOpen icon): Manage collection, disbursement, asset, and liability accounts.
+   - **`Fixed Asset Registry (N)`** (Tractor icon): Manage capital machinery, irrigation pumps, buildings, and automatic depreciation.
+2. **Managing Chart of Accounts:**
+   - Click **`Restore Standard Accounts`** to automatically check and reinstate any missing official NIA statutory accounts.
+   - Click **`Add Budget Category`** to open the **`Add New Budget Category`** modal (specify `Account Classification`, `Account Code`, `Account Name`, and `Transaction Type` &rarr; click **`Add Category`**).
+   - Account Row Actions:
+     - Click **`Edit`** (Pencil icon) &rarr; opens `Edit Budget Category` modal &rarr; click **`Save Changes`** or **`Cancel`**.
+     - Click the **`Power / PowerOff icon`** to toggle **Active / Inactive** status (soft deactivation preserves historical transactions while hiding from daily entry forms).
+     - Standard NIA accounts are strictly locked from deletion.
+3. **Managing Fixed Assets & Equipment:**
+   - Switch to the **`Fixed Asset Registry (N)`** tab.
+   - Click **`Register Equipment / Asset`** to open the **`Register Equipment / Fixed Asset`** modal.
+   - Encode fields: `Equipment / Asset Name *`, `Asset Classification *`, `Acquisition Date *`, `Acquisition Cost (₱) *`, `Estimated Salvage Value (₱)`, and choose a `Depreciation Preset *`:
+     - Heavy Machinery (10 years, 10% annual rate)
+     - Irrigation Pump Stations (10 years, 10% annual rate)
+     - Buildings & Concrete Structures (20 years, 5% annual rate)
+     - Office Equipment & Electronics (5 years, 20% annual rate)
+     - Custom Annual Rate (%)
+   - Click **`Save Asset`** (or **`Cancel`**). The engine dynamically transmits Net Book Value (NBV) to **FS-2 (Non-Current Assets)** and **FS-4 (Fixed Assets)**.
+   - Click the **Trash icon** on any asset card to open the delete confirmation dialog &rarr; click **`Delete Asset`** or **`Cancel`**.
+
+### 3.8 User Account Manager (`/dashboard/admin`) &mdash; *Super Admin / Admin Only*
+1. **Header Banner Actions:**
+   - Click **`Create Officer Account`** (UserPlus icon) to register officer credentials.
+   - Click **`Print Accounts (PDF)`** (Printer icon) to print the authorized officer directory roster.
+   - Click **`Purge Records`** (or **`Purge Association Records`**) to wipe transaction data when resetting fiscal environments.
+2. **Role Filter Tabs:**
+   - Filter directory by **`All Accounts (N)`**, **`Head Admins`**, **`Bookkeepers`**, **`Treasurers`**, or **`Auditors`**.
+   - Click **`Refresh`** to reload user accounts.
+3. **Register New Officer Account Modal:**
+   - Encode `Full Legal Name *`, `System Username *` (automatically generated and locked to `{role}_{code}` for Treasurer, Auditor, and Bookkeeper), `Initial Password *` (with show/hide eye toggle), `Officer Role *`, `Associated Irrigators Association *`, and `Mobile / Contact Number` (11-digit Philippine format).
+   - Click **`Create Account`** (or **`Cancel`**).
+4. **Directory Table Actions:**
+   - Inline role dropdown: Change permissions instantly (Super Admin).
+   - Click **`Edit Account Details`** (Pencil icon) &rarr; opens `Edit Officer Account Details` modal &rarr; click **`Save Changes`** or **`Cancel`**.
+   - Click **`Reset Password`** (Key icon button with text `Reset Password`) &rarr; opens `Reset Password for {name}` modal &rarr; enter new password &rarr; click **`Reset Password`** or **`Cancel`**.
+   - Click **`Delete Account`** (Trash icon) &rarr; opens `Confirm Account Deletion` dialog &rarr; click **`Delete Account`** or **`Cancel`**.
+
+### 3.9 My Account Settings (`/dashboard/account`)
+1. **My Account & Profile Settings Header:** Displays current assigned role badge (`Super Admin`, `Head Admin`, `Bookkeeper`, `Treasurer`, `Auditor`).
+2. **Personal Information Card (Official Credentials):**
+   - Update `Full Name *`, `Mobile / Contact Number` (11-digit format starting with `09`), `Farm Sector / Location`, and `Farm Size (Hectares)`.
+   - Click the **`Save Profile Changes`** button (Save icon).
+3. **Security & Password Update Card:**
+   - Enter `Current Password`, `New Password` (at least 6 characters), and `Confirm New Password` (each equipped with show/hide eye toggle buttons).
+   - Click the **`Update Password`** button (Lock icon).
+4. **Role Privilege Summary Card:** Details authorized administrative and fiduciary boundaries for the active account.
 
 ---
 
@@ -293,8 +439,9 @@ Each association possesses an isolated namespace (`association_id`). Transaction
 ## 7. Official Document Sign-Off & Notarization Workflow
 
 When an annual statement is ready for submission to NIA, SEC, and BIR:
-1. **Compilation:** The Bookkeeper clicks **Generate Statement** &rarr; selects **Comparative Reporting Period** &rarr; clicks **Compile**.
-2. **Review:** The Auditor inspects the statements. If an off-ledger CPA adjustment is needed, the Auditor toggles **Edit Mode**, inputs the certified override, and clicks **Save Changes**. All dependent sheets auto-recompute immediately.
+1. **Compilation:** The Bookkeeper clicks the **`Generate FS Report`** button &rarr; configures **Comparative Reporting Period** (e.g. CY 2026 vs CY 2025) &rarr; reviews authorized signatories &rarr; clicks **`Generate FS Report`**.
+2. **Review & Audit Adjustments:** The Auditor inspects the statements. If an off-ledger CPA adjustment is needed, the Auditor switches the mode toggle from **`View Only`** to **`Edit`**, inputs the certified override directly on the line item, and clicks **`Save Changes`** (or **`Discard`**). All dependent sheets auto-recompute immediately.
 3. **Fiduciary Certification:** The Treasurer reviews Section F (Cash Composition) against physical Land Bank passbooks and signs the certification block.
-4. **Notary Acknowledgment:** The Treasurer enters the Community Tax Certificate (CTC / Cedula) Number, Date of Issue, and Place of Issue in the FS-4 Notary Modal.
-5. **Print & PDF Export:** Click the **Printer / PDF Export** button to generate the crisp, borderless, audit-ready physical document package.
+4. **Notary Acknowledgment:** The Treasurer enters the Community Tax Certificate (CTC / Cedula) Number, Date of Issue, and Place of Issue in the FS-4 Notary Block.
+5. **Print & PDF Export:** While in **`View Only`** mode, click **`Print FS1: Receipts & Expenses`** (or **`Print FS2: Cash Flows`**, **`Print FS3: Cash Statement`**, **`Print FS4: Balance Sheet`**) to generate the crisp, borderless, audit-ready physical document package.
+
