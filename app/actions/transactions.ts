@@ -9,6 +9,7 @@ import { ActionResponse, CreateTransactionPayload, Transaction, BudgetCategory, 
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, toPublicProfile, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
 import { calculateFundBalances, getFundLabel, determineFundSource } from '@/lib/utils/fundSources';
+import { isStandardNiaAccount, seedStandardCategoriesForAssociation } from '@/lib/financial/standardAccounts';
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB for receipt images
 const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10MB for PDF documents
@@ -148,7 +149,15 @@ export async function deleteBudgetCategoryAction(id: string): Promise<ActionResp
       return UNAUTHORIZED_RESPONSE;
     }
 
-    // Verify no transactions use this category before deleting
+    // Protection 1: Statutory Account Protection (Prevent deletion of core NIA accounts)
+    if (isStandardNiaAccount(target.code)) {
+      return {
+        success: false,
+        message: `Cannot delete standard statutory account "${target.name}". This category is required for official Financial Statement reporting (FS-1 to FS-5). You can toggle it to Inactive if your association does not use this item.`,
+      };
+    }
+
+    // Protection 2: Verify no transactions use this category before deleting
     const storageClient = getSupabaseServerClient();
     if (storageClient) {
       const { count } = await storageClient
@@ -165,9 +174,95 @@ export async function deleteBudgetCategoryAction(id: string): Promise<ActionResp
     }
 
     await localDb.deleteBudgetCategory(id);
+    revalidatePath('/dashboard/chart-of-accounts');
+    revalidatePath('/dashboard/treasurer');
     return { success: true, message: `Category "${target.name}" was removed from the Chart of Accounts.` };
   } catch (error: any) {
     return { success: false, message: error.message || 'Error removing budget category.' };
+  }
+}
+
+/**
+ * Toggle an account between Active and Inactive (Soft Deactivation).
+ * Inactive accounts cannot be chosen for new transactions but preserve historical records.
+ */
+export async function toggleBudgetCategoryActiveAction(id: string, isActive: boolean): Promise<ActionResponse<BudgetCategory>> {
+  const user = await requireUser();
+  if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer' || user.role === 'auditor') {
+    return { success: false, message: 'You have read-only access. Only bookkeepers and administrators can manage chart of accounts categories.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
+
+  try {
+    const allCats = await localDb.getBudgetCategories();
+    const target = allCats.find((c) => c.id === id);
+    if (!target) {
+      return { success: false, message: 'Budget category not found.' };
+    }
+
+    if (user.role !== 'super_admin' && target.association_id && target.association_id !== user.association_id) {
+      return UNAUTHORIZED_RESPONSE;
+    }
+
+    const updated = await localDb.updateBudgetCategory(id, { is_active: isActive });
+    revalidatePath('/dashboard/chart-of-accounts');
+    revalidatePath('/dashboard/treasurer');
+    return {
+      success: true,
+      message: `Category "${updated.name}" is now marked as ${isActive ? 'Active' : 'Inactive'}.`,
+      data: updated,
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Error updating category status.' };
+  }
+}
+
+/**
+ * Restore / Seed standard NIA accounts for an Irrigators Association.
+ * Only creates accounts that are currently missing; does not alter existing accounts.
+ */
+export async function restoreStandardCategoriesAction(
+  associationId?: string
+): Promise<ActionResponse<{ added: number; existing: number; total: number }>> {
+  const user = await requireUser();
+  if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer' || user.role === 'auditor') {
+    return { success: false, message: 'You have read-only access. Only bookkeepers and administrators can restore categories.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
+
+  const targetAssocId = user.role === 'super_admin' ? (associationId || user.association_id) : user.association_id;
+  if (!targetAssocId) {
+    return { success: false, message: 'Please select an Irrigators Association.' };
+  }
+
+  try {
+    const assoc = await localDb.getAssociationById(targetAssocId);
+    if (!assoc) {
+      return { success: false, message: 'Association not found.' };
+    }
+
+    const result = await seedStandardCategoriesForAssociation(assoc.id, assoc.code);
+    revalidatePath('/dashboard/chart-of-accounts');
+    revalidatePath('/dashboard/treasurer');
+
+    const msg =
+      result.added > 0
+        ? `Successfully restored ${result.added} missing standard NIA account(s) for ${assoc.name}. All ${result.total} statutory accounts are now complete.`
+        : `All ${result.total} standard NIA statutory accounts are already present for ${assoc.name}. No missing accounts found.`;
+
+    return {
+      success: true,
+      message: msg,
+      data: result,
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Error restoring standard accounts.' };
   }
 }
 

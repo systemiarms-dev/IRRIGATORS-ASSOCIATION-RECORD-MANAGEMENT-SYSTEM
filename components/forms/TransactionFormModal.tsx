@@ -119,7 +119,7 @@ export default function TransactionFormModal({
   }, [selectedAssocId]);
 
   const filteredCategories = (categories && categories.length > 0 ? categories : [])
-    .filter((c) => c.category_type === type && (!selectedAssocId || c.association_id === selectedAssocId));
+    .filter((c) => c.category_type === type && c.is_active !== false && (!selectedAssocId || c.association_id === selectedAssocId));
   const isCustomCategory = categoryId === CUSTOM_OPTION;
   const filteredMembers = members.filter((m) => !m.association_id || m.association_id === selectedAssocId);
 

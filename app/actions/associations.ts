@@ -7,6 +7,7 @@ import { requireUser, requireSuperAdmin, UNAUTHORIZED_RESPONSE } from '@/lib/aut
 import { hashPassword, generateRandomPassword } from '@/lib/auth/password';
 import { isValidPhilippineMobile, normalizePhilippineMobile } from '@/lib/utils/phone';
 import { purgeReceiptStorage } from '@/lib/storage/receipts';
+import { seedStandardCategoriesForAssociation } from '@/lib/financial/standardAccounts';
 
 /**
  * Fetch registered Irrigators Associations directly from Supabase Cloud.
@@ -189,22 +190,30 @@ export async function createAssociationAction(formData: FormData): Promise<Actio
       token_version: 0,
     });
 
+    // Auto-seed official standard NIA Chart of Accounts for this new association
+    try {
+      await seedStandardCategoriesForAssociation(newAssoc.id, code);
+    } catch (seedErr: any) {
+      console.warn('Warning: Failed to auto-seed initial chart of accounts:', seedErr?.message);
+    }
+
     await localDb.addAuditLog({
       user_id: superAdmin.id,
       association_id: newAssoc.id,
       action: 'ASSOCIATION_CREATED',
       entity_type: 'associations',
       entity_id: newAssoc.id,
-      details: `Created new association: ${name} (${code}) with default officer accounts`,
+      details: `Created new association: ${name} (${code}) with default officer accounts and standard Chart of Accounts`,
     });
 
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/associations');
+    revalidatePath('/dashboard/chart-of-accounts');
     revalidatePath('/dashboard/admin');
 
     return {
       success: true,
-      message: `Association "${name}" (${code}) created successfully! Initial accounts provisioned: admin_${assocCleanCode} (admin123), bookkeeper_${assocCleanCode} (bookkeeper123), treasurer_${assocCleanCode} (treasurer123), auditor_${assocCleanCode} (auditor123).`,
+      message: `Association "${name}" (${code}) created successfully with initial officer logins and standard NIA Chart of Accounts! Initial accounts provisioned: admin_${assocCleanCode} (admin123), bookkeeper_${assocCleanCode} (bookkeeper123), treasurer_${assocCleanCode} (treasurer123), auditor_${assocCleanCode} (auditor123).`,
       data: newAssoc,
     };
   } catch (error: any) {
