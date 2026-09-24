@@ -77,8 +77,8 @@ The system comes pre-configured with the **21 Official NIA Statutory Accounts**.
 1. Navigate to **Fixed Assets** &rarr; click **Add Asset**.
 2. Encode Asset Name, Serial Number, Date Acquired, Acquisition Cost (₱), Useful Life (Years), and Salvage Value.
 3. The system automatically executes straight-line monthly and annual depreciation:
-   $$\text{Annual Depreciation} = \frac{\text{Acquisition Cost} - \text{Salvage Value}}{\text{Useful Life (Years)}}$$
-   $$\text{Net Book Value (NBV)} = \text{Acquisition Cost} - \text{Accumulated Depreciation}$$
+   - **Annual Depreciation** = (Acquisition Cost - Salvage Value) / Useful Life in Years
+   - **Net Book Value (NBV)** = Acquisition Cost - Accumulated Depreciation
 4. NBV is automatically transmitted to **FS-2 (Non-Current Assets)** and **FS-4 (Fixed Assets)**.
 
 ---
@@ -91,53 +91,53 @@ The table below provides a complete audit of every single field across the finan
 
 | Statement | Field / Line Item | Mode | Data Origin & Formula | Why is it Manual? (Operational / Statutory Rationale) |
 | :--- | :--- | :---: | :--- | :--- |
-| **FS-1** | Membership Fees | **Automated** | $\sum \text{Collections tagged } \texttt{REC-MEM}$ | Fully automated from official membership receipts. |
-| **FS-1** | Annual Dues | **Automated** | $\sum \text{Collections tagged } \texttt{REC-DUE}$ | Fully automated from annual dues ledger. |
-| **FS-1** | O&M Subsidy (ISF + Subsidy) | **Automated** | $\sum \text{Collections tagged } \texttt{REC-ISF} + \texttt{REC-SUB}$ | Fully automated from NIA subsidy advice & dry/wet season ISF. |
-| **FS-1** | Canal Remuneration Incentive | **Automated** | $\sum \text{Collections tagged } \texttt{REC-REMU}$ | Fully automated from NIA performance incentive releases. |
-| **FS-1** | Fines & Penalties | **Automated** | $\sum \text{Collections tagged } \texttt{REC-FIN}$ | Fully automated from water violation penalties and bank interest. |
-| **FS-1** | Other Income / Grants | **Automated** | $\sum \text{Collections tagged } \texttt{REC-DON} + \text{Custom Extra Receipts}$ | Fully automated from LGU grants and miscellaneous donations. |
-| **FS-1** | **Total Receipts** | **Automated** | $\sum \text{All Valid Inflow Line Items}$ | **LOCKED.** System strictly prohibits manual overrides to prevent unbalanced books. |
-| **FS-1** | Registration & Permit Fees | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-TAX}$ | Fully automated from SEC, BIR, and municipal permit vouchers. |
-| **FS-1** | Travel & Representation | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-TRAV}$ | Fully automated from official travel vouchers. |
-| **FS-1** | Meeting Expenses | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-MEET}$ | Fully automated from General Assembly meal vouchers. |
-| **FS-1** | Office Equipment & Supplies | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-SUPP}$ | Fully automated from stationery and field supply invoices. |
-| **FS-1** | Honorarium, Salaries & Wages | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-HON}$ | Fully automated from monthly gatekeeper and officer payroll vouchers. |
-| **FS-1** | Canal Clearing & Maintenance | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-CLEAR}$ | Fully automated from canal desilting and clearing payroll. |
-| **FS-1** | Emergency Canal Gate Repairs | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-REPAIR}$ | Fully automated from welder and cement repair receipts. |
-| **FS-1** | Professional CPA Fee | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-PROF}$ | Fully automated from CPA audit retaining fee vouchers. |
-| **FS-1** | Federation Contribution Share | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-FED}$ | Fully automated from Baua River IA Federation remittances. |
-| **FS-1** | Piso Mula sa Puso Emergency Fund | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-PISO}$ | Fully automated from community welfare releases. |
-| **FS-1** | Lateral / TSAG Incentive Share | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-LATERAL}$ | Fully automated from turnout service group distributions. |
-| **FS-1** | Other / Miscellaneous Expenses | **Automated** | $\sum \text{Disbursements tagged } \texttt{DISB-MISC} + \text{Custom Extra Lines}$ | Fully automated from petty expenses. |
-| **FS-1** | **Total Disbursements** | **Automated** | $\sum \text{All Valid Outflow Line Items}$ | **LOCKED.** Strictly auto-computed. |
-| **FS-1** | **Net Operating Surplus** | **Automated** | $\text{Total Receipts} - \text{Total Disbursements}$ | **LOCKED.** Pure mathematical delta. |
-| **FS-1** | Fund Balance, Beginning | **Automated** | $\text{Net Surplus of Prior Year (Rollover)}$ | Fully automated from previous fiscal period closing. |
-| **FS-1** | **Fund Balance, End** | **Automated** | $\text{Fund Balance Beginning} + \text{Net Surplus Current}$ | **LOCKED.** Cumulative operating reserve. |
+| **FS-1** | Membership Fees | **Automated** | Sum of all collections under REC-MEM | Fully automated from official membership receipts. |
+| **FS-1** | Annual Dues | **Automated** | Sum of all collections under REC-DUE | Fully automated from annual dues ledger. |
+| **FS-1** | O&M Subsidy (ISF + Subsidy) | **Automated** | Sum of all collections under REC-ISF and REC-SUB | Fully automated from NIA subsidy advice & dry/wet season ISF. |
+| **FS-1** | Canal Remuneration Incentive | **Automated** | Sum of all collections under REC-REMU | Fully automated from NIA performance incentive releases. |
+| **FS-1** | Fines & Penalties | **Automated** | Sum of all collections under REC-FIN | Fully automated from water violation penalties and bank interest. |
+| **FS-1** | Other Income / Grants | **Automated** | Sum of collections under REC-DON + Custom Extra Receipts | Fully automated from LGU grants and miscellaneous donations. |
+| **FS-1** | **Total Receipts** | **Automated** | Sum of all collection line items | **LOCKED.** System strictly prohibits manual overrides to prevent unbalanced books. |
+| **FS-1** | Registration & Permit Fees | **Automated** | Sum of all disbursements under DISB-TAX | Fully automated from SEC, BIR, and municipal permit vouchers. |
+| **FS-1** | Travel & Representation | **Automated** | Sum of all disbursements under DISB-TRAV | Fully automated from official travel vouchers. |
+| **FS-1** | Meeting Expenses | **Automated** | Sum of all disbursements under DISB-MEET | Fully automated from General Assembly meal vouchers. |
+| **FS-1** | Office Equipment & Supplies | **Automated** | Sum of all disbursements under DISB-SUPP | Fully automated from stationery and field supply invoices. |
+| **FS-1** | Honorarium, Salaries & Wages | **Automated** | Sum of all disbursements under DISB-HON | Fully automated from monthly gatekeeper and officer payroll vouchers. |
+| **FS-1** | Canal Clearing & Maintenance | **Automated** | Sum of all disbursements under DISB-CLEAR | Fully automated from canal desilting and clearing payroll. |
+| **FS-1** | Emergency Canal Gate Repairs | **Automated** | Sum of all disbursements under DISB-REPAIR | Fully automated from welder and cement repair receipts. |
+| **FS-1** | Professional CPA Fee | **Automated** | Sum of all disbursements under DISB-PROF | Fully automated from CPA audit retaining fee vouchers. |
+| **FS-1** | Federation Contribution Share | **Automated** | Sum of all disbursements under DISB-FED | Fully automated from Baua River IA Federation remittances. |
+| **FS-1** | Piso Mula sa Puso Emergency Fund | **Automated** | Sum of all disbursements under DISB-PISO | Fully automated from community welfare releases. |
+| **FS-1** | Lateral / TSAG Incentive Share | **Automated** | Sum of all disbursements under DISB-LATERAL | Fully automated from turnout service group distributions. |
+| **FS-1** | Other / Miscellaneous Expenses | **Automated** | Sum of disbursements under DISB-MISC + Custom Extra Lines | Fully automated from petty expenses. |
+| **FS-1** | **Total Disbursements** | **Automated** | Sum of all disbursement line items | **LOCKED.** Strictly auto-computed. |
+| **FS-1** | **Net Operating Surplus** | **Automated** | Total Receipts minus Total Disbursements | **LOCKED.** Pure mathematical delta. |
+| **FS-1** | Fund Balance, Beginning | **Automated** | Prior Year Net Surplus (Automatic Rollover) | Fully automated from previous fiscal period closing. |
+| **FS-1** | **Fund Balance, End** | **Automated** | Fund Balance Beginning plus Net Surplus Current | **LOCKED.** Cumulative operating reserve. |
 | **FS-2** | Cash Flows from Operations | **Automated** | Transferred directly from FS-1 Net Surplus | Exact mirror of FS-1 operating result. |
-| **FS-2** | Depreciation of Non-Current Assets | **Automated** | $\sum \text{Annual Depreciation from Fixed Asset Registry}$ | Straight-line formula computed from asset acquisition date and lifespan. |
+| **FS-2** | Depreciation of Non-Current Assets | **Automated** | Sum of annual depreciation from Fixed Asset Registry | Straight-line formula computed from asset acquisition date and lifespan. |
 | **FS-2** | Cash Balance, Beginning | **Automated** | Transferred directly from FS-1 Fund Balance Beginning | Exact mirror of prior year ending cash. |
-| **FS-2** | Cash Balance, End | **Automated** | $\text{Cash Balance Beginning} + \text{Net Surplus Current}$ | Reconciles to the last centavo with the physical bank accounts. |
+| **FS-2** | Cash Balance, End | **Automated** | Cash Balance Beginning plus Net Surplus Current | Reconciles to the last centavo with the physical bank accounts. |
 | **FS-2** | Current Assets (Cash & Receivables) | **Automated** | Transferred from FS-2 Cash Balance End | Represents liquid operational cash. |
 | **FS-2** | Non-Current Assets (IA Office Building) | **Automated** | Net Book Value (NBV) of Office Building & Fixed Assets | Auto-pulled from asset registry (₱714,000.00 NBV for NLFIA). |
-| **FS-2** | **Total Assets** | **Automated** | $\text{Current Assets} + \text{Non-Current Assets}$ | Combined wealth of the association. |
-| **FS-2** | Current Liabilities (Accrued Wages) | **Automated** | $\sum \text{Vouchers tagged } \texttt{LIAB-CUR-WAGES} \text{ or Current Liability}$ | Auto-aggregated from unpaid operational obligations. |
-| **FS-2** | Non-Current Liabilities (Loan Payable) | **Automated** | $\sum \text{Vouchers tagged } \texttt{LIAB-NONCUR-LOAN}$ | Auto-aggregated from long-term financing debts. |
-| **FS-2** | Members' Equity | **Automated** | $\text{Total Assets} - \text{Total Liabilities}$ | Represents net members' residual stake. |
-| **FS-2** | **Total Liabilities & Members' Equity**| **Automated** | $\text{Total Liabilities} + \text{Members' Equity}$ | **LOCKED.** Strictly equals Total Assets. |
+| **FS-2** | **Total Assets** | **Automated** | Current Assets plus Non-Current Assets | Combined wealth of the association. |
+| **FS-2** | Current Liabilities (Accrued Wages) | **Automated** | Sum of vouchers under Current Liabilities | Auto-aggregated from unpaid operational obligations. |
+| **FS-2** | Non-Current Liabilities (Loan Payable) | **Automated** | Sum of vouchers under Non-Current Liabilities | Auto-aggregated from long-term financing debts. |
+| **FS-2** | Members' Equity | **Automated** | Total Assets minus Total Liabilities | Represents net members' residual stake. |
+| **FS-2** | **Total Liabilities & Members' Equity**| **Automated** | Total Liabilities plus Members' Equity | **LOCKED.** Strictly equals Total Assets. |
 | **FS-3** | Section A (Cash Receipts Breakdown)| **Automated** | Mirror of FS-1 Receipts Lines | 1-to-1 reflection of all validated inflow vouchers. |
 | **FS-3** | Section B (Disbursements Breakdown) | **Automated** | Mirror of FS-1 Disbursements Lines | 1-to-1 reflection of all validated outflow vouchers. |
 | **FS-3** | Section C (Cash Balance This Year) | **Automated** | Current Year Receipts minus Current Year Disbursements | Net change in cash for the reporting period. |
 | **FS-3** | Section D (Fund Balance Last Report)| **Automated** | Rolled over from prior year closing | Verified unspent cash brought forward. |
-| **FS-3** | Section E (Total Cash Balance) | **Automated** | $\text{Section C} + \text{Section D}$ | Reconciled total liquid funds. |
-| **FS-3** | Sec. F: Cash on Hand (Petty/Vault) | **Automated** | Cumulative inflows minus outflows tagged `cash_on_hand` | Auto-tracked physical vault cash. |
-| **FS-3** | Sec. F: Cash in Bank - Regular | **Automated** | Cumulative inflows minus outflows tagged `bank_regular` | Auto-tracked Land Bank of the Philippines operational checking account. |
-| **FS-3** | Sec. F: Cash in Bank - CBU | **Automated** | Cumulative inflows minus outflows tagged `bank_cbu` | Auto-tracked restricted Capital Build-Up bank savings account. |
-| **FS-3** | **Sec. F: Total Cash Composition** | **Automated** | $\text{Cash on Hand} + \text{Bank Regular} + \text{Bank CBU}$ | **Must exactly equal Section E.** |
+| **FS-3** | Section E (Total Cash Balance) | **Automated** | Section C plus Section D | Reconciled total liquid funds. |
+| **FS-3** | Sec. F: Cash on Hand (Petty/Vault) | **Automated** | Cumulative inflows minus outflows tagged cash_on_hand | Auto-tracked physical vault cash. |
+| **FS-3** | Sec. F: Cash in Bank - Regular | **Automated** | Cumulative inflows minus outflows tagged bank_regular | Auto-tracked Land Bank of the Philippines operational checking account. |
+| **FS-3** | Sec. F: Cash in Bank - CBU | **Automated** | Cumulative inflows minus outflows tagged bank_cbu | Auto-tracked restricted Capital Build-Up bank savings account. |
+| **FS-3** | **Sec. F: Total Cash Composition** | **Automated** | Cash on Hand + Bank Regular + Bank CBU | **Must exactly equal Section E.** |
 | **FS-4** | Cash on Hand & in Bank | **Automated** | Transferred directly from FS-3 Section F | Liquid assets transferred to the Balance Sheet. |
 | **FS-4** | Non-Current Assets (Fixed Assets NBV) | **Automated** | Transferred directly from Fixed Asset Registry | Net book value of IA office building, pump stations, and tools. |
 | **FS-4** | Current & Long-Term Liabilities | **Automated** | Sum of Current & Non-Current Liabilities from Ledger | Total debt obligations owed to third parties. |
-| **FS-4** | **Net Worth** | **Automated** | $\text{Total Assets} - \text{Total Liabilities}$ | True legal net worth of the association. |
+| **FS-4** | **Net Worth** | **Automated** | Total Assets minus Total Liabilities | True legal net worth of the association. |
 | **FS-4** | Treasurer Certification Block | **Automated** | Pulled from Association Profile (Name, TIN) | Verified officer credentials. |
 | **FS-4** | **Community Tax Certificate (CTC) #** | **MANUAL** | User typed in modal during notary filing | **LEGAL REQUIREMENT:** Philippine Notarial Law (A.M. No. 02-8-13-SC) requires the physical Community Tax Certificate (Cedula) or Government Passport/Driver's License presented in person before the Notary Public. Software cannot fabricate legal identity documents. |
 | **FS-4** | **CTC Date & Place of Issue** | **MANUAL** | User typed in modal during notary filing | **LEGAL REQUIREMENT:** Must reflect the physical municipality where the Treasurer paid their annual local community tax. |
@@ -178,15 +178,15 @@ The 2025 transactions establish the historical baseline and calculate the **Begi
 | `DV-2025-004` | 2025-10-10 | `DISB-REPAIR` (Repairs) | Disbursement | `bank_regular` | Station B Steel Gate Repair | ₱28,000.00 |
 | `DV-2025-005` | 2025-12-05 | `DISB-TAX` (Taxes & Permits) | Disbursement | `bank_regular` | SEC & Municipal Registration | ₱15,000.00 |
 
-$$\text{2025 Total Collections} = 24,000 + 195,000 + 140,000 + 6,000 + 25,000 = \mathbf{₱390,000.00}$$
-$$\text{2025 Total Disbursements} = 85,000 + 50,000 + 12,000 + 28,000 + 15,000 = \mathbf{₱190,000.00}$$
-$$\mathbf{2025 \text{ Net Operating Surplus}} = 390,000.00 - 190,000.00 = \mathbf{₱200,000.00}$$
+- **2025 Total Collections:** ₱24,000 + ₱195,000 + ₱140,000 + ₱6,000 + ₱25,000 = **₱390,000.00**
+- **2025 Total Disbursements:** ₱85,000 + ₱50,000 + ₱12,000 + ₱28,000 + ₱15,000 = **₱190,000.00**
+- **2025 Net Operating Surplus:** ₱390,000.00 - ₱190,000.00 = **₱200,000.00**
 
 > [!IMPORTANT]
 > This ₱200,000.00 net operating surplus automatically rolls over into 2026 as:
-> 1. **FS-1:** `membersEquity.fundBalanceBeginning` = ₱200,000.00
-> 2. **FS-2:** `cashFlows.cashBalanceBeginning` = ₱200,000.00
-> 3. **FS-3:** `fundBalanceLastReport` = ₱200,000.00
+> 1. **FS-1:** Beginning Fund Balance = ₱200,000.00
+> 2. **FS-2:** Beginning Cash Balance = ₱200,000.00
+> 3. **FS-3:** Fund Balance Last Report = ₱200,000.00
 
 ---
 
@@ -216,46 +216,60 @@ $$\mathbf{2025 \text{ Net Operating Surplus}} = 390,000.00 - 190,000.00 = \mathb
 | `DV-2026-013` | 2026-03-30 | `LIAB-NONCUR-LOAN`| Disbursement| `bank_regular` | Long-Term Facility Loan Amortization | ₱15,500.00 |
 | **Subtotal** | | **2026 Disbursements** | | | | **₱245,000.00** |
 
-$$\mathbf{2026 \text{ Net Operating Surplus}} = ₱380,500.00 - ₱245,000.00 = \mathbf{₱135,500.00}$$
+- **2026 Net Operating Surplus:** ₱380,500.00 - ₱245,000.00 = **₱135,500.00**
 
 ---
 
 ### 5.3 Step-by-Step Report Connection & Proof
 
 #### Step 1: FS-1 (Comparative Statement of Cash Receipts & Disbursements)
-- **Current Year Total Receipts:** $\mathbf{₱380,500.00}$ (Prior Year: ₱390,000.00)
-- **Current Year Total Disbursements:** $\mathbf{₱245,000.00}$ (Prior Year: ₱190,000.00)
-- **Net Operating Surplus:** $380,500.00 - 245,000.00 = \mathbf{₱135,500.00}$
+- **Current Year Total Receipts:** **₱380,500.00** (Prior Year: ₱390,000.00)
+- **Current Year Total Disbursements:** **₱245,000.00** (Prior Year: ₱190,000.00)
+- **Net Operating Surplus:** ₱380,500.00 - ₱245,000.00 = **₱135,500.00**
 - **Members' Equity Roll-Forward:**
-  $$\text{Fund Balance Beginning (Rollover from 2025 Net)} = \mathbf{₱200,000.00}$$
-  $$\text{Add: Net Savings for the Year (2026)} = \mathbf{₱135,500.00}$$
-  $$\mathbf{Fund\ Balance\ End\ (December\ 31,\ 2026)} = 200,000.00 + 135,500.00 = \mathbf{₱335,500.00}$$
+  - Beginning Fund Balance (from 2025 Net): **₱200,000.00**
+  - Add Net Savings for the Year (2026): **₱135,500.00**
+  - **Ending Fund Balance (December 31, 2026):** ₱200,000.00 + ₱135,500.00 = **₱335,500.00**
 
 #### Step 2: FS-3 (Cash Statement & Bank Reconciliation)
-- **Section C (Cash Balance This Year):** $₱380,500.00 - ₱245,000.00 = \mathbf{₱135,500.00}$
-- **Section D (Add: Fund Balance Last Report):** $\mathbf{₱200,000.00}$
-- **Section E (Total Cash Balance):** $135,500.00 + 200,000.00 = \mathbf{₱335,500.00}$
-- **Section F (Composition of Cash Balance by Account):**
-  $$\text{Cash on Hand (Vault)} = \sum \text{Inflows} - \sum \text{Outflows (tagged cash\_on\_hand)} = \mathbf{₱151,000.00}$$
-  $$\text{Cash in Bank - Regular Operations} = \sum \text{Inflows} - \sum \text{Outflows (tagged bank\_regular)} = \mathbf{₱139,500.00}$$
-  $$\text{Cash in Bank - Capital Build-Up (CBU)} = \sum \text{Inflows} - \sum \text{Outflows (tagged bank\_cbu)} = \mathbf{₱45,000.00}$$
-  $$\mathbf{Total\ Section\ F\ Cash\ Composition} = 151,000.00 + 139,500.00 + 45,000.00 = \mathbf{₱335,500.00}$$
-  $$\mathbf{Mathematical\ Verification:\ Section\ E\ (₱335,500.00) \equiv Section\ F\ (₱335,500.00) \quad [100\%\ MATCH]}$$
+- **Section C (Cash Balance This Year):** ₱380,500.00 - ₱245,000.00 = **₱135,500.00**
+- **Section D (Add: Fund Balance Last Report):** **₱200,000.00**
+- **Section E (Total Cash Balance):** ₱135,500.00 + ₱200,000.00 = **₱335,500.00**
+
+**Section F: Multi-Fund Cash Breakdown (from Daily Vouchers):**
+- **Cash on Hand (Physical Office Vault):**
+  - Inflows received in cash: ₱234,500.00
+  - Less cash disbursements: -₱83,500.00
+  - **Ending Cash on Hand = ₱151,000.00**
+- **Cash in Bank - Regular Operations (Land Bank Checking Account):**
+  - Inflows deposited in bank: ₱296,000.00
+  - Less checks and bank transfers: -₱156,500.00
+  - **Ending Regular Bank Balance = ₱139,500.00**
+- **Cash in Bank - Capital Build-Up (Restricted CBU Savings Account):**
+  - Member equity deposits: ₱45,000.00
+  - Less withdrawals: -₱0.00
+  - **Ending CBU Bank Balance = ₱45,000.00**
+- **Total Section F Cash Composition:**
+  - ₱151,000.00 + ₱139,500.00 + ₱45,000.00 = **₱335,500.00**
+  - **Reconciliation:** Section E (₱335,500.00) and Section F (₱335,500.00) match 100%!
 
 #### Step 3: FS-2 (Statement of Financial Condition) & FS-4 (Balance Sheet)
-- **Current Assets:** Cash in Banks & on Hand = $\mathbf{₱335,500.00}$
+- **Current Assets:** Cash in Banks & on Hand = **₱335,500.00**
 - **Non-Current Assets:**
-  - `IA OFFICE BUILDING` (Acquisition ₱850,000 - Acc. Dep. ₱136,000) = $\mathbf{₱714,000.00}$
-  $$\mathbf{Total\ Assets} = 335,500.00 + 714,000.00 = \mathbf{₱1,049,500.00}$$
+  - IA OFFICE BUILDING (Acquisition Cost ₱850,000 - Accumulated Depreciation ₱136,000) = **₱714,000.00**
+  - **Total Assets:** ₱335,500.00 + ₱714,000.00 = **₱1,049,500.00**
+
 - **Liabilities:**
-  - Current Liabilities (Accrued Wages / Payables) = $\mathbf{₱16,500.00}$
-  - Non-Current Liabilities (Long-Term Facility Loan) = $\mathbf{₱35,000.00}$
-  $$\mathbf{Total\ Liabilities} = 16,500.00 + 35,000.00 = \mathbf{₱51,500.00}$$
-- **Members' Equity & Net Worth Calculation:**
-  $$\mathbf{Net\ Worth\ (FS-4)} = \text{Total Assets} - \text{Total Liabilities} = 1,049,500.00 - 51,500.00 = \mathbf{₱998,000.00}$$
+  - Current Liabilities (Accrued Wages / Payables) = **₱16,500.00**
+  - Non-Current Liabilities (Long-Term Facility Loan) = **₱35,000.00**
+  - **Total Liabilities:** ₱16,500.00 + ₱35,000.00 = **₱51,500.00**
+
+- **Net Worth Calculation:**
+  - Total Assets (₱1,049,500.00) minus Total Liabilities (₱51,500.00) = **₱998,000.00**
+
 - **Balance Sheet Equilibrium Proof:**
-  $$\text{Total Liabilities} + \text{Members' Equity} = 51,500.00 + 998,000.00 = \mathbf{₱1,049,500.00}$$
-  $$\mathbf{Total\ Assets\ (₱1,049,500.00) \equiv Total\ Liabilities\ \&\ Equity\ (₱1,049,500.00) \quad [PERFECT\ BALANCE]}$$
+  - Total Liabilities (₱51,500.00) + Members' Equity (₱998,000.00) = **₱1,049,500.00**
+  - **Verification:** Total Assets (₱1,049,500.00) exactly equals Total Liabilities & Equity (₱1,049,500.00) — 100% Balanced!
 
 ---
 
