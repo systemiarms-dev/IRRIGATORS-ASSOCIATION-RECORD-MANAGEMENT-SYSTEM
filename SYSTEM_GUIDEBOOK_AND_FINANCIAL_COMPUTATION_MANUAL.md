@@ -12,7 +12,7 @@
 The **Irrigators Association Record Management System (IARMS)** is an enterprise-grade cloud accounting and administrative platform designed specifically for Irrigators Associations (IAs) operating under the National Irrigation Administration (NIA) and registered with the Securities and Exchange Commission (SEC) and Bureau of Internal Revenue (BIR).
 
 The platform transforms manual, error-prone paper ledgers into an automated, mathematically unified double-entry accounting engine. It ensures:
-1. **Statutory NIA Compliance:** Native generation of the 5 official NIA financial statement packages (FS-1, FS-2, FS-3, FS-4, FS-5).
+1. **Statutory NIA Compliance:** Native generation of the 4 official NIA financial statement packages (FS-1, FS-2, FS-3, FS-4).
 2. **Double-Entry Equilibrium:** Real-time alignment between the cash ledger, multi-fund bank accounts, fixed assets, liabilities, and members' equity.
 3. **Audit Trail Integrity:** Strict multi-role segregation of duties with full voucher tracking and irreversible historical logs.
 
