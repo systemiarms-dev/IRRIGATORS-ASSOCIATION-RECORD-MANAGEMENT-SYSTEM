@@ -11,9 +11,14 @@ import {
   FinancialStatement,
   AuditLog,
   UserRole,
+  FixedAsset,
+  FundSource,
+  AccountClassification,
 } from '@/types';
 import { hashPassword, isHashedPassword } from '@/lib/auth/password';
 import { normalizeStoredPhilippineMobile } from '@/lib/utils/phone';
+import { enrichFixedAsset } from '@/lib/utils/fixedAssets';
+import { determineFundSource } from '@/lib/utils/fundSources';
 
 /**
  * 100% Cloud-Native Supabase PostgreSQL Database Service
@@ -313,6 +318,8 @@ class SupabaseDatabaseService {
   // ==========================================
   // Budget Categories
   // ==========================================
+  // Budget Categories
+  // ==========================================
   public async getBudgetCategories(associationId?: string): Promise<BudgetCategory[]> {
     const all = await cached('bc:list', async () => {
       const client = this.getClient();
@@ -320,27 +327,161 @@ class SupabaseDatabaseService {
       if (error) {
         console.warn('Error fetching budget categories from Supabase:', error.message);
       }
-      return (data || []) as BudgetCategory[];
+      return ((data || []) as BudgetCategory[]).map((c) => {
+        let classification: AccountClassification | undefined = c.account_classification;
+        if (!classification && c.description) {
+          const match = c.description.match(/\[class:([a-z_]+)\]/);
+          if (match && match[1]) {
+            classification = match[1] as AccountClassification;
+          }
+        }
+        return {
+          ...c,
+          account_classification: classification || (c.category_type as any),
+        };
+      });
     }, 60_000);
 
+    // Filter out fixed asset registry items from standard budget categories
+    const nonAssets = all.filter((c) => !c.code.startsWith('AST-'));
+
     if (associationId && associationId !== 'all') {
-      return all.filter((c) => c.association_id === associationId);
+      return nonAssets.filter((c) => c.association_id === associationId);
     }
-    return all;
+    return nonAssets;
   }
 
   public async createBudgetCategory(category: BudgetCategory): Promise<BudgetCategory> {
     const client = this.getClient();
-    const { data, error } = await client.from('budget_categories').insert(category).select().single();
+    let description = category.description || null;
+    if (category.account_classification && category.account_classification !== category.category_type) {
+      const classTag = `[class:${category.account_classification}]`;
+      description = description ? `${classTag} ${description}` : classTag;
+    }
+
+    const payload = {
+      ...category,
+      description,
+    };
+    const { data, error } = await client.from('budget_categories').insert(payload).select().single();
     if (error) throw new Error(error.message || 'Error creating budget category');
     invalidateCache('bc:');
-    return data as BudgetCategory;
+    return {
+      ...data,
+      account_classification: category.account_classification || (data.category_type as any),
+    } as BudgetCategory;
   }
 
   public async deleteBudgetCategory(id: string): Promise<boolean> {
     const client = this.getClient();
     const { error } = await client.from('budget_categories').delete().eq('id', id);
     if (error) throw new Error(error.message || 'Error deleting budget category');
+    invalidateCache('bc:');
+    return true;
+  }
+
+  // ==========================================
+  // Fixed Asset & Equipment Registry
+  // ==========================================
+  public async getFixedAssets(associationId?: string, asOfYear: number = new Date().getFullYear()): Promise<FixedAsset[]> {
+    const client = this.getClient();
+    let query = client.from('budget_categories').select('*').like('code', 'AST-%');
+    if (associationId && associationId !== 'all') {
+      query = query.eq('association_id', associationId);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) {
+      console.warn('Error fetching fixed assets:', error.message);
+      return [];
+    }
+
+    const assets: FixedAsset[] = [];
+    for (const row of data || []) {
+      try {
+        let meta: any = {};
+        if (row.description) {
+          try {
+            meta = JSON.parse(row.description);
+          } catch {
+            meta = {};
+          }
+        }
+        const asset: FixedAsset = {
+          id: row.id,
+          association_id: row.association_id,
+          name: row.name,
+          asset_type: meta.asset_type || 'other',
+          date_acquired: meta.date_acquired || (row.created_at ? row.created_at.split('T')[0] : '2025-01-01'),
+          acquisition_cost: Number(row.allocated_amount || meta.acquisition_cost || 0),
+          depreciation_rate: Number(meta.depreciation_rate || 10),
+          useful_life_years: Number(meta.useful_life_years || 10),
+          salvage_value: Number(meta.salvage_value || 0),
+          is_active: row.is_active ?? true,
+          notes: meta.notes || null,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        };
+        assets.push(enrichFixedAsset(asset, asOfYear));
+      } catch (e) {
+        console.warn('Failed parsing fixed asset item', row.id, e);
+      }
+    }
+    return assets;
+  }
+
+  public async createFixedAsset(assetInput: Omit<FixedAsset, 'id'>): Promise<FixedAsset> {
+    const client = this.getClient();
+    const id = `ast-${Date.now()}`;
+    const cleanCode = `AST-${assetInput.name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 15)}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const meta = {
+      is_asset: true,
+      asset_type: assetInput.asset_type,
+      date_acquired: assetInput.date_acquired,
+      depreciation_rate: assetInput.depreciation_rate,
+      useful_life_years: assetInput.useful_life_years,
+      salvage_value: assetInput.salvage_value || 0,
+      notes: assetInput.notes || null,
+    };
+
+    const row = {
+      id,
+      code: cleanCode,
+      name: assetInput.name,
+      category_type: 'disbursement',
+      allocated_amount: assetInput.acquisition_cost,
+      description: JSON.stringify(meta),
+      association_id: assetInput.association_id,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client.from('budget_categories').insert(row).select().single();
+    if (error) throw new Error(error.message || 'Error registering fixed asset');
+    invalidateCache('bc:');
+
+    const created: FixedAsset = {
+      id: data.id,
+      association_id: data.association_id,
+      name: data.name,
+      asset_type: assetInput.asset_type,
+      date_acquired: assetInput.date_acquired,
+      acquisition_cost: assetInput.acquisition_cost,
+      depreciation_rate: assetInput.depreciation_rate,
+      useful_life_years: assetInput.useful_life_years,
+      salvage_value: assetInput.salvage_value,
+      is_active: true,
+      notes: assetInput.notes,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
+    return enrichFixedAsset(created);
+  }
+
+  public async deleteFixedAsset(id: string): Promise<boolean> {
+    const client = this.getClient();
+    const { error } = await client.from('budget_categories').delete().eq('id', id);
+    if (error) throw new Error(error.message || 'Error deleting fixed asset');
     invalidateCache('bc:');
     return true;
   }
@@ -389,6 +530,7 @@ class SupabaseDatabaseService {
         ? (tx.member_ids.map((id: string) => userMap.get(id)).filter(Boolean) as Profile[])
         : undefined,
       receipt: tx.receipt_id ? receiptMap.get(tx.receipt_id) : undefined,
+      fund_source: determineFundSource(tx),
     })) as Transaction[];
   }
 
@@ -414,6 +556,7 @@ class SupabaseDatabaseService {
       category,
       member,
       receipt,
+      fund_source: determineFundSource(tx),
     } as Transaction;
   }
 

@@ -5,7 +5,35 @@ export type UserRole = 'super_admin' | 'admin' | 'bookkeeper' | 'treasurer' | 'a
 export type VerificationStatus = 'pending' | 'verified' | 'flagged' | 'rejected';
 export type TransactionType = 'collection' | 'disbursement';
 export type StatementType = 'balance_sheet' | 'income_statement' | 'cash_flow' | 'fs1' | 'fs2' | 'fs3' | 'fs4';
-export type PaymentMethod = 'cash' | 'gcash' | 'bank_transfer' | 'check';
+export type PaymentMethod = 'cash' | 'gcash' | 'bank_transfer' | 'check' | 'cash_on_hand' | 'bank_regular' | 'bank_cbu';
+export type FundSource = 'cash_on_hand' | 'bank_regular' | 'bank_cbu';
+export type AccountClassification =
+  | 'collection'
+  | 'disbursement'
+  | 'current_asset'
+  | 'non_current_asset'
+  | 'current_liability'
+  | 'non_current_liability';
+
+export interface FixedAsset {
+  id: string;
+  association_id: string;
+  name: string;
+  asset_type: 'building' | 'heavy_machinery' | 'light_machinery' | 'it_equipment' | 'other';
+  date_acquired: string;
+  acquisition_cost: number;
+  depreciation_rate: number;
+  useful_life_years: number;
+  salvage_value: number;
+  is_active: boolean;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  accumulated_depreciation?: number;
+  annual_depreciation?: number;
+  net_book_value?: number;
+  netBookValue?: number;
+}
 
 export interface Association {
   id: string;
@@ -67,6 +95,7 @@ export interface BudgetCategory {
   code: string;
   name: string;
   category_type: TransactionType;
+  account_classification?: AccountClassification;
   allocated_amount: number;
   description?: string | null;
   association_id?: string | null;
@@ -107,6 +136,7 @@ export interface Transaction {
   amount: number;
   transaction_date: string;
   payment_method: PaymentMethod;
+  fund_source?: FundSource;
   reference_number: string | null;
   payee_name?: string | null;
   lateral_section?: string | null;

@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import {
   createTransactionAction,
   createBudgetCategoryAction,
+  getFundBalancesAction,
 } from '@/app/actions/transactions';
-import { BudgetCategory, TransactionType, Profile, Association, Transaction } from '@/types';
+import { BudgetCategory, TransactionType, Profile, Association, Transaction, FundSource } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   PlusCircle,
@@ -22,6 +23,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Image as ImageIcon,
+  Landmark,
+  Coins,
 } from 'lucide-react';
 
 interface TransactionFormModalProps {
@@ -53,6 +56,23 @@ export default function TransactionFormModal({
 }: TransactionFormModalProps) {
   const [selectedAssocId, setSelectedAssocId] = useState<string>(defaultAssociationId || '');
   const [type, setType] = useState<TransactionType>('disbursement');
+  const [fundMode, setFundMode] = useState<'cash_on_hand' | 'bank'>('cash_on_hand');
+  const [bankFundType, setBankFundType] = useState<'bank_regular' | 'bank_cbu'>('bank_regular');
+  const [fundBalances, setFundBalances] = useState<{
+    cashOnHand: number;
+    bankRegular: number;
+    bankCBU: number;
+    total: number;
+  }>({
+    cashOnHand: 0,
+    bankRegular: 0,
+    bankCBU: 0,
+    total: 0,
+  });
+  const [loadingBalances, setLoadingBalances] = useState(false);
+
+  const effectiveFund: FundSource = fundMode === 'cash_on_hand' ? 'cash_on_hand' : bankFundType;
+
   const [amount, setAmount] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [customCategory, setCustomCategory] = useState<string>('');
@@ -79,6 +99,24 @@ export default function TransactionFormModal({
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    async function fetchBalances() {
+      if (!selectedAssocId) return;
+      setLoadingBalances(true);
+      try {
+        const res = await getFundBalancesAction(selectedAssocId);
+        if (res.success && res.data) {
+          setFundBalances(res.data);
+        }
+      } catch (err) {
+        console.error('Failed fetching fund balances:', err);
+      } finally {
+        setLoadingBalances(false);
+      }
+    }
+    fetchBalances();
+  }, [selectedAssocId]);
 
   const filteredCategories = (categories && categories.length > 0 ? categories : [])
     .filter((c) => c.category_type === type && (!selectedAssocId || c.association_id === selectedAssocId));
@@ -122,6 +160,22 @@ export default function TransactionFormModal({
     if (isCustomCategory && !customCategory.trim()) {
       setErrorMsg('Please type the name of the custom category.');
       return;
+    }
+
+    // Insufficient Funds / Over-Disbursement Check
+    if (type === 'disbursement') {
+      const avail = effectiveFund === 'cash_on_hand'
+        ? fundBalances.cashOnHand
+        : (effectiveFund === 'bank_cbu' ? fundBalances.bankCBU : fundBalances.bankRegular);
+      if (numericAmount > avail) {
+        const fundName = effectiveFund === 'cash_on_hand'
+          ? 'Cash on Hand (Vault / Petty Cash)'
+          : (effectiveFund === 'bank_cbu' ? 'Cash in Bank (CBU Fund)' : 'Cash in Bank (Regular Fund)');
+        setErrorMsg(
+          `Insufficient funds in ${fundName}! Available balance is ₱${Math.max(0, avail).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, but you are trying to disburse ₱${numericAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`
+        );
+        return;
+      }
     }
 
     setLoading(true);
@@ -207,7 +261,8 @@ export default function TransactionFormModal({
         member_id: type === 'collection' && memberIds.length === 1 ? memberIds[0] || null : null,
         member_ids: type === 'collection' && memberIds.length > 0 ? memberIds : null,
         receipt_id: receiptId,
-        payment_method: 'cash',
+        payment_method: effectiveFund,
+        fund_source: effectiveFund,
         transaction_date: transactionDate,
         reference_number: referenceNumber || null,
       });
@@ -326,6 +381,124 @@ export default function TransactionFormModal({
             >
               Money OUT (Disbursement / Expense)
             </button>
+          </div>
+
+          {/* Cash Account / Fund Destination Selector */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className={labelCls}>
+                {type === 'collection' ? 'Cash Destination / Fund Account *' : 'Cash Source / Fund Account *'}
+              </label>
+              <span className="text-[10px] text-slate-500 font-medium">
+                Feeds FS-3 Section F (Composition of Cash Balance)
+              </span>
+            </div>
+
+            {/* Fund Mode: Cash on Hand vs Cash in Bank */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setFundMode('cash_on_hand')}
+                className={`p-2.5 rounded-lg border text-left flex items-start gap-2.5 transition-all ${
+                  fundMode === 'cash_on_hand'
+                    ? 'border-emerald-600 bg-emerald-50/80 shadow-sm ring-1 ring-emerald-600'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                }`}
+              >
+                <span className="text-xl">💵</span>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-800">Cash on Hand</div>
+                  <div className="text-[10px] text-slate-500">Vault / Petty Cash Box</div>
+                  <div className="text-[10px] font-mono font-bold mt-1 text-emerald-800">
+                    Avail: ₱{fundBalances.cashOnHand.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFundMode('bank')}
+                className={`p-2.5 rounded-lg border text-left flex items-start gap-2.5 transition-all ${
+                  fundMode === 'bank'
+                    ? 'border-emerald-600 bg-emerald-50/80 shadow-sm ring-1 ring-emerald-600'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                }`}
+              >
+                <span className="text-xl">🏦</span>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-800">Cash in Bank</div>
+                  <div className="text-[10px] text-slate-500">Official IA Bank Accounts</div>
+                  <div className="text-[10px] font-mono font-bold mt-1 text-emerald-800">
+                    Avail: ₱{(fundBalances.bankRegular + fundBalances.bankCBU).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Sub-choice for Cash in Bank: Regular vs CBU Fund */}
+            {fundMode === 'bank' && (
+              <div className="pt-2 border-t border-slate-200/80 space-y-1.5">
+                <span className="text-[11px] font-bold text-slate-700">Choose Specific Bank Account Fund:</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBankFundType('bank_regular')}
+                    className={`p-2.5 rounded-lg border text-left flex flex-col justify-between transition-all ${
+                      bankFundType === 'bank_regular'
+                        ? 'border-emerald-600 bg-white shadow-sm ring-2 ring-emerald-500/30'
+                        : 'border-slate-200 bg-white/70 hover:bg-white'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">Regular Fund</div>
+                      <div className="text-[10px] text-slate-500">Operating &amp; Admin Expenses</div>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold mt-1 text-emerald-800">
+                      ₱{fundBalances.bankRegular.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setBankFundType('bank_cbu')}
+                    className={`p-2.5 rounded-lg border text-left flex flex-col justify-between transition-all ${
+                      bankFundType === 'bank_cbu'
+                        ? 'border-emerald-600 bg-white shadow-sm ring-2 ring-emerald-500/30'
+                        : 'border-slate-200 bg-white/70 hover:bg-white'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">CBU Fund</div>
+                      <div className="text-[10px] text-slate-500">Capital Build-Up Equity</div>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold mt-1 text-emerald-800">
+                      ₱{fundBalances.bankCBU.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Live Insufficient Fund Warning */}
+            {type === 'disbursement' && parseFloat(amount) > 0 && (
+              (() => {
+                const avail = effectiveFund === 'cash_on_hand'
+                  ? fundBalances.cashOnHand
+                  : (effectiveFund === 'bank_cbu' ? fundBalances.bankCBU : fundBalances.bankRegular);
+                if (parseFloat(amount) > avail) {
+                  return (
+                    <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 flex items-center gap-2 text-rose-700 text-xs font-medium">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>
+                        <strong>Insufficient Balance:</strong> Available balance for this fund is only{' '}
+                        <strong>₱{Math.max(0, avail).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>. Cannot disburse ₱{parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()
+            )}
           </div>
 
           {/* Amount */}
@@ -693,23 +866,41 @@ export default function TransactionFormModal({
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={loading || uploading}
-              className="px-5 py-2 text-xs font-bold rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white shadow-md active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
-            >
-              {loading || uploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Saving Transaction...</span>
-                </>
-              ) : (
-                <>
-                  <PlusCircle className="w-4 h-4" />
-                  <span>Save to Ledger</span>
-                </>
-              )}
-            </button>
+            {(() => {
+              const avail = effectiveFund === 'cash_on_hand'
+                ? fundBalances.cashOnHand
+                : (effectiveFund === 'bank_cbu' ? fundBalances.bankCBU : fundBalances.bankRegular);
+              const isInsufficient = type === 'disbursement' && parseFloat(amount) > 0 && parseFloat(amount) > avail;
+              return (
+                <button
+                  type="submit"
+                  disabled={loading || uploading || isInsufficient}
+                  className={`px-5 py-2 text-xs font-bold rounded-lg shadow-md active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2 ${
+                    isInsufficient
+                      ? 'bg-rose-600 text-white cursor-not-allowed'
+                      : 'bg-emerald-800 hover:bg-emerald-900 text-white'
+                  }`}
+                  title={isInsufficient ? 'Insufficient available balance in selected fund' : undefined}
+                >
+                  {loading || uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Saving Transaction...</span>
+                    </>
+                  ) : isInsufficient ? (
+                    <>
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>Insufficient Fund Balance</span>
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle className="w-4 h-4" />
+                      <span>Save to Ledger</span>
+                    </>
+                  )}
+                </button>
+              );
+            })()}
           </div>
         </form>
       </DialogContent>

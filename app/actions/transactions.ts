@@ -5,9 +5,10 @@ import path from 'path';
 import { localDb, RECEIPTS_BUCKET } from '@/lib/db/localDb';
 import { removeReceiptStorageObject } from '@/lib/storage/receipts';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { ActionResponse, CreateTransactionPayload, Transaction, BudgetCategory, Receipt, Profile } from '@/types';
+import { ActionResponse, CreateTransactionPayload, Transaction, BudgetCategory, Receipt, Profile, FundSource, AccountClassification } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, toPublicProfile, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { calculateFundBalances, getFundLabel, determineFundSource } from '@/lib/utils/fundSources';
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB for receipt images
 const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10MB for PDF documents
@@ -25,7 +26,7 @@ const ALLOWED_RECEIPT_TYPES: Record<string, string> = {
  */
 function sniffMimeType(buffer: Buffer): string {
   if (buffer.length < 8) return '';
-  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return 'image/png';
+  if (buffer[0] === 0x89 && buffer[1] === 0x4e && buffer[2] === 0x47) return 'image/png';
   if (buffer[0] === 0xff && buffer[1] === 0xd8) return 'image/jpeg';
   if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) return 'image/webp';
   if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) return 'application/pdf';
@@ -53,6 +54,7 @@ function isImageVariant(declared: string, sniffed: string): boolean {
 export async function createBudgetCategoryAction(input: {
   name: string;
   category_type: 'collection' | 'disbursement';
+  account_classification?: AccountClassification;
   code?: string;
   allocated_amount?: number;
   description?: string;
@@ -108,6 +110,7 @@ export async function createBudgetCategoryAction(input: {
       code: categoryCode,
       name,
       category_type: input.category_type,
+      account_classification: input.account_classification,
       allocated_amount: typeof input.allocated_amount === 'number' ? input.allocated_amount : 0,
       description: input.description?.trim() || null as any,
       is_active: true,
@@ -287,6 +290,39 @@ export async function createTransactionAction(payload: CreateTransactionPayload)
   const randomCode = Math.floor(1000 + Math.random() * 9000);
   const transactionNumber = `${prefix}-${timestampStr}-${randomCode}`;
 
+  const fundSource: FundSource = payload.fund_source || (
+    payload.payment_method === 'bank_cbu' ? 'bank_cbu' :
+    payload.payment_method === 'bank_regular' || payload.payment_method === 'bank_transfer' || payload.payment_method === 'check' ? 'bank_regular' :
+    'cash_on_hand'
+  );
+
+  // Insufficient Funds / Over-Disbursement Validation
+  if (payload.type === 'disbursement') {
+    const existingTxs = await localDb.getTransactions(targetAssociationId);
+    const fundBalances = calculateFundBalances(existingTxs);
+    const available = fundSource === 'bank_cbu'
+      ? fundBalances.bankCBU
+      : fundSource === 'bank_regular'
+        ? fundBalances.bankRegular
+        : fundBalances.cashOnHand;
+
+    if (payload.amount > available) {
+      const fundLabel = getFundLabel(fundSource);
+      const availFormatted = `₱${Math.max(0, available).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const reqFormatted = `₱${payload.amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return {
+        success: false,
+        message: `Insufficient funds in ${fundLabel}. Available balance is ${availFormatted}, but requested disbursement is ${reqFormatted}.`,
+      };
+    }
+  }
+
+  const fundTag = `[fund:${fundSource}]`;
+  const existingNotes = payload.notes?.trim() || '';
+  const finalNotes = existingNotes
+    ? (existingNotes.includes('[fund:') ? existingNotes : `${fundTag} ${existingNotes}`)
+    : fundTag;
+
   const newTx: Transaction = {
     id: `tx-${Date.now()}`,
     transaction_number: transactionNumber,
@@ -302,12 +338,13 @@ export async function createTransactionAction(payload: CreateTransactionPayload)
     receipt_id: payload.receipt_id || null,
     amount: payload.amount,
     transaction_date: payload.transaction_date,
-    payment_method: payload.payment_method || 'cash',
+    payment_method: fundSource,
+    fund_source: fundSource,
     reference_number: payload.reference_number?.trim() || null,
     payee_name: payload.payee_name?.trim() || null,
     lateral_section: payload.lateral_section?.trim() || null,
     particulars: payload.particulars?.trim() || null,
-    notes: payload.notes?.trim() || null,
+    notes: finalNotes,
     created_by: user.id,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -316,13 +353,37 @@ export async function createTransactionAction(payload: CreateTransactionPayload)
   try {
     // Insert only real table columns - joined objects (member/members/category) are not
     // columns in the `transactions` table and would make PostgREST reject the insert.
-    const { member: _member, members: _members, category: _category, ...dbRow } = newTx;
+    const { member: _member, members: _members, category: _category, fund_source: _fund_source, ...dbRow } = newTx;
     await localDb.createTransaction(dbRow as Transaction);
     revalidatePath('/dashboard/treasurer');
     revalidatePath('/dashboard');
     return { success: true, message: `Transaction ${transactionNumber} logged successfully.`, data: newTx };
   } catch (error: any) {
     return { success: false, message: error.message || 'Error creating transaction in Supabase.' };
+  }
+}
+
+/**
+ * Get real-time available fund balances for an association
+ */
+export async function getFundBalancesAction(associationId?: string): Promise<ActionResponse<{
+  cashOnHand: number;
+  bankRegular: number;
+  bankCBU: number;
+  total: number;
+}>> {
+  const user = await requireUser();
+  if (!user) return UNAUTHORIZED_RESPONSE;
+  let targetAssoc = associationId;
+  if (user.role !== 'super_admin') {
+    targetAssoc = user.association_id || undefined;
+  }
+  try {
+    const txs = await localDb.getTransactions(targetAssoc);
+    const balances = calculateFundBalances(txs);
+    return { success: true, message: 'Fund balances calculated.', data: balances };
+  } catch (err: any) {
+    return { success: false, message: err.message || 'Error calculating fund balances.' };
   }
 }
 

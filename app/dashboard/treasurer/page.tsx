@@ -8,6 +8,7 @@ import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
 import { Transaction, BudgetCategory, Profile, TransactionType, UserRole, Association } from '@/types';
 import { formatPHP, formatDate } from '@/lib/utils/formatters';
+import { calculateFundBalances, getFundShortLabel } from '@/lib/utils/fundSources';
 import TransactionFormModal from '@/components/forms/TransactionFormModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Link from 'next/link';
@@ -124,6 +125,8 @@ export default function TreasurerPage() {
   const totalDisbursements = transactions
     .filter((t) => t.type === 'disbursement')
     .reduce((acc, curr) => acc + Number(curr.amount), 0);
+
+  const fundBalances = calculateFundBalances(transactions);
 
   const visibleTransactions = transactions
     .filter((t) => typeFilter === 'all' || t.type === typeFilter)
@@ -305,6 +308,48 @@ export default function TreasurerPage() {
         </div>
       </div>
 
+      {/* Fund Composition Breakdown Strip (FS-3 Section F Continuity) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">💵</span>
+            <div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase">Cash on Hand</div>
+              <div className="text-[11px] text-slate-500">Vault &amp; Petty Cash Box</div>
+            </div>
+          </div>
+          <div className="text-sm font-black text-slate-900 font-mono">
+            {formatPHP(fundBalances.cashOnHand)}
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🏦</span>
+            <div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase">Bank (Regular Fund)</div>
+              <div className="text-[11px] text-slate-500">General Operations</div>
+            </div>
+          </div>
+          <div className="text-sm font-black text-slate-900 font-mono">
+            {formatPHP(fundBalances.bankRegular)}
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🌾</span>
+            <div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase">Bank (CBU Fund)</div>
+              <div className="text-[11px] text-slate-500">Capital Build-Up Equity</div>
+            </div>
+          </div>
+          <div className="text-sm font-black text-slate-900 font-mono">
+            {formatPHP(fundBalances.bankCBU)}
+          </div>
+        </div>
+      </div>
+
       {/* Filter Tabs */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-200/80 border border-slate-300 overflow-x-auto">
@@ -438,15 +483,20 @@ export default function TreasurerPage() {
                       </span>
                     </td>
 
-                    <td className="py-3 px-3 max-w-[220px]">
+                    <td className="py-3 px-3 max-w-[240px]">
                       <div className="font-bold text-slate-900 truncate">
                         {tx.category?.name || 'Uncategorized'}
                       </div>
-                      {(tx.particulars || tx.notes) && (
-                        <div className="text-[11px] text-slate-500 truncate">
-                          {tx.particulars || tx.notes}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                          {tx.fund_source === 'bank_cbu' ? '🌾 Bank (CBU)' : tx.fund_source === 'bank_regular' ? '🏦 Bank (Reg)' : '💵 Cash on Hand'}
+                        </span>
+                        {(tx.particulars || tx.notes) && (
+                          <span className="text-[10px] text-slate-500 truncate">
+                            {tx.particulars || tx.notes}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="py-3 px-3 text-slate-700 max-w-[150px] truncate">

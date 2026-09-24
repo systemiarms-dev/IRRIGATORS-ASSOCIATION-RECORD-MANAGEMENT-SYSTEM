@@ -4,6 +4,7 @@ import { localDb } from '@/lib/db/localDb';
 import { ActionResponse, FinancialStatement, StatementType, FinancialStatementBreakdown, FS1Data, FS2Data, FS3Data, FS4Data, StatementFinancialOverrides, FinancialStatementEdits } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { determineFundSource } from '@/lib/utils/fundSources';
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -114,6 +115,9 @@ export async function generateStatementAction(
   const priorPeriodStart = `${priorYearNum}-01-01`;
   const priorPeriodEnd = `${priorYearNum}-12-31`;
   const priorTxs = allTxs.filter((t) => t.transaction_date >= priorPeriodStart && t.transaction_date <= priorPeriodEnd);
+  const fixedAssets = await localDb.getFixedAssets(targetAssociationId, currentYearNum);
+  const totalAnnualDepreciation = fixedAssets.reduce((sum, a) => sum + (a.annual_depreciation || 0), 0);
+  const totalNetBookValue = fixedAssets.reduce((sum, a) => sum + (a.net_book_value ?? a.netBookValue ?? 0), 0);
 
   // NIA Category mapping
   const RECEIPT_LINE_BY_CODE: Record<string, keyof FS1Data['receipts']> = {
@@ -325,6 +329,7 @@ export async function generateStatementAction(
   };
 
   // Build FS2 Model (Interconnected)
+  const officeBuildingValue = overrides?.officeBuilding !== undefined ? Number(overrides.officeBuilding) : totalNetBookValue;
   const fs2: FS2Data = {
     associationName: assocName,
     address: assocAddress,
@@ -333,7 +338,7 @@ export async function generateStatementAction(
     yearPrior: priorYearNum,
     cashFlows: {
       netSurplus: { current: fs1.netSurplus.current, prior: fs1.netSurplus.prior },
-      depreciation: { current: 0, prior: 0 },
+      depreciation: { current: totalAnnualDepreciation, prior: 0 },
       cashBalanceBeginning: { current: fundBalanceBeginningCurrent, prior: fundBalanceBeginningPrior },
       cashBalanceEnd: { current: fundBalanceEndCurrent, prior: fundBalanceEndPrior },
     },
@@ -341,9 +346,9 @@ export async function generateStatementAction(
       assets: {
         currentAssets: { current: fundBalanceEndCurrent, prior: fundBalanceEndPrior },
         inventorySupplies: { current: overrides?.materialsSuppliesInventory ?? 0, prior: 0 },
-        officeBuilding: { current: overrides?.officeBuilding ?? 0, prior: 0 },
+        officeBuilding: { current: officeBuildingValue, prior: 0 },
         totalAssets: {
-          current: fundBalanceEndCurrent + (overrides?.materialsSuppliesInventory ?? 0) + (overrides?.officeBuilding ?? 0),
+          current: fundBalanceEndCurrent + (overrides?.materialsSuppliesInventory ?? 0) + officeBuildingValue,
           prior: fundBalanceEndPrior,
         },
       },
@@ -367,32 +372,47 @@ export async function generateStatementAction(
   };
 
   // Build FS3 Model (Interconnected)
-  const hasCashOverrides = overrides && (
-    overrides.cashOnHand !== undefined ||
-    overrides.undepositedCollections !== undefined ||
-    overrides.cashInBankRegular !== undefined ||
-    overrides.cashInBankCBU !== undefined ||
-    overrides.savingsAccount !== undefined ||
-    overrides.currentAccount !== undefined
-  );
+  // Automated derivation of Section F (Composition of Cash Balance) directly from ledger transactions
+  let ledgerCashOnHand = 0;
+  let ledgerBankRegular = 0;
+  let ledgerBankCBU = 0;
 
-  const composition = hasCashOverrides
-    ? {
-        cashOnHandPetty: Number(overrides.cashOnHand || 0),
-        undepositedCollections: Number(overrides.undepositedCollections || 0),
-        cashInBankRegular: Number(overrides.cashInBankRegular || 0),
-        cashInBankCBU: Number(overrides.cashInBankCBU || 0),
-        savingsAccount: Number(overrides.savingsAccount || 0),
-        currentAccount: Number(overrides.currentAccount || 0),
-      }
-    : {
-        cashOnHandPetty: Math.round(fundBalanceEndCurrent * 0.15),
-        undepositedCollections: 0,
-        cashInBankRegular: Math.round(fundBalanceEndCurrent * 0.55),
-        cashInBankCBU: Math.round(fundBalanceEndCurrent * 0.3),
-        savingsAccount: 0,
-        currentAccount: 0,
-      };
+  const cumulativeTxs = allTxs.filter((t) => t.transaction_date <= periodEnd);
+  for (const tx of cumulativeTxs) {
+    const amt = Number(tx.amount || 0);
+    const fund = determineFundSource(tx);
+    const delta = tx.type === 'collection' ? amt : -amt;
+    if (fund === 'bank_cbu') ledgerBankCBU += delta;
+    else if (fund === 'bank_regular') ledgerBankRegular += delta;
+    else ledgerCashOnHand += delta;
+  }
+
+  // Graceful fallback for legacy records where no transactions were tagged with bank funds
+  const hasTaggedBankTxs = cumulativeTxs.some(
+    (t) => t.payment_method?.startsWith('bank_') || t.notes?.includes('[fund:bank_') || t.particulars?.includes('[fund:bank_')
+  );
+  if (!hasTaggedBankTxs && fundBalanceEndCurrent > 0 && ledgerBankRegular === 0 && ledgerBankCBU === 0) {
+    ledgerCashOnHand = Math.round(fundBalanceEndCurrent * 0.15);
+    ledgerBankRegular = Math.round(fundBalanceEndCurrent * 0.55);
+    ledgerBankCBU = Math.round(fundBalanceEndCurrent * 0.30);
+  }
+
+  const composition = {
+    cashOnHandPetty: overrides?.cashOnHand !== undefined ? Number(overrides.cashOnHand) : ledgerCashOnHand,
+    undepositedCollections: Number(overrides?.undepositedCollections || 0),
+    cashInBankRegular: overrides?.cashInBankRegular !== undefined ? Number(overrides.cashInBankRegular) : ledgerBankRegular,
+    cashInBankCBU: overrides?.cashInBankCBU !== undefined ? Number(overrides.cashInBankCBU) : ledgerBankCBU,
+    savingsAccount: Number(overrides?.savingsAccount || 0),
+    currentAccount: Number(overrides?.currentAccount || 0),
+    total: 0,
+  };
+  composition.total =
+    composition.cashOnHandPetty +
+    composition.undepositedCollections +
+    composition.cashInBankRegular +
+    composition.cashInBankCBU +
+    composition.savingsAccount +
+    composition.currentAccount;
 
   const fs3: FS3Data = {
     associationName: assocName,
@@ -434,7 +454,7 @@ export async function generateStatementAction(
     cashBalanceThisYear: fs1.netSurplus.current,
     fundBalanceLastReport: fundBalanceBeginningCurrent,
     totalCashBalance: fundBalanceEndCurrent,
-    composition: { ...composition, total: fundBalanceEndCurrent },
+    composition,
     officers: {
       treasurerName: treasurer,
       auditorName: auditor,
@@ -452,7 +472,7 @@ export async function generateStatementAction(
 
   const receivables = Number(overrides?.receivables || 0);
   const materialsSuppliesInventory = Number(overrides?.materialsSuppliesInventory || 0);
-  const officeBuilding = Number(overrides?.officeBuilding || 0);
+  const officeBuilding = officeBuildingValue;
   const totalAssets = cashOnHand + cashInBank + receivables + materialsSuppliesInventory + officeBuilding;
 
   const notarialPermitFees = Number(overrides?.notarialPermitFees || 0);
