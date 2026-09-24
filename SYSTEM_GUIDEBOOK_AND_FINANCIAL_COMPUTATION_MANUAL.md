@@ -6,7 +6,7 @@
 
 ---
 
-## 1. Executive Overview & System Architecture
+## 1. Executive Overview & System Purpose
 
 ### 1.1 Purpose and Statutory Context
 The **Irrigators Association Record Management System (IARMS)** is an enterprise-grade cloud accounting and administrative platform designed specifically for Irrigators Associations (IAs) operating under the National Irrigation Administration (NIA) and registered with the Securities and Exchange Commission (SEC) and Bureau of Internal Revenue (BIR).
@@ -15,24 +15,6 @@ The platform transforms manual, error-prone paper ledgers into an automated, mat
 1. **Statutory NIA Compliance:** Native generation of the 5 official NIA financial statement packages (FS-1, FS-2, FS-3, FS-4, FS-5).
 2. **Double-Entry Equilibrium:** Real-time alignment between the cash ledger, multi-fund bank accounts, fixed assets, liabilities, and members' equity.
 3. **Audit Trail Integrity:** Strict multi-role segregation of duties with full voucher tracking and irreversible historical logs.
-
-### 1.2 System Architecture & Flow
-```mermaid
-graph TD
-    A[Daily Farmer Collections / Inflows] -->|Logged by Bookkeeper| C[Central Transaction Ledger]
-    B[Expense Disbursements / Vouchers] -->|Logged by Bookkeeper| C
-    E[Fixed Assets & Straight-Line Depreciation] -->|Auto-Computed| F[Financial Statement Engine]
-    C -->|Auto-Aggregated & Reconciled| F
-    F -->|Real-Time Flow| FS1[FS-1: Receipts & Disbursements]
-    F -->|Auto-Rollover| FS2[FS-2: Financial Condition & Cash Flows]
-    F -->|Multi-Fund Split| FS3[FS-3: Cash Statement & Bank Composition]
-    F -->|Net Worth Formula| FS4[FS-4: Balance Sheet & Net Worth]
-    G[Treasurer & Auditor Verification] -->|Signatures & Notary Execution| PUB[Published Audited Report & PDF Export]
-    FS1 --> PUB
-    FS2 --> PUB
-    FS3 --> PUB
-    FS4 --> PUB
-```
 
 ---
 
