@@ -143,18 +143,24 @@ export async function generateStatementAction(
     'DISB-TAX': 'taxLicenses',
   };
 
+  const normCode = (code?: string): string => {
+    if (!code) return '';
+    const upper = code.trim().toUpperCase();
+    return upper.replace(/^[A-Z0-9]+-(REC-|DISB-|AST-|LIAB-)/, '$1');
+  };
+
   function sumByCategory(
     txList: any[],
     expectedType: 'collection' | 'disbursement',
     codeMatch: (code: string) => boolean
   ): number {
     return (txList || [])
-      .filter((t) => t.type === expectedType && t.category && codeMatch(t.category.code))
+      .filter((t) => t.type === expectedType && t.category && codeMatch(normCode(t.category.code)))
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   }
 
-  const KNOWN_REC_CODES = ['REC-ISF', 'REC-MEM', 'REC-SUB', 'REC-FIN', 'REC-DON'];
-  const KNOWN_DISB_CODES = ['DISB-TRAV', 'DISB-CLEAR', 'DISB-PROF', 'DISB-FED', 'DISB-PISO', 'DISB-MISC', 'DISB-LATERAL', 'DISB-SHARE', 'DISB-REPAIR', 'DISB-SUPP', 'DISB-HON', 'DISB-TAX'];
+  const KNOWN_REC_CODES = ['REC-ISF', 'REC-MEM', 'REC-SUB', 'REC-FIN', 'REC-DON', 'REC-CBU', 'REC-DUE', 'REC-REMU', 'REC-INT'];
+  const KNOWN_DISB_CODES = ['DISB-TRAV', 'DISB-CLEAR', 'DISB-PROF', 'DISB-FED', 'DISB-PISO', 'DISB-MISC', 'DISB-LATERAL', 'DISB-SHARE', 'DISB-REPAIR', 'DISB-SUPP', 'DISB-HON', 'DISB-TAX', 'DISB-MEET'];
 
   /**
    * Group custom / user-defined categories (codes outside the NIA chart) into
@@ -171,7 +177,7 @@ export async function generateStatementAction(
     const map = new Map<string, { label: string; current: number; prior: number }>();
     const add = (tx: any, isCurrent: boolean) => {
       if (tx.type !== expectedType) return;
-      if (tx.category?.code && isKnown(tx.category.code)) return;
+      if (tx.category?.code && isKnown(normCode(tx.category.code))) return;
       const label = (tx.category?.name || '').trim() || (tx.category?.code || '').trim() || (tx.particulars || '').trim() || 'Other / Miscellaneous';
       if (!label) return;
       const entry = map.get(label) || { label, current: 0, prior: 0 };
@@ -253,8 +259,8 @@ export async function generateStatementAction(
       prior: overrides?.canalClearingRepairPrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-CLEAR'),
     },
     taxLicenses: {
-      current: overrides?.taxLicensesCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-TAX'),
-      prior: overrides?.taxLicensesPrior ?? sumByCategory(priorTxs, 'disbursement', (c) => c === 'DISB-TAX'),
+      current: overrides?.taxLicensesCurrent ?? 0,
+      prior: overrides?.taxLicensesPrior ?? 0,
     },
     otherExpenses: {
       current: overrides?.otherExpensesCurrent ?? sumByCategory(currentTxs, 'disbursement', (c) => c === 'DISB-MISC'),
