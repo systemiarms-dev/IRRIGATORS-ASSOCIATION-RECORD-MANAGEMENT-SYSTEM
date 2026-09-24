@@ -29,6 +29,7 @@ import {
   ShieldCheck,
   TrendingDown,
   FileSpreadsheet,
+  Pencil,
 } from 'lucide-react';
 import {
   BudgetCategory,
@@ -43,6 +44,7 @@ import { getAssociationsAction } from '@/app/actions/associations';
 import {
   getBudgetCategoriesAction,
   createBudgetCategoryAction,
+  updateBudgetCategoryAction,
   deleteBudgetCategoryAction,
 } from '@/app/actions/transactions';
 import {
@@ -91,6 +93,13 @@ export default function ChartOfAccountsPage() {
   const [formType, setFormType] = useState<'collection' | 'disbursement'>('collection');
   const [formClassification, setFormClassification] = useState<AccountClassification>('collection');
   const [formAssocId, setFormAssocId] = useState('');
+
+  // Edit Category Form state
+  const [editingCat, setEditingCat] = useState<BudgetCategory | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editClassification, setEditClassification] = useState<AccountClassification>('collection');
+  const [editAllocatedAmount, setEditAllocatedAmount] = useState('');
+  const [editDescription, setEditDescription] = useState('');
 
   // Add Fixed Asset Form state
   const [assetName, setAssetName] = useState('');
@@ -292,6 +301,48 @@ export default function ChartOfAccountsPage() {
       setTimeout(() => setFeedback(null), 5000);
     } catch (err: any) {
       setFeedback({ type: 'error', message: err?.message || 'Error creating category.' });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  function handleOpenEditModal(cat: BudgetCategory) {
+    setEditingCat(cat);
+    setEditName(cat.name);
+    setEditClassification(cat.account_classification || (cat.category_type as any));
+    setEditAllocatedAmount(cat.allocated_amount ? String(cat.allocated_amount) : '0');
+    const rawDesc = (cat.description || '').replace(/\[class:[a-z_]+\]\s*/g, '').trim();
+    setEditDescription(rawDesc);
+  }
+
+  async function handleUpdateCategory(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingCat) return;
+    if (!editName.trim()) {
+      setFeedback({ type: 'error', message: 'Category name is required.' });
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await updateBudgetCategoryAction(editingCat.id, {
+        name: editName.trim(),
+        allocated_amount: parseFloat(editAllocatedAmount) || 0,
+        account_classification: editClassification,
+        description: editDescription.trim() || undefined,
+      });
+
+      if (!res.success || !res.data) {
+        setFeedback({ type: 'error', message: res.message || 'Failed to update category.' });
+        return;
+      }
+
+      setCategories((prev) => prev.map((c) => (c.id === editingCat.id ? res.data! : c)));
+      setEditingCat(null);
+      setFeedback({ type: 'success', message: `Category "${res.data.name}" updated successfully!` });
+      setTimeout(() => setFeedback(null), 5000);
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err?.message || 'Error updating category.' });
     } finally {
       setActionLoading(false);
     }
@@ -792,13 +843,24 @@ export default function ChartOfAccountsPage() {
                             ) : isReadOnly ? (
                               <span className="text-slate-400 text-[10px] italic">View Only</span>
                             ) : (
-                              <button
-                                onClick={() => setDeletingCat(c)}
-                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                                title={`Delete ${c.name}`}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditModal(c)}
+                                  className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                                  title={`Edit ${c.name}`}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingCat(c)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                  title={`Delete ${c.name}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -1321,6 +1383,113 @@ export default function ChartOfAccountsPage() {
                 >
                   {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Save to Equipment Registry</span>
+                </button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modal: Edit Budget Category */}
+      {editingCat && (
+        <Dialog open={true} onOpenChange={(open) => { if (!open) setEditingCat(null); }}>
+          <DialogContent onClose={() => setEditingCat(null)} className="max-w-lg p-5">
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-800">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-black text-slate-900">
+                    Edit Budget Category / Line Item
+                  </DialogTitle>
+                  <DialogDescription className="mt-0.5 text-xs text-slate-500">
+                    Update line item classification, allocated budget, and description.
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <form onSubmit={handleUpdateCategory} className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700">Category Code</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={editingCat.code}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono font-bold text-slate-500 cursor-not-allowed"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700">Account Classification</label>
+                  <select
+                    value={editClassification}
+                    onChange={(e) => setEditClassification(e.target.value as AccountClassification)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+                  >
+                    <option value="collection">📈 Collections (Income / Money IN)</option>
+                    <option value="disbursement">📉 Disbursements (Expense / Money OUT)</option>
+                    <option value="current_asset">🏢 Current Asset (Short-Term Receivables / Advances)</option>
+                    <option value="non_current_asset">🏗️ Non-Current Asset (Long-term / Capital)</option>
+                    <option value="current_liability">📑 Current Liability (Accrued Wages / Supplier Payables)</option>
+                    <option value="non_current_liability">🏛️ Non-Current Liability (Long-Term Loans / Facility Financing)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-700">
+                  Category Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-700">Allocated Budget Limit (PHP)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editAllocatedAmount}
+                  onChange={(e) => setEditAllocatedAmount(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-700">Description / Accounting Notes</label>
+                <textarea
+                  rows={2}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Explain usage, turnouts covered, or NIA guideline references..."
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingCat(null)}
+                  disabled={actionLoading}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                >
+                  {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Save Changes</span>
                 </button>
               </div>
             </form>

@@ -172,6 +172,59 @@ export async function deleteBudgetCategoryAction(id: string): Promise<ActionResp
 }
 
 /**
+ * Update an existing budget category in the Chart of Accounts.
+ */
+export async function updateBudgetCategoryAction(
+  id: string,
+  input: {
+    name?: string;
+    allocated_amount?: number;
+    account_classification?: AccountClassification;
+    description?: string;
+  }
+): Promise<ActionResponse<BudgetCategory>> {
+  const user = await requireUser();
+  if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer' || user.role === 'auditor') {
+    return { success: false, message: 'You have read-only access. Only bookkeepers and administrators can edit categories.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
+
+  try {
+    const allCats = await localDb.getBudgetCategories();
+    const target = allCats.find((c) => c.id === id);
+    if (!target) {
+      return { success: false, message: 'Budget category not found.' };
+    }
+
+    if (user.role !== 'super_admin' && target.association_id && target.association_id !== user.association_id) {
+      return UNAUTHORIZED_RESPONSE;
+    }
+
+    const updates: Partial<BudgetCategory> = {};
+    if (input.name && input.name.trim()) updates.name = input.name.trim();
+    if (typeof input.allocated_amount === 'number' && !isNaN(input.allocated_amount)) {
+      updates.allocated_amount = input.allocated_amount;
+    }
+    if (input.account_classification) {
+      updates.account_classification = input.account_classification;
+    }
+    if (input.description !== undefined) {
+      updates.description = input.description.trim() || undefined;
+    }
+
+    const updated = await localDb.updateBudgetCategory(id, updates);
+    revalidatePath('/dashboard/chart-of-accounts');
+    revalidatePath('/dashboard/treasurer');
+    return { success: true, message: `Category "${updated.name}" updated successfully.`, data: updated };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Error updating budget category.' };
+  }
+}
+
+/**
  * Fetch all budget categories for an association directly from Supabase
  */
 export async function getBudgetCategoriesAction(associationId?: string): Promise<ActionResponse<BudgetCategory[]>> {

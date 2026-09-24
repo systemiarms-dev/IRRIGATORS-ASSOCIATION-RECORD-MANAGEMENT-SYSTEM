@@ -380,6 +380,51 @@ class SupabaseDatabaseService {
     return true;
   }
 
+  public async updateBudgetCategory(id: string, updates: Partial<BudgetCategory>): Promise<BudgetCategory> {
+    const client = this.getClient();
+    const { data: existing, error: getErr } = await client.from('budget_categories').select('*').eq('id', id).single();
+    if (getErr || !existing) throw new Error('Budget category not found');
+
+    let description = updates.description !== undefined ? updates.description : existing.description;
+    
+    // Handle classification tag in description
+    if (updates.account_classification !== undefined) {
+      const cleanDesc = (description || '').replace(/\[class:[a-z_]+\]\s*/g, '').trim();
+      if (updates.account_classification && updates.account_classification !== (updates.category_type || existing.category_type)) {
+        const classTag = `[class:${updates.account_classification}]`;
+        description = cleanDesc ? `${classTag} ${cleanDesc}` : classTag;
+      } else {
+        description = cleanDesc || null;
+      }
+    }
+
+    const payload: any = {
+      updated_at: new Date().toISOString(),
+    };
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.allocated_amount !== undefined) payload.allocated_amount = updates.allocated_amount;
+    if (updates.category_type !== undefined) payload.category_type = updates.category_type;
+    if (updates.is_active !== undefined) payload.is_active = updates.is_active;
+    if (description !== undefined) payload.description = description;
+
+    const { data, error } = await client.from('budget_categories').update(payload).eq('id', id).select().single();
+    if (error) throw new Error(error.message || 'Error updating budget category');
+    invalidateCache('bc:');
+
+    let classification: AccountClassification = data.category_type as any;
+    if (data.description) {
+      const match = data.description.match(/\[class:([a-z_]+)\]/);
+      if (match && match[1]) {
+        classification = match[1] as AccountClassification;
+      }
+    }
+
+    return {
+      ...data,
+      account_classification: classification,
+    } as BudgetCategory;
+  }
+
   // ==========================================
   // Fixed Asset & Equipment Registry
   // ==========================================

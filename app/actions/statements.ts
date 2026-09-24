@@ -330,6 +330,18 @@ export async function generateStatementAction(
 
   // Build FS2 Model (Interconnected)
   const officeBuildingValue = overrides?.officeBuilding !== undefined ? Number(overrides.officeBuilding) : totalNetBookValue;
+
+  const currentLiabilitiesFromTxs = currentTxs
+    .filter((t) => t.category?.account_classification === 'current_liability' || t.category?.code?.includes('LIAB-CUR'))
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+  const nonCurrentLiabilitiesFromTxs = currentTxs
+    .filter((t) => t.category?.account_classification === 'non_current_liability' || t.category?.code?.includes('LIAB-NONCUR'))
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+  const totalCurrentLiabilities = (overrides?.notarialPermitFees ?? 0) + (overrides?.honorariumWagesPayable ?? 0) + (overrides?.otherAccountsPayable ?? 0) + currentLiabilitiesFromTxs;
+  const totalNonCurrentLiabilities = nonCurrentLiabilitiesFromTxs;
+
   const fs2: FS2Data = {
     associationName: assocName,
     address: assocAddress,
@@ -354,13 +366,16 @@ export async function generateStatementAction(
       },
       liabilitiesEquity: {
         currentLiabilities: {
-          current: (overrides?.notarialPermitFees ?? 0) + (overrides?.honorariumWagesPayable ?? 0) + (overrides?.otherAccountsPayable ?? 0),
+          current: totalCurrentLiabilities,
           prior: 0,
         },
-        nonCurrentLiabilities: { current: 0, prior: 0 },
+        nonCurrentLiabilities: {
+          current: totalNonCurrentLiabilities,
+          prior: 0,
+        },
         membersEquity: { current: fundBalanceEndCurrent, prior: fundBalanceEndPrior },
         totalLiabilitiesEquity: {
-          current: fundBalanceEndCurrent + (overrides?.notarialPermitFees ?? 0) + (overrides?.honorariumWagesPayable ?? 0) + (overrides?.otherAccountsPayable ?? 0),
+          current: fundBalanceEndCurrent + totalCurrentLiabilities + totalNonCurrentLiabilities,
           prior: fundBalanceEndPrior,
         },
       },
@@ -476,8 +491,8 @@ export async function generateStatementAction(
   const totalAssets = cashOnHand + cashInBank + receivables + materialsSuppliesInventory + officeBuilding;
 
   const notarialPermitFees = Number(overrides?.notarialPermitFees || 0);
-  const honorariumWagesPayable = Number(overrides?.honorariumWagesPayable || 0);
-  const otherAccountsPayable = Number(overrides?.otherAccountsPayable || 0);
+  const honorariumWagesPayable = Number(overrides?.honorariumWagesPayable || 0) + currentLiabilitiesFromTxs;
+  const otherAccountsPayable = Number(overrides?.otherAccountsPayable || 0) + nonCurrentLiabilitiesFromTxs;
   const totalLiabilities = notarialPermitFees + honorariumWagesPayable + otherAccountsPayable;
   const netWorth = totalAssets - totalLiabilities;
 
