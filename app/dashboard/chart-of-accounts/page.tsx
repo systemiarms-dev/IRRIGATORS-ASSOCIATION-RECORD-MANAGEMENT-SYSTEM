@@ -810,7 +810,7 @@ export default function ChartOfAccountsPage() {
               <div className="p-12 text-center text-slate-500 space-y-3">
                 <BookOpen className="w-10 h-10 mx-auto text-slate-300" />
                 <div className="text-sm font-bold">No budget categories match your filter.</div>
-                <p className="text-xs text-slate-400">Clear your search query or initialize your association's standard accounts.</p>
+                <p className="text-xs text-slate-400">Clear your search query or initialize your association&apos;s standard accounts.</p>
                 {!isReadOnly && (
                   <button
                     onClick={handleRestoreStandardAccounts}
