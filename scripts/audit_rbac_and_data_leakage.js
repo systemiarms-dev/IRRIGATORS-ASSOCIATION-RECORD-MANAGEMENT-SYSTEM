@@ -36,8 +36,9 @@ async function runRbacAndLeakageAudit() {
   console.log('================================================================');
   console.log(`Supabase URL: ${supabaseUrl}\n`);
 
-  const assocA = 'ia-nangurisan';
-  const assocB = 'ia-timog';
+  const { data: allAssocs } = await supabase.from('associations').select('id');
+  const assocA = allAssocs?.[0]?.id || 'ia-nangurisan';
+  const assocB = allAssocs?.[1]?.id || assocA;
 
   const cleanup = {
     transactions: [],
@@ -125,7 +126,8 @@ async function runRbacAndLeakageAudit() {
 
     // Create a canary test transaction belonging to Association B (ia-timog)
     const canaryTxId = `tx-canary-b-${Date.now()}`;
-    cleanup.transactions.push(canaryTxId);
+    const { data: bCats } = await supabase.from('budget_categories').select('id').eq('association_id', assocB).limit(1);
+    const validCatId = bCats?.[0]?.id || null;
 
     const { data: canaryTx, error: cErr } = await supabase.from('transactions').insert({
       id: canaryTxId,
@@ -133,7 +135,7 @@ async function runRbacAndLeakageAudit() {
       voucher_number: 'OR-CANARY-01',
       type: 'collection',
       association_id: assocB,
-      category_id: 'cat-1',
+      category_id: validCatId,
       amount: 5000,
       transaction_date: '2026-09-20',
       payment_method: 'cash',
