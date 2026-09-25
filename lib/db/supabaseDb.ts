@@ -219,10 +219,11 @@ class SupabaseDatabaseService {
     if (!user.username) {
       user.username = user.id;
     }
-    if (user.password) {
-      user.password = isHashedPassword(user.password) ? user.password : hashPassword(user.password);
-    }
-    const { data, error } = await client.from('profiles').insert(user).select().single();
+    const effectivePassword = user.password || `member_no_login_${Date.now()}`;
+    const hashedPassword = isHashedPassword(effectivePassword) ? effectivePassword : hashPassword(effectivePassword);
+    const { association: _assoc, ...cleanUser } = user as any;
+    cleanUser.password = hashedPassword;
+    const { data, error } = await client.from('profiles').insert(cleanUser).select().single();
     if (error) throw new Error(error.message || 'Error creating user in Supabase');
     invalidateCache('u:');
     invalidateCache('s:');
@@ -359,11 +360,43 @@ class SupabaseDatabaseService {
       description = description ? `${classTag} ${description}` : classTag;
     }
 
-    const payload = {
-      ...category,
+    // Build payload strictly adhering to budget_categories table schema
+    const payload: Record<string, any> = {
+      id: category.id,
+      code: category.code,
+      name: category.name,
+      category_type: category.category_type,
+      allocated_amount: category.allocated_amount ?? 0,
       description,
+      association_id: category.association_id || null,
+      is_active: category.is_active ?? true,
     };
-    const { data, error } = await client.from('budget_categories').insert(payload).select().single();
+
+    let data: any;
+    let error: any;
+
+    // Attempt insertion with account_classification if provided, falling back cleanly if column is not yet in DB
+    if (category.account_classification) {
+      const tryWithCol = await client.from('budget_categories').insert({
+        ...payload,
+        account_classification: category.account_classification,
+      }).select().single();
+
+      if (tryWithCol.error && tryWithCol.error.message && tryWithCol.error.message.includes('account_classification')) {
+        // Schema cache does not have account_classification - insert standard payload (class tag preserved in description)
+        const fallback = await client.from('budget_categories').insert(payload).select().single();
+        data = fallback.data;
+        error = fallback.error;
+      } else {
+        data = tryWithCol.data;
+        error = tryWithCol.error;
+      }
+    } else {
+      const res = await client.from('budget_categories').insert(payload).select().single();
+      data = res.data;
+      error = res.error;
+    }
+
     if (error) throw new Error(error.message || 'Error creating budget category');
     invalidateCache('bc:');
     return {
@@ -607,16 +640,36 @@ class SupabaseDatabaseService {
 
   public async createTransaction(transaction: Transaction): Promise<Transaction> {
     const client = this.getClient();
-    const { data, error } = await client.from('transactions').insert(transaction).select().single();
+    const {
+      association: _assoc,
+      member: _member,
+      members: _members,
+      category: _category,
+      receipt: _receipt,
+      creator: _creator,
+      fund_source: _fund_source,
+      ...dbRow
+    } = transaction as any;
+    const { data, error } = await client.from('transactions').insert(dbRow).select().single();
     if (error) throw new Error(error.message || 'Error creating transaction in Supabase');
     return data as Transaction;
   }
 
   public async updateTransaction(id: string, partial: Partial<Transaction>): Promise<Transaction | undefined> {
     const client = this.getClient();
+    const {
+      association: _assoc,
+      member: _member,
+      members: _members,
+      category: _category,
+      receipt: _receipt,
+      creator: _creator,
+      fund_source: _fund_source,
+      ...dbRow
+    } = partial as any;
     const { data, error } = await client
       .from('transactions')
-      .update({ ...partial, updated_at: new Date().toISOString() })
+      .update({ ...dbRow, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .maybeSingle();
@@ -727,7 +780,8 @@ class SupabaseDatabaseService {
 
   public async createReceipt(receipt: Receipt): Promise<Receipt> {
     const client = this.getClient();
-    const { data, error } = await client.from('receipts').insert(receipt).select().single();
+    const { uploader: _u, auditor: _a, transaction: _t, ...cleanReceipt } = receipt as any;
+    const { data, error } = await client.from('receipts').insert(cleanReceipt).select().single();
     if (error) throw new Error(error.message || 'Error creating receipt in Supabase');
     return data as Receipt;
   }
@@ -839,9 +893,10 @@ class SupabaseDatabaseService {
 
   public async saveFinancialStatement(statement: FinancialStatement): Promise<FinancialStatement> {
     const client = this.getClient();
+    const { association: _assoc, generator: _gen, ...cleanStatement } = statement as any;
     const { data, error } = await client
       .from('financial_statements')
-      .upsert(statement)
+      .upsert(cleanStatement)
       .select()
       .single();
     if (error) throw new Error(error.message || 'Error saving financial statement in Supabase');
