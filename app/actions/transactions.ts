@@ -96,7 +96,17 @@ export async function createBudgetCategoryAction(input: {
     }
   }
 
-  const prefix = input.category_type === 'collection' ? 'REC' : 'DISB';
+  let prefix = input.category_type === 'collection' ? 'REC' : 'DISB';
+  if (input.account_classification === 'current_liability') {
+    prefix = 'LIAB-CUR';
+  } else if (input.account_classification === 'non_current_liability') {
+    prefix = 'LIAB-NONCUR';
+  } else if (input.account_classification === 'current_asset') {
+    prefix = 'AST-CUR';
+  } else if (input.account_classification === 'non_current_asset') {
+    prefix = 'AST-NONCUR';
+  }
+
   let categoryCode = '';
   if (input.code && input.code.trim()) {
     categoryCode = input.code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '_');
@@ -111,7 +121,7 @@ export async function createBudgetCategoryAction(input: {
       code: categoryCode,
       name,
       category_type: input.category_type,
-      account_classification: input.account_classification,
+      account_classification: input.account_classification || (input.category_type as any),
       allocated_amount: typeof input.allocated_amount === 'number' ? input.allocated_amount : 0,
       description: input.description?.trim() || null as any,
       is_active: true,

@@ -1225,14 +1225,18 @@ export default function ChartOfAccountsPage() {
                   {formType === 'collection' ? (
                     <>
                       <option value="collection">📈 Collections &amp; Operating Income (Standard)</option>
-                      <option value="current_asset">🏢 Current Asset (e.g. Accounts Receivable, Short-term Fund)</option>
-                      <option value="non_current_asset">🏗️ Non-Current Asset (e.g. Land/Facility Capital Fund)</option>
+                      <option value="current_liability">📑 Current Liability (e.g. Short-Term Loans, Borrowings Incurred)</option>
+                      <option value="non_current_liability">🏛️ Non-Current Liability (e.g. Long-term Loans &amp; Obligations Incurred)</option>
+                      <option value="current_asset">🏢 Current Asset (e.g. Accounts/Loan Receivable Collection, Short-term Fund)</option>
+                      <option value="non_current_asset">🏗️ Non-Current Asset (e.g. Capital Asset Fund)</option>
                     </>
                   ) : (
                     <>
                       <option value="disbursement">📉 Disbursements &amp; Operating Expense (Standard)</option>
-                      <option value="current_liability">📑 Current Liability (e.g. Accounts Payable, Accrued Dues)</option>
-                      <option value="non_current_liability">🏛️ Non-Current Liability (e.g. Long-term Loans &amp; Obligations)</option>
+                      <option value="current_liability">📑 Current Liability (e.g. Debt/Loan Payment, Accounts Payable Settlement)</option>
+                      <option value="non_current_liability">🏛️ Non-Current Liability (e.g. Long-term Debt Amortization)</option>
+                      <option value="current_asset">🏢 Current Asset (e.g. Lending/Receivable Outlay, Short-term Advance)</option>
+                      <option value="non_current_asset">🏗️ Non-Current Asset (e.g. Property, Plant &amp; Equipment Acquisition)</option>
                     </>
                   )}
                 </select>

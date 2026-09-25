@@ -172,8 +172,14 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
     if (!pinned('fs2.cashFlows.cashBalanceEnd.current')) cfBalanceEnd.current = fundBalanceEnd.current;
     if (!pinned('fs2.cashFlows.cashBalanceEnd.prior')) cfBalanceEnd.prior = fundBalanceEnd.prior;
 
-    if (!pinned('fs2.financialCondition.assets.currentAssets.current')) currentAssets.current = fundBalanceEnd.current;
-    if (!pinned('fs2.financialCondition.assets.currentAssets.prior')) currentAssets.prior = fundBalanceEnd.prior;
+    if (!pinned('fs2.financialCondition.assets.currentAssets.current')) {
+      currentAssets.current =
+        fundBalanceEnd.current + (currentLiabilities.current || 0) + (nonCurrentLiabilities.current || 0);
+    }
+    if (!pinned('fs2.financialCondition.assets.currentAssets.prior')) {
+      currentAssets.prior =
+        fundBalanceEnd.prior + (currentLiabilities.prior || 0) + (nonCurrentLiabilities.prior || 0);
+    }
     if (!pinned('fs2.financialCondition.assets.totalAssets.current')) {
       assets.totalAssets = assets.totalAssets || { current: 0, prior: 0 };
       assets.totalAssets.current =

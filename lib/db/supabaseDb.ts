@@ -330,7 +330,7 @@ class SupabaseDatabaseService {
       }
       return ((data || []) as BudgetCategory[]).map((c) => {
         let classification: AccountClassification | undefined = c.account_classification;
-        if (!classification && c.description) {
+        if (c.description) {
           const match = c.description.match(/\[class:([a-z_]+)\]/);
           if (match && match[1]) {
             classification = match[1] as AccountClassification;
@@ -343,8 +343,13 @@ class SupabaseDatabaseService {
       });
     }, 60_000);
 
-    // Filter out fixed asset registry items from standard budget categories
-    const nonAssets = all.filter((c) => !c.code.startsWith('AST-'));
+    // Filter out fixed asset registry items from standard budget categories (they store JSON metadata with is_asset: true)
+    const nonAssets = all.filter((c) => {
+      if (c.code.startsWith('AST-') && c.description && c.description.includes('"is_asset":true')) {
+        return false;
+      }
+      return true;
+    });
 
     if (associationId && associationId !== 'all') {
       return nonAssets.filter((c) => c.association_id === associationId);

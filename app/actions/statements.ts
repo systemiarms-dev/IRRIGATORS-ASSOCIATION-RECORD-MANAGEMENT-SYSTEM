@@ -178,6 +178,18 @@ export async function generateStatementAction(
     const add = (tx: any, isCurrent: boolean) => {
       if (tx.type !== expectedType) return;
       if (tx.category?.code && isKnown(normCode(tx.category.code))) return;
+      // Exclude balance sheet accounts (liabilities and non-current assets) from operating receipts & expenses
+      const classification = tx.category?.account_classification;
+      const code = tx.category?.code?.toUpperCase() || '';
+      if (
+        classification === 'current_liability' ||
+        classification === 'non_current_liability' ||
+        classification === 'non_current_asset' ||
+        code.includes('LIAB') ||
+        code.includes('AST-NONCUR')
+      ) {
+        return;
+      }
       const label = (tx.category?.name || '').trim() || (tx.category?.code || '').trim() || (tx.particulars || '').trim() || 'Other / Miscellaneous';
       if (!label) return;
       const entry = map.get(label) || { label, current: 0, prior: 0 };
@@ -338,15 +350,25 @@ export async function generateStatementAction(
   const officeBuildingValue = overrides?.officeBuilding !== undefined ? Number(overrides.officeBuilding) : totalNetBookValue;
 
   const currentLiabilitiesFromTxs = currentTxs
-    .filter((t) => t.category?.account_classification === 'current_liability' || t.category?.code?.includes('LIAB-CUR'))
+    .filter((t) => {
+      const cls = t.category?.account_classification;
+      const code = t.category?.code?.toUpperCase() || '';
+      return cls === 'current_liability' || code.includes('LIAB-CUR') || (code.includes('LIAB') && !code.includes('NONCUR'));
+    })
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
   const nonCurrentLiabilitiesFromTxs = currentTxs
-    .filter((t) => t.category?.account_classification === 'non_current_liability' || t.category?.code?.includes('LIAB-NONCUR'))
+    .filter((t) => {
+      const cls = t.category?.account_classification;
+      const code = t.category?.code?.toUpperCase() || '';
+      return cls === 'non_current_liability' || code.includes('LIAB-NONCUR');
+    })
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
   const totalCurrentLiabilities = (overrides?.notarialPermitFees ?? 0) + (overrides?.honorariumWagesPayable ?? 0) + (overrides?.otherAccountsPayable ?? 0) + currentLiabilitiesFromTxs;
   const totalNonCurrentLiabilities = nonCurrentLiabilitiesFromTxs;
+
+  const totalCurrentAssets = fundBalanceEndCurrent + totalCurrentLiabilities + totalNonCurrentLiabilities;
 
   const fs2: FS2Data = {
     associationName: assocName,
@@ -362,11 +384,11 @@ export async function generateStatementAction(
     },
     financialCondition: {
       assets: {
-        currentAssets: { current: fundBalanceEndCurrent, prior: fundBalanceEndPrior },
+        currentAssets: { current: totalCurrentAssets, prior: fundBalanceEndPrior },
         inventorySupplies: { current: overrides?.materialsSuppliesInventory ?? 0, prior: 0 },
         officeBuilding: { current: officeBuildingValue, prior: 0 },
         totalAssets: {
-          current: fundBalanceEndCurrent + (overrides?.materialsSuppliesInventory ?? 0) + officeBuildingValue,
+          current: totalCurrentAssets + (overrides?.materialsSuppliesInventory ?? 0) + officeBuildingValue,
           prior: fundBalanceEndPrior,
         },
       },
@@ -406,16 +428,6 @@ export async function generateStatementAction(
     if (fund === 'bank_cbu') ledgerBankCBU += delta;
     else if (fund === 'bank_regular') ledgerBankRegular += delta;
     else ledgerCashOnHand += delta;
-  }
-
-  // Graceful fallback for legacy records where no transactions were tagged with bank funds
-  const hasTaggedBankTxs = cumulativeTxs.some(
-    (t) => t.payment_method?.startsWith('bank_') || t.notes?.includes('[fund:bank_') || t.particulars?.includes('[fund:bank_')
-  );
-  if (!hasTaggedBankTxs && fundBalanceEndCurrent > 0 && ledgerBankRegular === 0 && ledgerBankCBU === 0) {
-    ledgerCashOnHand = Math.round(fundBalanceEndCurrent * 0.15);
-    ledgerBankRegular = Math.round(fundBalanceEndCurrent * 0.55);
-    ledgerBankCBU = Math.round(fundBalanceEndCurrent * 0.30);
   }
 
   const composition = {
