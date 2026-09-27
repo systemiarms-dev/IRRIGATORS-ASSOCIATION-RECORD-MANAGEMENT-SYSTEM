@@ -25,6 +25,9 @@ import {
   Image as ImageIcon,
   Landmark,
   Coins,
+  Check,
+  ChevronDown,
+  ArrowDownAZ,
 } from 'lucide-react';
 
 interface TransactionFormModalProps {
@@ -75,6 +78,9 @@ export default function TransactionFormModal({
 
   const [amount, setAmount] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [categorySearch, setCategorySearch] = useState<string>('');
+  const [categorySortAlpha, setCategorySortAlpha] = useState<boolean>(false);
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState<boolean>(false);
   const [customCategory, setCustomCategory] = useState<string>('');
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [memberSearch, setMemberSearch] = useState<string>('');
@@ -118,8 +124,29 @@ export default function TransactionFormModal({
     fetchBalances();
   }, [selectedAssocId]);
 
-  const filteredCategories = (categories && categories.length > 0 ? categories : [])
+  const baseCategories = (categories && categories.length > 0 ? categories : [])
     .filter((c) => c.category_type === type && c.is_active !== false && (!selectedAssocId || c.association_id === selectedAssocId));
+
+  const filteredCategories = baseCategories;
+
+  const searchedCategories = categorySearch.trim()
+    ? baseCategories.filter((c) => {
+        const q = categorySearch.trim().toLowerCase();
+        const nameMatch = (c.name || '').toLowerCase().includes(q);
+        const codeMatch = (c.code || '').toLowerCase().includes(q);
+        const classMatch = (c.account_classification || '').toLowerCase().includes(q);
+        return nameMatch || codeMatch || classMatch;
+      })
+    : baseCategories;
+
+  const displayCategories = [...searchedCategories].sort((a, b) => {
+    if (categorySortAlpha) {
+      return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+    }
+    return 0;
+  });
+
+  const selectedCategory = baseCategories.find((c) => c.id === categoryId);
   const isCustomCategory = categoryId === CUSTOM_OPTION;
   const filteredMembers = members.filter((m) => !m.association_id || m.association_id === selectedAssocId);
 
@@ -365,7 +392,12 @@ export default function TransactionFormModal({
           <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-lg border border-slate-200">
             <button
               type="button"
-              onClick={() => { setType('collection'); setCategoryId(''); }}
+              onClick={() => {
+                setType('collection');
+                setCategoryId('');
+                setCategorySearch('');
+                setCategoryPickerOpen(false);
+              }}
               className={`py-2 px-3 rounded-md text-xs font-bold transition-all ${
                 type === 'collection' ? 'bg-emerald-700 text-white shadow-sm' : 'text-slate-500 hover:text-emerald-800'
               }`}
@@ -374,7 +406,12 @@ export default function TransactionFormModal({
             </button>
             <button
               type="button"
-              onClick={() => { setType('disbursement'); setCategoryId(''); }}
+              onClick={() => {
+                setType('disbursement');
+                setCategoryId('');
+                setCategorySearch('');
+                setCategoryPickerOpen(false);
+              }}
               className={`py-2 px-3 rounded-md text-xs font-bold transition-all ${
                 type === 'disbursement' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 hover:text-rose-700'
               }`}
@@ -520,36 +557,199 @@ export default function TransactionFormModal({
             </div>
           </div>
 
-          {/* Budget Category — one single Chart of Accounts picker */}
-          <div className="space-y-1">
-            <label className={labelCls}>NIA Budget Category (Chart of Accounts) *</label>
-            <select
-              value={categoryId}
-              onChange={(e) => {
-                setCategoryId(e.target.value);
-                setCustomCategory('');
-              }}
-              className={inputCls}
-            >
-              <option value="">
-                {filteredCategories.length > 0 ? '-- Select Budget Line Item --' : '-- No categories defined for this IA --'}
-              </option>
-              {filteredCategories.map((c) => {
-                const tag = c.account_classification === 'equity'
-                  ? ' (🏛️ Equity)'
-                  : c.account_classification === 'current_liability' || c.account_classification === 'non_current_liability'
-                  ? ' (📑 Liability)'
-                  : c.account_classification === 'current_asset' || c.account_classification === 'non_current_asset'
-                  ? ' (🏢 Asset)'
-                  : '';
-                return (
-                  <option key={c.id} value={c.id}>
-                    [{c.code}] {c.name}{tag}
-                  </option>
-                );
-              })}
-              <option value={CUSTOM_OPTION}>-- Custom / Other (one-time note below) --</option>
-            </select>
+          {/* Budget Category — Searchable & Sortable Chart of Accounts picker */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-1">
+              <label className={labelCls}>NIA Budget Category (Chart of Accounts) *</label>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCategorySortAlpha((prev) => !prev)}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold transition-all border ${
+                    categorySortAlpha
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm ring-1 ring-emerald-500'
+                      : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                  }`}
+                  title={categorySortAlpha ? 'Alphabetical sorting active (A-Z). Click to revert to default order.' : 'Click to sort categories alphabetically (A-Z)'}
+                >
+                  <ArrowDownAZ className="w-3.5 h-3.5" />
+                  <span>{categorySortAlpha ? 'A-Z (Alphabetical)' : 'Sort A-Z'}</span>
+                </button>
+                <span className="text-[10px] text-slate-400 font-medium font-mono shrink-0">
+                  {displayCategories.length} {displayCategories.length === 1 ? 'item' : 'items'}
+                </span>
+              </div>
+            </div>
+
+            {/* Selected Category Chip */}
+            {categoryId && categoryId !== CUSTOM_OPTION && selectedCategory && (
+              <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50/90 border border-emerald-200 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-800 text-white font-mono font-bold text-[10px] shrink-0">
+                    {selectedCategory.code}
+                  </span>
+                  <span className="font-bold text-slate-900 truncate">{selectedCategory.name}</span>
+                  {selectedCategory.account_classification && (
+                    <span className="text-[10px] text-emerald-800 font-semibold shrink-0">
+                      {selectedCategory.account_classification === 'equity'
+                        ? '(🏛️ Equity)'
+                        : selectedCategory.account_classification.includes('liability')
+                        ? '(📑 Liability)'
+                        : selectedCategory.account_classification.includes('asset')
+                        ? '(🏢 Asset)'
+                        : ''}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryId('');
+                    setCustomCategory('');
+                    setCategoryPickerOpen(true);
+                  }}
+                  className="text-xs font-bold text-emerald-800 hover:text-emerald-950 underline ml-2 shrink-0"
+                >
+                  Change
+                </button>
+              </div>
+            )}
+
+            {/* Search Input & Dropdown Picker */}
+            {(!categoryId || categoryId === CUSTOM_OPTION) && (
+              <div className="relative">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={categorySearch}
+                    onChange={(e) => {
+                      setCategorySearch(e.target.value);
+                      setCategoryPickerOpen(true);
+                    }}
+                    onFocus={() => setCategoryPickerOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (displayCategories.length === 1) {
+                          setCategoryId(displayCategories[0].id);
+                          setCustomCategory('');
+                          setCategoryPickerOpen(false);
+                          setCategorySearch('');
+                        }
+                      } else if (e.key === 'Escape') {
+                        setCategoryPickerOpen(false);
+                      }
+                    }}
+                    placeholder={
+                      displayCategories.length > 0
+                        ? 'Search category name or code (e.g. Canal, Supplies, Equity)...'
+                        : 'No categories defined for this IA'
+                    }
+                    className={`${inputCls} pl-9 pr-8`}
+                  />
+                  {categorySearch ? (
+                    <button
+                      type="button"
+                      onClick={() => setCategorySearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setCategoryPickerOpen((prev) => !prev)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                      title="Toggle Category List"
+                    >
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform ${
+                          categoryPickerOpen ? 'rotate-180 text-emerald-700' : ''
+                        }`}
+                      />
+                    </button>
+                  )}
+                </div>
+
+                {categoryPickerOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setCategoryPickerOpen(false)} />
+                    <div className="absolute z-40 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100">
+                      {displayCategories.length === 0 ? (
+                        <div className="px-3.5 py-3 text-xs text-slate-400 italic font-medium">
+                          No budget categories match &ldquo;{categorySearch}&rdquo;.
+                        </div>
+                      ) : (
+                        displayCategories.map((c) => {
+                          const isSelected = categoryId === c.id;
+                          const tag = c.account_classification === 'equity'
+                            ? '🏛️ Equity'
+                            : c.account_classification === 'current_liability'
+                            ? '📑 Current Liability'
+                            : c.account_classification === 'non_current_liability'
+                            ? '📑 Non-Current Liability'
+                            : c.account_classification === 'current_asset'
+                            ? '🏢 Current Asset'
+                            : c.account_classification === 'non_current_asset'
+                            ? '🏢 Non-Current Asset'
+                            : null;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                setCategoryId(c.id);
+                                setCustomCategory('');
+                                setCategoryPickerOpen(false);
+                                setCategorySearch('');
+                              }}
+                              className={`w-full flex items-center justify-between gap-2 px-3.5 py-2 text-left transition-colors ${
+                                isSelected ? 'bg-emerald-50 text-emerald-950 font-bold' : 'hover:bg-slate-50 text-slate-800'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                                  [{c.code}]
+                                </span>
+                                <span className="text-xs font-semibold truncate">{c.name}</span>
+                                {tag && (
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
+                                    c.account_classification === 'equity'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : c.account_classification?.includes('liability')
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {tag}
+                                  </span>
+                                )}
+                              </div>
+                              {isSelected && <Check className="w-4 h-4 text-emerald-700 shrink-0" />}
+                            </button>
+                          );
+                        })
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoryId(CUSTOM_OPTION);
+                          setCategoryPickerOpen(false);
+                          setCategorySearch('');
+                        }}
+                        className={`w-full flex items-center gap-2 px-3.5 py-2.5 text-left text-xs font-semibold border-t border-slate-200 transition-colors ${
+                          isCustomCategory ? 'bg-amber-50 text-amber-900 font-bold' : 'bg-slate-50/70 hover:bg-amber-50/60 text-slate-600'
+                        }`}
+                      >
+                        <Tag className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>-- Custom / Other (one-time note below) --</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             {isCustomCategory && (
               <div className="pt-1.5 space-y-1.5">
                 <input
