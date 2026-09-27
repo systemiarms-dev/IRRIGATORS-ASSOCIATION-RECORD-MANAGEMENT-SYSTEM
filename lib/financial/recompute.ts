@@ -190,11 +190,11 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
 
     if (!pinned('fs2.financialCondition.assets.currentAssets.current')) {
       currentAssets.current =
-        fundBalanceEnd.current + (currentLiabilities.current || 0) + (nonCurrentLiabilities.current || 0) + (eqTransactions.current || 0);
+        fundBalanceEnd.current + (eqTransactions.current || 0);
     }
     if (!pinned('fs2.financialCondition.assets.currentAssets.prior')) {
       currentAssets.prior =
-        fundBalanceEnd.prior + (currentLiabilities.prior || 0) + (nonCurrentLiabilities.prior || 0) + (eqTransactions.prior || 0);
+        fundBalanceEnd.prior + (eqTransactions.prior || 0);
     }
     if (!pinned('fs2.financialCondition.assets.totalAssets.current')) {
       assets.totalAssets = assets.totalAssets || { current: 0, prior: 0 };

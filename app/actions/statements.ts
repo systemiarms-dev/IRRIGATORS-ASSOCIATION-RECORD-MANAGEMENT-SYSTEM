@@ -178,21 +178,20 @@ export async function generateStatementAction(
     const add = (tx: any, isCurrent: boolean) => {
       if (tx.type !== expectedType) return;
       if (tx.category?.code && isKnown(normCode(tx.category.code))) return;
-      // Exclude balance sheet accounts (liabilities, non-current assets, and equity) from operating receipts & expenses
+      // Only exclude equity accounts from receipts & disbursements (they flow into Member's Equity)
       const classification = tx.category?.account_classification;
       const code = tx.category?.code?.toUpperCase() || '';
       if (
-        classification === 'current_liability' ||
-        classification === 'non_current_liability' ||
-        classification === 'non_current_asset' ||
         classification === 'equity' ||
-        code.includes('LIAB') ||
-        code.includes('AST-NONCUR') ||
         code.includes('EQ-')
       ) {
         return;
       }
-      const label = (tx.category?.name || '').trim() || (tx.category?.code || '').trim() || (tx.particulars || '').trim() || 'Other / Miscellaneous';
+      const label =
+        (tx.category?.name || '').trim() ||
+        (tx.category?.code || '').trim() ||
+        (tx.particulars || '').trim() ||
+        (classification === 'current_liability' ? 'Current Liability' : classification === 'non_current_liability' ? 'Non-Current Liability' : 'Other / Miscellaneous');
       if (!label) return;
       const entry = map.get(label) || { label, current: 0, prior: 0 };
       if (isCurrent) entry.current += Number(tx.amount || 0);
@@ -351,21 +350,28 @@ export async function generateStatementAction(
   // Build FS2 Model (Interconnected)
   const officeBuildingValue = overrides?.officeBuilding !== undefined ? Number(overrides.officeBuilding) : totalNetBookValue;
 
-  const currentLiabilitiesFromTxs = currentTxs
-    .filter((t) => {
-      const cls = t.category?.account_classification;
-      const code = t.category?.code?.toUpperCase() || '';
-      return cls === 'current_liability' || code.includes('LIAB-CUR') || (code.includes('LIAB') && !code.includes('NONCUR'));
-    })
-    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const calcLiabilities = (txList: any[], type: 'current' | 'non_current') => {
+    return (txList || [])
+      .filter((t) => {
+        const cls = t.category?.account_classification;
+        const code = t.category?.code?.toUpperCase() || '';
+        if (type === 'current') {
+          return cls === 'current_liability' || code.includes('LIAB-CUR') || (code.includes('LIAB') && !code.includes('NONCUR'));
+        } else {
+          return cls === 'non_current_liability' || code.includes('LIAB-NONCUR');
+        }
+      })
+      .reduce((sum, t) => {
+        const amt = Number(t.amount || 0);
+        return sum + (t.type === 'collection' ? amt : -amt);
+      }, 0);
+  };
 
-  const nonCurrentLiabilitiesFromTxs = currentTxs
-    .filter((t) => {
-      const cls = t.category?.account_classification;
-      const code = t.category?.code?.toUpperCase() || '';
-      return cls === 'non_current_liability' || code.includes('LIAB-NONCUR');
-    })
-    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const currentLiabilitiesFromCurrentTxs = calcLiabilities(currentTxs, 'current');
+  const currentLiabilitiesFromPriorTxs = calcLiabilities(priorTxs, 'current');
+
+  const nonCurrentLiabilitiesFromCurrentTxs = calcLiabilities(currentTxs, 'non_current');
+  const nonCurrentLiabilitiesFromPriorTxs = calcLiabilities(priorTxs, 'non_current');
 
   // Equity transactions: Money IN increases equity, Money OUT decreases equity
   const isEquityTx = (t: any) => {
@@ -402,16 +408,24 @@ export async function generateStatementAction(
   const totalEquityTxsCurrent = equityLines.reduce((s, x) => s + x.current, 0);
   const totalEquityTxsPrior = equityLines.reduce((s, x) => s + x.prior, 0);
 
-  const totalCurrentLiabilities = (overrides?.notarialPermitFees ?? 0) + (overrides?.honorariumWagesPayable ?? 0) + (overrides?.otherAccountsPayable ?? 0) + currentLiabilitiesFromTxs;
-  const totalNonCurrentLiabilities = nonCurrentLiabilitiesFromTxs;
+  const totalCurrentLiabilitiesCurrent =
+    (overrides?.notarialPermitFees ?? 0) +
+    (overrides?.honorariumWagesPayable ?? 0) +
+    (overrides?.otherAccountsPayable ?? 0) +
+    currentLiabilitiesFromCurrentTxs;
+  const totalCurrentLiabilitiesPrior = currentLiabilitiesFromPriorTxs;
 
-  const totalCurrentAssets = fundBalanceEndCurrent + totalCurrentLiabilities + totalNonCurrentLiabilities + totalEquityTxsCurrent;
+  const totalNonCurrentLiabilitiesCurrent = nonCurrentLiabilitiesFromCurrentTxs;
+  const totalNonCurrentLiabilitiesPrior = nonCurrentLiabilitiesFromPriorTxs;
 
-  const fs2TotalLiabilitiesCurrent = totalCurrentLiabilities + totalNonCurrentLiabilities;
-  const fs2TotalLiabilitiesPrior = 0;
+  const fs2TotalLiabilitiesCurrent = totalCurrentLiabilitiesCurrent + totalNonCurrentLiabilitiesCurrent;
+  const fs2TotalLiabilitiesPrior = totalCurrentLiabilitiesPrior + totalNonCurrentLiabilitiesPrior;
+
+  const totalCurrentAssets = fundBalanceEndCurrent + totalEquityTxsCurrent;
+  const totalCurrentAssetsPrior = fundBalanceEndPrior + totalEquityTxsPrior;
 
   const fs2TotalAssetsCurrent = totalCurrentAssets + (overrides?.materialsSuppliesInventory ?? 0) + officeBuildingValue;
-  const fs2TotalAssetsPrior = fundBalanceEndPrior + totalEquityTxsPrior;
+  const fs2TotalAssetsPrior = totalCurrentAssetsPrior;
 
   const fs2MembersEquityCurrent = fs2TotalAssetsCurrent - fs2TotalLiabilitiesCurrent;
   const fs2MembersEquityPrior = fs2TotalAssetsPrior - fs2TotalLiabilitiesPrior;
@@ -433,7 +447,7 @@ export async function generateStatementAction(
     },
     financialCondition: {
       assets: {
-        currentAssets: { current: totalCurrentAssets, prior: fundBalanceEndPrior + totalEquityTxsPrior },
+        currentAssets: { current: totalCurrentAssets, prior: totalCurrentAssetsPrior },
         inventorySupplies: { current: overrides?.materialsSuppliesInventory ?? 0, prior: 0 },
         officeBuilding: { current: officeBuildingValue, prior: 0 },
         totalAssets: {
@@ -443,12 +457,12 @@ export async function generateStatementAction(
       },
       liabilitiesEquity: {
         currentLiabilities: {
-          current: totalCurrentLiabilities,
-          prior: 0,
+          current: totalCurrentLiabilitiesCurrent,
+          prior: totalCurrentLiabilitiesPrior,
         },
         nonCurrentLiabilities: {
-          current: totalNonCurrentLiabilities,
-          prior: 0,
+          current: totalNonCurrentLiabilitiesCurrent,
+          prior: totalNonCurrentLiabilitiesPrior,
         },
         totalLiabilities: {
           current: fs2TotalLiabilitiesCurrent,
@@ -570,8 +584,8 @@ export async function generateStatementAction(
   const totalAssets = cashOnHand + cashInBank + receivables + materialsSuppliesInventory + officeBuilding;
 
   const notarialPermitFees = Number(overrides?.notarialPermitFees || 0);
-  const honorariumWagesPayable = Number(overrides?.honorariumWagesPayable || 0) + currentLiabilitiesFromTxs;
-  const otherAccountsPayable = Number(overrides?.otherAccountsPayable || 0) + nonCurrentLiabilitiesFromTxs;
+  const honorariumWagesPayable = Number(overrides?.honorariumWagesPayable || 0) + currentLiabilitiesFromCurrentTxs;
+  const otherAccountsPayable = Number(overrides?.otherAccountsPayable || 0) + nonCurrentLiabilitiesFromCurrentTxs;
   const totalLiabilities = notarialPermitFees + honorariumWagesPayable + otherAccountsPayable;
   const netWorth = totalAssets - totalLiabilities;
 
