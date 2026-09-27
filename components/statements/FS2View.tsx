@@ -24,6 +24,8 @@ const LOCKED = new Set([
   'financialCondition.assets.currentAssets.prior',
   'financialCondition.assets.totalAssets.current',
   'financialCondition.assets.totalAssets.prior',
+  'financialCondition.liabilitiesEquity.totalLiabilities.current',
+  'financialCondition.liabilitiesEquity.totalLiabilities.prior',
   'financialCondition.liabilitiesEquity.membersEquity.current',
   'financialCondition.liabilitiesEquity.membersEquity.prior',
   'financialCondition.liabilitiesEquity.totalLiabilitiesEquity.current',
@@ -33,6 +35,13 @@ const LOCKED = new Set([
 export default function FS2View({ data, editable = false, edits, onFieldChange }: FS2ViewProps) {
   const cf = data.cashFlows;
   const fc = data.financialCondition;
+
+  const totalLiabilitiesPrior =
+    fc.liabilitiesEquity.totalLiabilities?.prior ??
+    ((fc.liabilitiesEquity.currentLiabilities?.prior ?? 0) + (fc.liabilitiesEquity.nonCurrentLiabilities?.prior ?? 0));
+  const totalLiabilitiesCurrent =
+    fc.liabilitiesEquity.totalLiabilities?.current ??
+    ((fc.liabilitiesEquity.currentLiabilities?.current ?? 0) + (fc.liabilitiesEquity.nonCurrentLiabilities?.current ?? 0));
 
   const forced = (p: string) => edits?.[`${P}${p}`]?.mode === 'force';
   const locked = (p: string) => LOCKED.has(p);
@@ -165,6 +174,11 @@ export default function FS2View({ data, editable = false, edits, onFieldChange }
               <td className="py-1.5 px-6">Non-Current Liabilities</td>
               {cellSub('financialCondition.liabilitiesEquity.nonCurrentLiabilities.prior', fc.liabilitiesEquity.nonCurrentLiabilities.prior)}
               {cellSub('financialCondition.liabilitiesEquity.nonCurrentLiabilities.current', fc.liabilitiesEquity.nonCurrentLiabilities.current)}
+            </tr>
+            <tr className="font-semibold bg-slate-50/70 border-t border-slate-200">
+              <td className="py-1.5 px-6">Total Liabilities</td>
+              {cell('financialCondition.liabilitiesEquity.totalLiabilities.prior', totalLiabilitiesPrior, true)}
+              {cell('financialCondition.liabilitiesEquity.totalLiabilities.current', totalLiabilitiesCurrent, true)}
             </tr>
             <tr>
               <td className="py-1.5 px-6 font-semibold">Member&apos;s Equity</td>

@@ -12,6 +12,13 @@ export default function FS2View({ data }: FS2ViewProps) {
   const cf = data.cashFlows;
   const fc = data.financialCondition;
 
+  const totalLiabilitiesPrior =
+    fc.liabilitiesEquity.totalLiabilities?.prior ??
+    ((fc.liabilitiesEquity.currentLiabilities?.prior ?? 0) + (fc.liabilitiesEquity.nonCurrentLiabilities?.prior ?? 0));
+  const totalLiabilitiesCurrent =
+    fc.liabilitiesEquity.totalLiabilities?.current ??
+    ((fc.liabilitiesEquity.currentLiabilities?.current ?? 0) + (fc.liabilitiesEquity.nonCurrentLiabilities?.current ?? 0));
+
   return (
     <div className="bg-white text-slate-900 font-sans p-4 sm:p-8 rounded-xl shadow-2xl space-y-4 sm:space-y-6 w-full border border-slate-300 print:shadow-none print:border-none print:p-0 print:space-y-1.5 print:text-[8pt] print:leading-tight printable-statement">
       {/* Header */}
@@ -119,6 +126,11 @@ export default function FS2View({ data }: FS2ViewProps) {
               <td className="py-1.5 px-6">Non-Current Liabilities</td>
               <td className="text-right py-1.5 px-3 font-mono">{fc.liabilitiesEquity.nonCurrentLiabilities.prior ? formatPHP(fc.liabilitiesEquity.nonCurrentLiabilities.prior) : '0'}</td>
               <td className="text-right py-1.5 px-3 font-mono">{fc.liabilitiesEquity.nonCurrentLiabilities.current ? formatPHP(fc.liabilitiesEquity.nonCurrentLiabilities.current) : '0'}</td>
+            </tr>
+            <tr className="font-semibold bg-slate-50/70 border-t border-slate-200">
+              <td className="py-1.5 px-6">Total Liabilities</td>
+              <td className="text-right py-1.5 px-3 font-mono font-semibold">{formatPHP(totalLiabilitiesPrior)}</td>
+              <td className="text-right py-1.5 px-3 font-mono font-semibold">{formatPHP(totalLiabilitiesCurrent)}</td>
             </tr>
             <tr>
               <td className="py-1.5 px-6 font-semibold">Member&apos;s Equity</td>

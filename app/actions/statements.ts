@@ -324,6 +324,19 @@ export async function generateStatementAction(
     },
   };
 
+  const fs2TotalAssetsCurrent = fundBalanceEndCurrent + (overrides?.materialsSuppliesInventory ?? 0) + (overrides?.officeBuilding ?? 0);
+  const fs2TotalAssetsPrior = fundBalanceEndPrior;
+  const fs2CurrentLiabilitiesCurrent = (overrides?.notarialPermitFees ?? 0) + (overrides?.honorariumWagesPayable ?? 0) + (overrides?.otherAccountsPayable ?? 0);
+  const fs2CurrentLiabilitiesPrior = 0;
+  const fs2NonCurrentLiabilitiesCurrent = 0;
+  const fs2NonCurrentLiabilitiesPrior = 0;
+  const fs2TotalLiabilitiesCurrent = fs2CurrentLiabilitiesCurrent + fs2NonCurrentLiabilitiesCurrent;
+  const fs2TotalLiabilitiesPrior = fs2CurrentLiabilitiesPrior + fs2NonCurrentLiabilitiesPrior;
+  const fs2MembersEquityCurrent = fs2TotalAssetsCurrent - fs2TotalLiabilitiesCurrent;
+  const fs2MembersEquityPrior = fs2TotalAssetsPrior - fs2TotalLiabilitiesPrior;
+  const fs2TotalLiabilitiesEquityCurrent = fs2TotalLiabilitiesCurrent + fs2MembersEquityCurrent;
+  const fs2TotalLiabilitiesEquityPrior = fs2TotalLiabilitiesPrior + fs2MembersEquityPrior;
+
   // Build FS2 Model (Interconnected)
   const fs2: FS2Data = {
     associationName: assocName,
@@ -343,20 +356,24 @@ export async function generateStatementAction(
         inventorySupplies: { current: overrides?.materialsSuppliesInventory ?? 0, prior: 0 },
         officeBuilding: { current: overrides?.officeBuilding ?? 0, prior: 0 },
         totalAssets: {
-          current: fundBalanceEndCurrent + (overrides?.materialsSuppliesInventory ?? 0) + (overrides?.officeBuilding ?? 0),
-          prior: fundBalanceEndPrior,
+          current: fs2TotalAssetsCurrent,
+          prior: fs2TotalAssetsPrior,
         },
       },
       liabilitiesEquity: {
         currentLiabilities: {
-          current: (overrides?.notarialPermitFees ?? 0) + (overrides?.honorariumWagesPayable ?? 0) + (overrides?.otherAccountsPayable ?? 0),
-          prior: 0,
+          current: fs2CurrentLiabilitiesCurrent,
+          prior: fs2CurrentLiabilitiesPrior,
         },
-        nonCurrentLiabilities: { current: 0, prior: 0 },
-        membersEquity: { current: fundBalanceEndCurrent, prior: fundBalanceEndPrior },
+        nonCurrentLiabilities: { current: fs2NonCurrentLiabilitiesCurrent, prior: fs2NonCurrentLiabilitiesPrior },
+        totalLiabilities: {
+          current: fs2TotalLiabilitiesCurrent,
+          prior: fs2TotalLiabilitiesPrior,
+        },
+        membersEquity: { current: fs2MembersEquityCurrent, prior: fs2MembersEquityPrior },
         totalLiabilitiesEquity: {
-          current: fundBalanceEndCurrent + (overrides?.notarialPermitFees ?? 0) + (overrides?.honorariumWagesPayable ?? 0) + (overrides?.otherAccountsPayable ?? 0),
-          prior: fundBalanceEndPrior,
+          current: fs2TotalLiabilitiesEquityCurrent,
+          prior: fs2TotalLiabilitiesEquityPrior,
         },
       },
     },

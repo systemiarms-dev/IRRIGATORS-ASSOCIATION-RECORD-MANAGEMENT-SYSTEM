@@ -245,6 +245,7 @@ export async function generateStatementAction(
       liabilitiesEquity: {
         currentLiabilities: { current: 0, prior: 0 },
         nonCurrentLiabilities: { current: 0, prior: 0 },
+        totalLiabilities: { current: 0, prior: 0 },
         membersEquity: { current: fundBalanceEndCurrent, prior: fundBalanceEndPrior },
         totalLiabilitiesEquity: { current: fundBalanceEndCurrent, prior: fundBalanceEndPrior },
       },

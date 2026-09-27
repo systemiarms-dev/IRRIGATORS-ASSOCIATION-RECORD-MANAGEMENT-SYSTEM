@@ -193,6 +193,7 @@ export interface FS2Data {
     liabilitiesEquity: {
       currentLiabilities: { current: number; prior: number };
       nonCurrentLiabilities: { current: number; prior: number };
+      totalLiabilities?: { current: number; prior: number };
       membersEquity: { current: number; prior: number };
       totalLiabilitiesEquity: { current: number; prior: number };
     };

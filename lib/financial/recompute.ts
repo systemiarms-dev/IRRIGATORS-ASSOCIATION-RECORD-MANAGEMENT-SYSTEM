@@ -27,6 +27,8 @@ const LOCKED_DERIVED_PATHS = new Set<string>([
   'fs2.financialCondition.assets.currentAssets.prior',
   'fs2.financialCondition.assets.totalAssets.current',
   'fs2.financialCondition.assets.totalAssets.prior',
+  'fs2.financialCondition.liabilitiesEquity.totalLiabilities.current',
+  'fs2.financialCondition.liabilitiesEquity.totalLiabilities.prior',
   'fs2.financialCondition.liabilitiesEquity.membersEquity.current',
   'fs2.financialCondition.liabilitiesEquity.membersEquity.prior',
   'fs2.financialCondition.liabilitiesEquity.totalLiabilitiesEquity.current',
@@ -161,6 +163,7 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
     const leMembersEquity = ensurePair(le, 'membersEquity');
     const currentLiabilities = ensurePair(le, 'currentLiabilities');
     const nonCurrentLiabilities = ensurePair(le, 'nonCurrentLiabilities');
+    const totalLiabilities = ensurePair(le, 'totalLiabilities');
 
     const fundBalanceBeginning = hashPair(fs1.membersEquity, 'fundBalanceBeginning');
     const fundBalanceEnd = hashPair(fs1.membersEquity, 'fundBalanceEnd');
@@ -184,16 +187,28 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
         currentAssets.prior + inventorySupplies.prior + officeBuilding.prior;
     }
 
-    if (!pinned('fs2.financialCondition.liabilitiesEquity.membersEquity.current')) leMembersEquity.current = fundBalanceEnd.current;
-    if (!pinned('fs2.financialCondition.liabilitiesEquity.membersEquity.prior')) leMembersEquity.prior = fundBalanceEnd.prior;
+    if (!pinned('fs2.financialCondition.liabilitiesEquity.totalLiabilities.current')) {
+      totalLiabilities.current = currentLiabilities.current + nonCurrentLiabilities.current;
+    }
+    if (!pinned('fs2.financialCondition.liabilitiesEquity.totalLiabilities.prior')) {
+      totalLiabilities.prior = currentLiabilities.prior + nonCurrentLiabilities.prior;
+    }
+
+    if (!pinned('fs2.financialCondition.liabilitiesEquity.membersEquity.current')) {
+      leMembersEquity.current = (assets.totalAssets?.current ?? 0) - totalLiabilities.current;
+    }
+    if (!pinned('fs2.financialCondition.liabilitiesEquity.membersEquity.prior')) {
+      leMembersEquity.prior = (assets.totalAssets?.prior ?? 0) - totalLiabilities.prior;
+    }
+
     if (!pinned('fs2.financialCondition.liabilitiesEquity.totalLiabilitiesEquity.current')) {
       le.totalLiabilitiesEquity = le.totalLiabilitiesEquity || { current: 0, prior: 0 };
       le.totalLiabilitiesEquity.current =
-        currentLiabilities.current + nonCurrentLiabilities.current + leMembersEquity.current;
+        totalLiabilities.current + leMembersEquity.current;
     }
     if (!pinned('fs2.financialCondition.liabilitiesEquity.totalLiabilitiesEquity.prior')) {
       le.totalLiabilitiesEquity.prior =
-        currentLiabilities.prior + nonCurrentLiabilities.prior + leMembersEquity.prior;
+        totalLiabilities.prior + leMembersEquity.prior;
     }
   }
 
