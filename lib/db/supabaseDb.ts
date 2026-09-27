@@ -934,6 +934,14 @@ class SupabaseDatabaseService {
     return true;
   }
 
+  public async deleteFinancialStatements(ids: string[]): Promise<boolean> {
+    if (!ids || ids.length === 0) return true;
+    const client = this.getClient();
+    const { error } = await client.from('financial_statements').delete().in('id', ids);
+    if (error) throw new Error(error.message || 'Error deleting financial statements');
+    return true;
+  }
+
   public async clearAllFinancialRecords(associationId?: string | null): Promise<boolean> {
     const client = this.getClient();
     if (associationId && associationId !== 'all') {

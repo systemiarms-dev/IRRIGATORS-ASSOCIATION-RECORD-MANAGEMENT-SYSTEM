@@ -829,6 +829,55 @@ export async function deleteFinancialStatementAction(id: string): Promise<Action
 }
 
 /**
+ * Delete multiple financial statements in bulk
+ */
+export async function deleteMultipleFinancialStatementsAction(
+  ids: string[]
+): Promise<ActionResponse<{ deletedCount: number }>> {
+  const user = await requireUser();
+  if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can delete financial statements.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { success: false, message: 'No statements selected for deletion.' };
+  }
+
+  try {
+    const validIds: string[] = [];
+    for (const id of ids) {
+      const stmt = await localDb.getFinancialStatementById(id);
+      if (!stmt) continue;
+      // Cross-association write protection
+      if (user.role !== 'super_admin' && stmt.association_id && stmt.association_id !== user.association_id) {
+        continue;
+      }
+      validIds.push(id);
+    }
+
+    if (validIds.length === 0) {
+      return { success: false, message: 'None of the selected statements could be deleted.' };
+    }
+
+    await localDb.deleteFinancialStatements(validIds);
+
+    revalidatePath('/dashboard/statements');
+    return {
+      success: true,
+      message: `${validIds.length} financial statement${validIds.length === 1 ? '' : 's'} deleted successfully.`,
+      data: { deletedCount: validIds.length },
+    };
+  } catch (error: any) {
+    return { success: false, message: error?.message || 'Error deleting selected statements.' };
+  }
+}
+
+
+/**
  * Re-sync an existing financial statement with fresh ledger transactions from Supabase
  */
 export async function resyncStatementWithLedgerAction(

@@ -5,7 +5,7 @@ import { useLoadOnce } from '@/lib/hooks/useLoadOnce';
 import {
   getFinancialStatementsAction, generateStatementAction,
   deleteFinancialStatementAction, updateFinancialStatementAction, renameFinancialStatementAction,
-  resyncStatementWithLedgerAction,
+  resyncStatementWithLedgerAction, deleteMultipleFinancialStatementsAction,
 } from '@/app/actions/statements';
 import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
@@ -466,6 +466,48 @@ export default function FinancialStatementsPage() {
     }
   }
 
+  const [selectedStmtIds, setSelectedStmtIds] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  function toggleSelectStmt(id: string) {
+    setSelectedStmtIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function toggleSelectAll() {
+    if (selectedStmtIds.length === statements.length) {
+      setSelectedStmtIds([]);
+    } else {
+      setSelectedStmtIds(statements.map((s) => s.id));
+    }
+  }
+
+  async function handleBulkDeleteStatements() {
+    if (selectedStmtIds.length === 0 || isBulkDeleting) return;
+    setIsBulkDeleting(true);
+    try {
+      const res = await deleteMultipleFinancialStatementsAction(selectedStmtIds);
+      if (res.success) {
+        setShowBulkDeleteModal(false);
+        setBannerMsg({ type: 'success', text: res.message });
+        const remaining = statements.filter((s) => !selectedStmtIds.includes(s.id));
+        if (selectedStatement && selectedStmtIds.includes(selectedStatement.id)) {
+          setSelectedStatement(remaining[0] || null);
+        }
+        setSelectedStmtIds([]);
+        loadStatements();
+      } else {
+        setBannerMsg({ type: 'error', text: res.message || 'Failed to delete statements.' });
+      }
+    } catch (err: any) {
+      setBannerMsg({ type: 'error', text: err?.message || 'Unexpected error while deleting statements.' });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  }
+
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleDeleteStatement() {
@@ -643,16 +685,61 @@ export default function FinancialStatementsPage() {
           {/* Left: Statement List Panel */}
           <aside className="lg:w-80 lg:shrink-0 space-y-3 print:hidden">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Active Statement</label>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                  {statements.length}
-                </span>
+              <div className="px-4 py-3 border-b border-slate-100 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Active Statement</label>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    {statements.length}
+                  </span>
+                </div>
+
+                {canEditReports && statements.length > 0 && (
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none text-slate-600 font-semibold text-[11px] hover:text-slate-900">
+                      <input
+                        type="checkbox"
+                        checked={statements.length > 0 && selectedStmtIds.length === statements.length}
+                        ref={(el) => {
+                          if (el) {
+                            el.indeterminate = selectedStmtIds.length > 0 && selectedStmtIds.length < statements.length;
+                          }
+                        }}
+                        onChange={toggleSelectAll}
+                        className="w-3.5 h-3.5 accent-emerald-700 rounded cursor-pointer"
+                      />
+                      <span>Select All</span>
+                    </label>
+
+                    {selectedStmtIds.length > 0 ? (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStmtIds([])}
+                          className="text-[10px] text-slate-400 hover:text-slate-600 underline font-medium"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowBulkDeleteModal(true)}
+                          className="px-2 py-0.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs transition-colors active:scale-95"
+                          title={`Delete ${selectedStmtIds.length} selected statement${selectedStmtIds.length === 1 ? '' : 's'}`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Delete ({selectedStmtIds.length})</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-slate-400">Select to delete</span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="max-h-[45vh] lg:max-h-[65vh] overflow-y-auto divide-y divide-slate-100">
                 {statements.map((s) => {
                   const isActive = selectedStatement?.id === s.id;
                   const isEditing = editingId === s.id;
+                  const isChecked = selectedStmtIds.includes(s.id);
                   return (
                     <div
                       key={s.id}
@@ -660,64 +747,88 @@ export default function FinancialStatementsPage() {
                         if (isEditing || s.id === selectedStatement?.id) return;
                         requestNav(() => setSelectedStatement(s), 'You have unsaved changes. Switching statement before saving will keep them un-saved in the ledger.');
                       }}
-                      className={`w-full text-left px-4 py-3 flex flex-col gap-1 transition-all border-l-4 cursor-pointer ${isActive ? 'bg-emerald-50/80 border-emerald-700' : 'border-transparent hover:bg-slate-50'
-                        }`}
+                      className={`w-full text-left px-3.5 py-3 flex items-start gap-2.5 transition-all border-l-4 cursor-pointer ${
+                        isActive
+                          ? 'bg-emerald-50/80 border-emerald-700'
+                          : isChecked
+                          ? 'bg-rose-50/50 border-rose-400'
+                          : 'border-transparent hover:bg-slate-50'
+                      }`}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        {isEditing ? (
+                      {canEditReports && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="pt-0.5 shrink-0"
+                        >
                           <input
-                            autoFocus
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleRenameStatement();
-                              if (e.key === 'Escape') cancelRename();
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleSelectStmt(s.id);
                             }}
-                            onBlur={handleRenameStatement}
-                            placeholder="Statement name"
-                            className="w-full min-w-0 text-xs font-black text-emerald-800 bg-white border border-emerald-300 rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-4 h-4 accent-emerald-700 rounded cursor-pointer"
+                            title="Select statement for deletion"
                           />
-                        ) : (
-                          <>
-                            <span className={`text-xs font-black truncate ${isActive ? 'text-emerald-800' : 'text-slate-900'}`}>
-                              {s.title}
-                            </span>
-                            {canEditReports && isActive && (
-                              <div className="flex items-center gap-0.5 shrink-0">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startRename(s);
-                                  }}
-                                  className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-100 rounded-md transition-colors"
-                                  title="Rename statement"
-                                >
-                                  {isRenaming ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  ) : (
-                                    <Pencil className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeleteModalStmt(s);
-                                  }}
-                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
-                                  title="Delete statement"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-[10px] text-slate-400">{s.statement_number}</span>
-                        <span className={`text-[10px] font-bold ${isActive ? 'text-emerald-700' : 'text-slate-500'}`}>
-                          {s.period_start} &ndash; {s.period_end}
-                        </span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0 flex flex-col gap-1">
+                        <div className="flex items-center justify-between gap-2">
+                          {isEditing ? (
+                            <input
+                              autoFocus
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRenameStatement();
+                                if (e.key === 'Escape') cancelRename();
+                              }}
+                              onBlur={handleRenameStatement}
+                              placeholder="Statement name"
+                              className="w-full min-w-0 text-xs font-black text-emerald-800 bg-white border border-emerald-300 rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                          ) : (
+                            <>
+                              <span className={`text-xs font-black truncate ${isActive ? 'text-emerald-800' : 'text-slate-900'}`}>
+                                {s.title}
+                              </span>
+                              {canEditReports && isActive && (
+                                <div className="flex items-center gap-0.5 shrink-0">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startRename(s);
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-100 rounded-md transition-colors"
+                                    title="Rename statement"
+                                  >
+                                    {isRenaming ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeleteModalStmt(s);
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+                                    title="Delete statement"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-[10px] text-slate-400">{s.statement_number}</span>
+                          <span className={`text-[10px] font-bold ${isActive ? 'text-emerald-700' : 'text-slate-500'}`}>
+                            {s.period_start} &ndash; {s.period_end}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1231,6 +1342,53 @@ export default function FinancialStatementsPage() {
               >
                 {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Bulk Delete Statements Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <Dialog open={showBulkDeleteModal} onOpenChange={() => setShowBulkDeleteModal(false)}>
+          <DialogContent className="max-w-md p-6 bg-white rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-base font-black text-rose-600 flex items-center gap-2">
+                <Trash2 className="w-5 h-5" /> Delete {selectedStmtIds.length} Financial Statement{selectedStmtIds.length === 1 ? '' : 's'}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Are you sure you want to permanently delete the {selectedStmtIds.length} selected financial statement{selectedStmtIds.length === 1 ? '' : 's'}? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="max-h-48 overflow-y-auto my-3 p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs">
+              {statements
+                .filter((s) => selectedStmtIds.includes(s.id))
+                .map((s) => (
+                  <div key={s.id} className="flex items-center justify-between text-slate-700 font-medium py-1 px-1.5 rounded hover:bg-slate-100 min-w-0">
+                    <span className="truncate">{s.title}</span>
+                    <span className="font-mono text-[10px] text-slate-400 shrink-0 ml-2">{s.statement_number}</span>
+                  </div>
+                ))}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t">
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(false)}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDeleteStatements}
+                disabled={isBulkDeleting}
+                className="px-5 py-2 text-xs font-bold rounded-xl bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-60 flex items-center gap-2"
+              >
+                {isBulkDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {isBulkDeleting ? 'Deleting...' : `Confirm Delete (${selectedStmtIds.length})`}
               </button>
             </div>
           </DialogContent>
