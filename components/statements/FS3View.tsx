@@ -51,6 +51,16 @@ export default function FS3View({ data, editable = false, edits, onFieldChange }
   );
 
   // Dynamic receipts: standard items with non-zero or pinned values, plus extraReceipts
+  const extraReceiptList = (data.extraReceipts || []).filter((x) => Number(x.current || 0) !== 0);
+  const extraReceiptsSum = extraReceiptList.reduce((acc, x) => acc + Number(x.current || 0), 0);
+  const isLegacyBundledIncome =
+    extraReceiptList.length > 0 &&
+    Math.abs(Number(r?.otherIncome || 0) - extraReceiptsSum) < 0.01;
+  const effectiveOtherIncome =
+    isLegacyBundledIncome && !forced('cashReceipts.otherIncome')
+      ? 0
+      : Number(r?.otherIncome || 0);
+
   const standardReceiptList = [
     { label: 'Membership Fees', path: 'cashReceipts.membershipFees', value: r.membershipFees },
     { label: 'Annual or Seasonal Dues', path: 'cashReceipts.annualDues', value: r.annualDues },
@@ -60,13 +70,22 @@ export default function FS3View({ data, editable = false, edits, onFieldChange }
     { label: 'Operation Compensation (IA Subsidy)', path: 'cashReceipts.iaSubsidy', value: r.iaSubsidy },
     { label: 'Canal Remuneration', path: 'cashReceipts.canalRemuneration', value: r.canalRemuneration },
     { label: 'O and M Fee', path: 'cashReceipts.omFee', value: r.omFee },
-    { label: 'Other Income', path: 'cashReceipts.otherIncome', value: r.otherIncome },
+    { label: 'Other Income', path: 'cashReceipts.otherIncome', value: effectiveOtherIncome },
   ].filter((item) => Number(item.value || 0) !== 0 || forced(item.path));
 
-  const extraReceiptList = (data.extraReceipts || []).filter((x) => Number(x.current || 0) !== 0);
   const totalReceiptItemsCount = standardReceiptList.length + extraReceiptList.length;
 
   // Dynamic disbursements: standard items with non-zero or pinned values, plus extraDisbursements
+  const extraDisbursementList = (data.extraDisbursements || []).filter((x) => Number(x.current || 0) !== 0);
+  const extraDisbursementsSum = extraDisbursementList.reduce((acc, x) => acc + Number(x.current || 0), 0);
+  const isLegacyBundledExpense =
+    extraDisbursementList.length > 0 &&
+    Math.abs(Number(d?.otherExpenses || 0) - extraDisbursementsSum) < 0.01;
+  const effectiveOtherExpenses =
+    isLegacyBundledExpense && !forced('cashDisbursements.otherExpenses')
+      ? 0
+      : Number(d?.otherExpenses || 0);
+
   const standardDisbursementList = [
     { label: 'Registration, Permit & Notarial fees', path: 'cashDisbursements.registrationPermits', value: d.registrationPermits },
     { label: 'Travel and Rep. Expenses', path: 'cashDisbursements.travelRep', value: d.travelRep },
@@ -77,14 +96,13 @@ export default function FS3View({ data, editable = false, edits, onFieldChange }
     { label: 'Snacks (Meetings)', path: 'cashDisbursements.snacksMeetings', value: d.snacksMeetings },
     { label: 'Collection Expenses', path: 'cashDisbursements.collectionExpenses', value: d.collectionExpenses },
     { label: 'Misc. Expenses', path: 'cashDisbursements.miscExpenses', value: d.miscExpenses },
-    { label: 'Other Expenses', path: 'cashDisbursements.otherExpenses', value: d.otherExpenses },
+    { label: 'Other Expenses', path: 'cashDisbursements.otherExpenses', value: effectiveOtherExpenses },
     { label: 'Distributed IA Share to Laterals', path: 'cashDisbursements.distributedIAShare', value: d.distributedIAShare },
     { label: 'Professional Fee', path: 'cashDisbursements.professionalFee', value: (d as any).professionalFee },
     { label: 'Federation Share', path: 'cashDisbursements.federationShare', value: (d as any).federationShare },
     { label: 'Piso Mula sa Puso', path: 'cashDisbursements.pisoMulaSaPuso', value: (d as any).pisoMulaSaPuso },
   ].filter((item) => Number(item.value || 0) !== 0 || forced(item.path));
 
-  const extraDisbursementList = (data.extraDisbursements || []).filter((x) => Number(x.current || 0) !== 0);
   const totalDisbursementItemsCount = standardDisbursementList.length + extraDisbursementList.length;
 
   return (

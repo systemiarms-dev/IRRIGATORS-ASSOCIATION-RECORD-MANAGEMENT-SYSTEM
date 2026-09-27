@@ -102,10 +102,29 @@ export default function FinancialStatementsPage() {
   const pinCount = (edits?: FinancialStatementEdits) =>
     edits ? Object.values(edits).filter((e) => e?.mode === 'force').length : 0;
 
+  function sanitizeBreakdown(rd: FinancialStatementBreakdown): FinancialStatementBreakdown {
+    if (!rd?.fs3) return rd;
+    const cloned: FinancialStatementBreakdown = JSON.parse(JSON.stringify(rd));
+    const fs3 = cloned.fs3;
+    if (fs3?.cashReceipts && fs3?.extraReceipts) {
+      const extraSum = (fs3.extraReceipts || []).reduce((s: number, x: any) => s + Number(x.current || 0), 0);
+      if (extraSum > 0 && Math.abs(Number(fs3.cashReceipts.otherIncome || 0) - extraSum) < 0.01 && !cloned.edits?.['fs3.cashReceipts.otherIncome']) {
+        fs3.cashReceipts.otherIncome = 0;
+      }
+    }
+    if (fs3?.cashDisbursements && fs3?.extraDisbursements) {
+      const extraDisbSum = (fs3.extraDisbursements || []).reduce((s: number, x: any) => s + Number(x.current || 0), 0);
+      if (extraDisbSum > 0 && Math.abs(Number(fs3.cashDisbursements.otherExpenses || 0) - extraDisbSum) < 0.01 && !cloned.edits?.['fs3.cashDisbursements.otherExpenses']) {
+        fs3.cashDisbursements.otherExpenses = 0;
+      }
+    }
+    return cloned;
+  }
+
   function viewReportData(): FinancialStatementBreakdown | null {
     if (!selectedStatement?.report_data) return null;
     if (editMode === 'manual' && draftData) return draftData;
-    return selectedStatement.report_data;
+    return sanitizeBreakdown(selectedStatement.report_data);
   }
 
   function viewEdits(): FinancialStatementEdits | undefined {
@@ -116,7 +135,7 @@ export default function FinancialStatementsPage() {
 
   function enterManualEdit() {
     if (!selectedStatement?.report_data) return;
-    setDraftData(JSON.parse(JSON.stringify(selectedStatement.report_data)));
+    setDraftData(sanitizeBreakdown(JSON.parse(JSON.stringify(selectedStatement.report_data))));
     setHasEdits(false);
     setEditMode('manual');
   }
