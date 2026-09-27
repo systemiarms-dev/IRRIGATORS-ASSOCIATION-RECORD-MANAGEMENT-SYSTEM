@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useRef, useState, useTransition } from '
 import { useLoadOnce } from '@/lib/hooks/useLoadOnce';
 import {
   getFinancialStatementsAction, generateStatementAction,
-  deleteFinancialStatementAction, updateFinancialStatementAction, renameFinancialStatementAction
+  deleteFinancialStatementAction, updateFinancialStatementAction, renameFinancialStatementAction,
+  resyncStatementWithLedgerAction,
 } from '@/app/actions/statements';
 import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
@@ -25,7 +26,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   FileText, Printer, Loader2, Calculator, Trash2,
   Layers, TrendingUp, Wallet, Landmark, HelpCircle, Shield, Pencil,
-  CheckCircle2, Tag, Building2, Save, Calendar, Sparkles, X, Users, AlertTriangle, Eye
+  CheckCircle2, Tag, Building2, Save, Calendar, Sparkles, X, Users, AlertTriangle, Eye,
+  RefreshCw,
 } from 'lucide-react';
 import { exportToPDFPrint, buildExportFilename } from '@/lib/utils/export';
 
@@ -432,6 +434,38 @@ export default function FinancialStatementsPage() {
     }
   }
 
+  const [isResyncing, setIsResyncing] = useState(false);
+
+  function openGenerateModal() {
+    const currentAssoc = selectedStatement?.association_id || (selectedAssocId !== 'all' ? selectedAssocId : undefined) || genAssocId;
+    if (currentAssoc) {
+      setGenAssocId(currentAssoc);
+      const a = associations.find((x) => x.id === currentAssoc);
+      if (a?.president_name) setGenOfficerPresident(a.president_name);
+      if (a?.name) setGenTitle(`${a.name} Financial Statement (${selectedYear})`);
+    }
+    setShowGenerateModal(true);
+  }
+
+  async function handleResyncStatement() {
+    if (!selectedStatement || isResyncing) return;
+    setIsResyncing(true);
+    try {
+      const res = await resyncStatementWithLedgerAction(selectedStatement.id);
+      if (res.success && res.data) {
+        setBannerMsg({ type: 'success', text: res.message });
+        setSelectedStatement(res.data);
+        loadStatements();
+      } else {
+        setBannerMsg({ type: 'error', text: res.message || 'Failed to re-sync statement with ledger.' });
+      }
+    } catch (err: any) {
+      setBannerMsg({ type: 'error', text: err?.message || 'Unexpected error while re-syncing statement.' });
+    } finally {
+      setIsResyncing(false);
+    }
+  }
+
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleDeleteStatement() {
@@ -556,7 +590,7 @@ export default function FinancialStatementsPage() {
         <div className="flex items-center gap-2.5 flex-wrap">
           {canEditReports ? (
             <button
-              onClick={() => requestNav(() => setShowGenerateModal(true), 'You have unsaved changes. Generating a new report will start with the saved ledger figures.')}
+              onClick={() => requestNav(openGenerateModal, 'You have unsaved changes. Generating a new report will start with the saved ledger figures.')}
               disabled={isGenerating}
               className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
             >
@@ -743,6 +777,17 @@ export default function FinancialStatementsPage() {
                   )}
 
                   <div className="flex items-center flex-wrap gap-2.5">
+                    {canEditReports && (
+                      <button
+                        onClick={() => requestNav(handleResyncStatement, 'You have unsaved changes. Re-syncing with the ledger will overwrite unsaved changes with live ledger records.')}
+                        disabled={isResyncing}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs active:scale-95 disabled:opacity-50"
+                        title="Re-calculate and sync this report directly with the latest live transactions in the ledger"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isResyncing ? 'animate-spin' : ''}`} />
+                        <span>{isResyncing ? 'Re-syncing...' : 'Re-sync with Ledger'}</span>
+                      </button>
+                    )}
                     {editMode === 'auto' && (
                       <button
                         onClick={() => {

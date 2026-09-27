@@ -827,3 +827,74 @@ export async function deleteFinancialStatementAction(id: string): Promise<Action
   revalidatePath('/dashboard/statements');
   return { success: true, message: 'Financial statement deleted successfully.' };
 }
+
+/**
+ * Re-sync an existing financial statement with fresh ledger transactions from Supabase
+ */
+export async function resyncStatementWithLedgerAction(
+  id: string
+): Promise<ActionResponse<FinancialStatement>> {
+  const user = await requireUser();
+  if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer') {
+    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can re-sync financial statements.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+    return UNAUTHORIZED_RESPONSE;
+  }
+
+  try {
+    const existing = await localDb.getFinancialStatementById(id);
+    if (!existing) {
+      return { success: false, message: 'Statement record not found.' };
+    }
+
+    if (user.role !== 'super_admin' && existing.association_id && existing.association_id !== user.association_id) {
+      return UNAUTHORIZED_RESPONSE;
+    }
+
+    const genRes = await generateStatementAction(
+      existing.title,
+      existing.statement_type,
+      existing.period_start,
+      existing.period_end,
+      existing.is_published,
+      existing.association_id,
+      {
+        associationName: existing.report_data?.fs1?.associationName,
+        address: existing.report_data?.fs1?.address,
+        presidentName: existing.report_data?.fs1?.officers?.presidentName,
+        treasurerName: existing.report_data?.fs1?.officers?.treasurerName,
+        auditorName: existing.report_data?.fs1?.officers?.auditorName,
+        secRegNo: existing.report_data?.fs1?.secRegNo,
+        associationTin: existing.report_data?.fs3?.tinNo,
+      }
+    );
+
+    if (!genRes.success || !genRes.data) {
+      return genRes;
+    }
+
+    const updated = await localDb.updateFinancialStatement(existing.id, {
+      total_collections: genRes.data.total_collections,
+      total_disbursements: genRes.data.total_disbursements,
+      net_cash_flow: genRes.data.net_cash_flow,
+      report_data: genRes.data.report_data,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (genRes.data.id !== existing.id) {
+      await localDb.deleteFinancialStatement(genRes.data.id);
+    }
+
+    revalidatePath('/dashboard/statements');
+    return {
+      success: true,
+      message: `Statement "${existing.title}" successfully re-synced with latest ledger transactions.`,
+      data: updated || genRes.data,
+    };
+  } catch (error: any) {
+    return { success: false, message: error?.message || 'Error re-syncing statement with ledger.' };
+  }
+}
+

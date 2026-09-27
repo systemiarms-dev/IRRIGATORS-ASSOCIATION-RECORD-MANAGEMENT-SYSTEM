@@ -516,6 +516,7 @@ export async function createTransactionAction(payload: CreateTransactionPayload)
     const { member: _member, members: _members, category: _category, fund_source: _fund_source, ...dbRow } = newTx;
     await localDb.createTransaction(dbRow as Transaction);
     revalidatePath('/dashboard/treasurer');
+    revalidatePath('/dashboard/statements');
     revalidatePath('/dashboard');
     return { success: true, message: `Transaction ${transactionNumber} logged successfully.`, data: newTx };
   } catch (error: any) {
@@ -748,6 +749,7 @@ export async function deleteTransactionAction(id: string): Promise<ActionRespons
 
     revalidatePath('/dashboard/treasurer');
     revalidatePath('/dashboard/auditor');
+    revalidatePath('/dashboard/statements');
     revalidatePath('/dashboard');
     return { success: true, message: note ? `Transaction record deleted. ${note}` : 'Transaction record deleted successfully.' };
   } catch (error: any) {
