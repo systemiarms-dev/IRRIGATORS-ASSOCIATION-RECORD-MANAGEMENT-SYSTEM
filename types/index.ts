@@ -1,4 +1,4 @@
-import { Profile, BudgetCategory, Transaction, Receipt, FinancialStatement, VerificationStatus, UserRole, PaymentMethod, TransactionType, StatementType, Association } from './database';
+import { Profile, BudgetCategory, Transaction, Receipt, FinancialStatement, VerificationStatus, UserRole, PaymentMethod, TransactionType, StatementType, Association, FundSource, AccountClassification, FixedAsset } from './database';
 
 export * from './database';
 
@@ -82,6 +82,7 @@ export interface CreateTransactionPayload {
   amount: number;
   transaction_date: string;
   payment_method: PaymentMethod;
+  fund_source?: FundSource;
   reference_number?: string | null;
   notes?: string | null;
 }

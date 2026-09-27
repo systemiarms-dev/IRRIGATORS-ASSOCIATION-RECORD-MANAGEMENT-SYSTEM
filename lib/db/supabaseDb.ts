@@ -11,9 +11,14 @@ import {
   FinancialStatement,
   AuditLog,
   UserRole,
+  FixedAsset,
+  FundSource,
+  AccountClassification,
 } from '@/types';
 import { hashPassword, isHashedPassword } from '@/lib/auth/password';
 import { normalizeStoredPhilippineMobile } from '@/lib/utils/phone';
+import { enrichFixedAsset } from '@/lib/utils/fixedAssets';
+import { determineFundSource } from '@/lib/utils/fundSources';
 
 /**
  * 100% Cloud-Native Supabase PostgreSQL Database Service
@@ -214,10 +219,11 @@ class SupabaseDatabaseService {
     if (!user.username) {
       user.username = user.id;
     }
-    if (user.password) {
-      user.password = isHashedPassword(user.password) ? user.password : hashPassword(user.password);
-    }
-    const { data, error } = await client.from('profiles').insert(user).select().single();
+    const effectivePassword = user.password || `member_no_login_${Date.now()}`;
+    const hashedPassword = isHashedPassword(effectivePassword) ? effectivePassword : hashPassword(effectivePassword);
+    const { association: _assoc, ...cleanUser } = user as any;
+    cleanUser.password = hashedPassword;
+    const { data, error } = await client.from('profiles').insert(cleanUser).select().single();
     if (error) throw new Error(error.message || 'Error creating user in Supabase');
     invalidateCache('u:');
     invalidateCache('s:');
@@ -313,53 +319,252 @@ class SupabaseDatabaseService {
   // ==========================================
   // Budget Categories
   // ==========================================
+  // Budget Categories
+  // ==========================================
   public async getBudgetCategories(associationId?: string): Promise<BudgetCategory[]> {
     const all = await cached('bc:list', async () => {
       const client = this.getClient();
       const { data, error } = await client.from('budget_categories').select('*').order('code', { ascending: true });
       if (error) {
-        console.warn('Error fetching budget categories from Supabase, returning standard chart:', error.message);
+        console.warn('Error fetching budget categories from Supabase:', error.message);
       }
-      return (data && data.length > 0 ? data : [
-      { id: 'cat-1', code: 'REC-ISF', name: 'Irrigation Service Fee (ISF) Collections', category_type: 'collection', allocated_amount: 100000, is_active: true },
-      { id: 'cat-2', code: 'REC-MEM', name: 'Membership Fees & Annual Dues', category_type: 'collection', allocated_amount: 50000, is_active: true },
-      { id: 'cat-3', code: 'REC-SUB', name: 'O&M Subsidy & Canal Remuneration', category_type: 'collection', allocated_amount: 150000, is_active: true },
-      { id: 'cat-4', code: 'REC-FIN', name: 'Fines, Penalties & Interest', category_type: 'collection', allocated_amount: 20000, is_active: true },
-      { id: 'cat-15', code: 'REC-DON', name: 'Donations, Grants & Other Income', category_type: 'collection', allocated_amount: 30000, is_active: true },
-      { id: 'cat-5', code: 'DISB-CLEAR', name: 'Canal Clearing, Repair & Maintenance', category_type: 'disbursement', allocated_amount: 80000, is_active: true },
-      { id: 'cat-6', code: 'DISB-SUPP', name: 'Office & Field Supplies', category_type: 'disbursement', allocated_amount: 30000, is_active: true },
-      { id: 'cat-7', code: 'DISB-HON', name: 'Honorarium, Salaries & Wages', category_type: 'disbursement', allocated_amount: 60000, is_active: true },
-      { id: 'cat-8', code: 'DISB-TRAV', name: 'Travel, Meeting & Rep Expenses', category_type: 'disbursement', allocated_amount: 25000, is_active: true },
-      { id: 'cat-9', code: 'DISB-TAX', name: 'Registration, Tax & Licenses', category_type: 'disbursement', allocated_amount: 15000, is_active: true },
-      { id: 'cat-10', code: 'DISB-SHARE', name: 'Distributed IA Share to Laterals', category_type: 'disbursement', allocated_amount: 20000, is_active: true },
-      { id: 'cat-11', code: 'DISB-LATERAL', name: 'Lateral Share Distribution', category_type: 'disbursement', allocated_amount: 35000, is_active: true },
-      { id: 'cat-12', code: 'DISB-REPAIR', name: 'Repair & Maintenance', category_type: 'disbursement', allocated_amount: 50000, is_active: true },
-      { id: 'cat-13', code: 'DISB-PROF', name: 'Professional Fee', category_type: 'disbursement', allocated_amount: 25000, is_active: true },
-      { id: 'cat-14', code: 'DISB-FED', name: 'Federation Share', category_type: 'disbursement', allocated_amount: 30000, is_active: true },
-      { id: 'cat-16', code: 'DISB-PISO', name: 'Piso Mula sa Puso', category_type: 'disbursement', allocated_amount: 15000, is_active: true },
-    ]) as BudgetCategory[];
+      return ((data || []) as BudgetCategory[]).map((c) => {
+        let classification: AccountClassification | undefined = c.account_classification;
+        if (c.description) {
+          const match = c.description.match(/\[class:([a-z_]+)\]/);
+          if (match && match[1]) {
+            classification = match[1] as AccountClassification;
+          }
+        }
+        return {
+          ...c,
+          account_classification: classification || (c.category_type as any),
+        };
+      });
     }, 60_000);
 
+    // Filter out fixed asset registry items from standard budget categories (they store JSON metadata with is_asset: true)
+    const nonAssets = all.filter((c) => {
+      if (c.code.startsWith('AST-') && c.description && c.description.includes('"is_asset":true')) {
+        return false;
+      }
+      return true;
+    });
+
     if (associationId && associationId !== 'all') {
-      const specific = all.filter((c) => c.association_id === associationId);
-      const universal = all.filter((c) => !c.association_id);
-      return [...universal, ...specific];
+      return nonAssets.filter((c) => c.association_id === associationId);
     }
-    return all;
+    return nonAssets;
   }
 
   public async createBudgetCategory(category: BudgetCategory): Promise<BudgetCategory> {
     const client = this.getClient();
-    const { data, error } = await client.from('budget_categories').insert(category).select().single();
+    let description = category.description || null;
+    if (category.account_classification && category.account_classification !== category.category_type) {
+      const classTag = `[class:${category.account_classification}]`;
+      description = description ? `${classTag} ${description}` : classTag;
+    }
+
+    // Build payload strictly adhering to budget_categories table schema
+    const payload: Record<string, any> = {
+      id: category.id,
+      code: category.code,
+      name: category.name,
+      category_type: category.category_type,
+      allocated_amount: category.allocated_amount ?? 0,
+      description,
+      association_id: category.association_id || null,
+      is_active: category.is_active ?? true,
+    };
+
+    let data: any;
+    let error: any;
+
+    // Attempt insertion with account_classification if provided, falling back cleanly if column is not yet in DB
+    if (category.account_classification) {
+      const tryWithCol = await client.from('budget_categories').insert({
+        ...payload,
+        account_classification: category.account_classification,
+      }).select().single();
+
+      if (tryWithCol.error && tryWithCol.error.message && tryWithCol.error.message.includes('account_classification')) {
+        // Schema cache does not have account_classification - insert standard payload (class tag preserved in description)
+        const fallback = await client.from('budget_categories').insert(payload).select().single();
+        data = fallback.data;
+        error = fallback.error;
+      } else {
+        data = tryWithCol.data;
+        error = tryWithCol.error;
+      }
+    } else {
+      const res = await client.from('budget_categories').insert(payload).select().single();
+      data = res.data;
+      error = res.error;
+    }
+
     if (error) throw new Error(error.message || 'Error creating budget category');
     invalidateCache('bc:');
-    return data as BudgetCategory;
+    return {
+      ...data,
+      account_classification: category.account_classification || (data.category_type as any),
+    } as BudgetCategory;
   }
 
   public async deleteBudgetCategory(id: string): Promise<boolean> {
     const client = this.getClient();
     const { error } = await client.from('budget_categories').delete().eq('id', id);
     if (error) throw new Error(error.message || 'Error deleting budget category');
+    invalidateCache('bc:');
+    return true;
+  }
+
+  public async updateBudgetCategory(id: string, updates: Partial<BudgetCategory>): Promise<BudgetCategory> {
+    const client = this.getClient();
+    const { data: existing, error: getErr } = await client.from('budget_categories').select('*').eq('id', id).single();
+    if (getErr || !existing) throw new Error('Budget category not found');
+
+    let description = updates.description !== undefined ? updates.description : existing.description;
+    
+    // Handle classification tag in description
+    if (updates.account_classification !== undefined) {
+      const cleanDesc = (description || '').replace(/\[class:[a-z_]+\]\s*/g, '').trim();
+      if (updates.account_classification && updates.account_classification !== (updates.category_type || existing.category_type)) {
+        const classTag = `[class:${updates.account_classification}]`;
+        description = cleanDesc ? `${classTag} ${cleanDesc}` : classTag;
+      } else {
+        description = cleanDesc || null;
+      }
+    }
+
+    const payload: any = {
+      updated_at: new Date().toISOString(),
+    };
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.allocated_amount !== undefined) payload.allocated_amount = updates.allocated_amount;
+    if (updates.category_type !== undefined) payload.category_type = updates.category_type;
+    if (updates.is_active !== undefined) payload.is_active = updates.is_active;
+    if (description !== undefined) payload.description = description;
+
+    const { data, error } = await client.from('budget_categories').update(payload).eq('id', id).select().single();
+    if (error) throw new Error(error.message || 'Error updating budget category');
+    invalidateCache('bc:');
+
+    let classification: AccountClassification = data.category_type as any;
+    if (data.description) {
+      const match = data.description.match(/\[class:([a-z_]+)\]/);
+      if (match && match[1]) {
+        classification = match[1] as AccountClassification;
+      }
+    }
+
+    return {
+      ...data,
+      account_classification: classification,
+    } as BudgetCategory;
+  }
+
+  // ==========================================
+  // Fixed Asset & Equipment Registry
+  // ==========================================
+  public async getFixedAssets(associationId?: string, asOfYear: number = new Date().getFullYear()): Promise<FixedAsset[]> {
+    const client = this.getClient();
+    let query = client.from('budget_categories').select('*').like('code', 'AST-%');
+    if (associationId && associationId !== 'all') {
+      query = query.eq('association_id', associationId);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) {
+      console.warn('Error fetching fixed assets:', error.message);
+      return [];
+    }
+
+    const assets: FixedAsset[] = [];
+    for (const row of data || []) {
+      try {
+        let meta: any = {};
+        if (row.description) {
+          try {
+            meta = JSON.parse(row.description);
+          } catch {
+            meta = {};
+          }
+        }
+        const asset: FixedAsset = {
+          id: row.id,
+          association_id: row.association_id,
+          name: row.name,
+          asset_type: meta.asset_type || 'other',
+          date_acquired: meta.date_acquired || (row.created_at ? row.created_at.split('T')[0] : '2025-01-01'),
+          acquisition_cost: Number(row.allocated_amount || meta.acquisition_cost || 0),
+          depreciation_rate: Number(meta.depreciation_rate || 10),
+          useful_life_years: Number(meta.useful_life_years || 10),
+          salvage_value: Number(meta.salvage_value || 0),
+          is_active: row.is_active ?? true,
+          notes: meta.notes || null,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        };
+        assets.push(enrichFixedAsset(asset, asOfYear));
+      } catch (e) {
+        console.warn('Failed parsing fixed asset item', row.id, e);
+      }
+    }
+    return assets;
+  }
+
+  public async createFixedAsset(assetInput: Omit<FixedAsset, 'id'>): Promise<FixedAsset> {
+    const client = this.getClient();
+    const id = `ast-${Date.now()}`;
+    const cleanCode = `AST-${assetInput.name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 15)}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const meta = {
+      is_asset: true,
+      asset_type: assetInput.asset_type,
+      date_acquired: assetInput.date_acquired,
+      depreciation_rate: assetInput.depreciation_rate,
+      useful_life_years: assetInput.useful_life_years,
+      salvage_value: assetInput.salvage_value || 0,
+      notes: assetInput.notes || null,
+    };
+
+    const row = {
+      id,
+      code: cleanCode,
+      name: assetInput.name,
+      category_type: 'disbursement',
+      allocated_amount: assetInput.acquisition_cost,
+      description: JSON.stringify(meta),
+      association_id: assetInput.association_id,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client.from('budget_categories').insert(row).select().single();
+    if (error) throw new Error(error.message || 'Error registering fixed asset');
+    invalidateCache('bc:');
+
+    const created: FixedAsset = {
+      id: data.id,
+      association_id: data.association_id,
+      name: data.name,
+      asset_type: assetInput.asset_type,
+      date_acquired: assetInput.date_acquired,
+      acquisition_cost: assetInput.acquisition_cost,
+      depreciation_rate: assetInput.depreciation_rate,
+      useful_life_years: assetInput.useful_life_years,
+      salvage_value: assetInput.salvage_value,
+      is_active: true,
+      notes: assetInput.notes,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
+    return enrichFixedAsset(created);
+  }
+
+  public async deleteFixedAsset(id: string): Promise<boolean> {
+    const client = this.getClient();
+    const { error } = await client.from('budget_categories').delete().eq('id', id);
+    if (error) throw new Error(error.message || 'Error deleting fixed asset');
     invalidateCache('bc:');
     return true;
   }
@@ -408,6 +613,7 @@ class SupabaseDatabaseService {
         ? (tx.member_ids.map((id: string) => userMap.get(id)).filter(Boolean) as Profile[])
         : undefined,
       receipt: tx.receipt_id ? receiptMap.get(tx.receipt_id) : undefined,
+      fund_source: determineFundSource(tx),
     })) as Transaction[];
   }
 
@@ -433,21 +639,42 @@ class SupabaseDatabaseService {
       category,
       member,
       receipt,
+      fund_source: determineFundSource(tx),
     } as Transaction;
   }
 
   public async createTransaction(transaction: Transaction): Promise<Transaction> {
     const client = this.getClient();
-    const { data, error } = await client.from('transactions').insert(transaction).select().single();
+    const {
+      association: _assoc,
+      member: _member,
+      members: _members,
+      category: _category,
+      receipt: _receipt,
+      creator: _creator,
+      fund_source: _fund_source,
+      ...dbRow
+    } = transaction as any;
+    const { data, error } = await client.from('transactions').insert(dbRow).select().single();
     if (error) throw new Error(error.message || 'Error creating transaction in Supabase');
     return data as Transaction;
   }
 
   public async updateTransaction(id: string, partial: Partial<Transaction>): Promise<Transaction | undefined> {
     const client = this.getClient();
+    const {
+      association: _assoc,
+      member: _member,
+      members: _members,
+      category: _category,
+      receipt: _receipt,
+      creator: _creator,
+      fund_source: _fund_source,
+      ...dbRow
+    } = partial as any;
     const { data, error } = await client
       .from('transactions')
-      .update({ ...partial, updated_at: new Date().toISOString() })
+      .update({ ...dbRow, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .maybeSingle();
@@ -558,7 +785,8 @@ class SupabaseDatabaseService {
 
   public async createReceipt(receipt: Receipt): Promise<Receipt> {
     const client = this.getClient();
-    const { data, error } = await client.from('receipts').insert(receipt).select().single();
+    const { uploader: _u, auditor: _a, transaction: _t, ...cleanReceipt } = receipt as any;
+    const { data, error } = await client.from('receipts').insert(cleanReceipt).select().single();
     if (error) throw new Error(error.message || 'Error creating receipt in Supabase');
     return data as Receipt;
   }
@@ -670,9 +898,10 @@ class SupabaseDatabaseService {
 
   public async saveFinancialStatement(statement: FinancialStatement): Promise<FinancialStatement> {
     const client = this.getClient();
+    const { association: _assoc, generator: _gen, ...cleanStatement } = statement as any;
     const { data, error } = await client
       .from('financial_statements')
-      .upsert(statement)
+      .upsert(cleanStatement)
       .select()
       .single();
     if (error) throw new Error(error.message || 'Error saving financial statement in Supabase');

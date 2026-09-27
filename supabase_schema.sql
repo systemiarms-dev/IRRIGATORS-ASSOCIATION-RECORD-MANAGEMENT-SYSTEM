@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS public.budget_categories (
     code VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     category_type VARCHAR(20) NOT NULL CHECK (category_type IN ('collection', 'disbursement')),
+    account_classification VARCHAR(50),
     allocated_amount NUMERIC(15, 2) DEFAULT 0,
     description TEXT,
     association_id TEXT REFERENCES public.associations(id) ON DELETE CASCADE,

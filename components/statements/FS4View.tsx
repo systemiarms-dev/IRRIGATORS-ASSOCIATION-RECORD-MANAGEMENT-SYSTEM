@@ -96,9 +96,9 @@ export default function FS4View({ data, editable = false, edits, onFieldChange }
           {row('RECEIVABLES : (CASH ADVANCE, LOANS, ETC)', 'assets.receivables', a.receivables)}
 
           <div className="pt-2">
-            <div className="font-semibold text-slate-900 uppercase text-[11px]">MATERIALS AND SUPPLIES INVENTORY:</div>
+            <div className="font-semibold text-slate-900 uppercase text-[11px]">NON-CURRENT ASSETS (FARM TOOLS &amp; EQUIPMENT):</div>
             <div className="pl-4 text-slate-700 text-[11px] italic">
-              Cleaning tools, grass cutters, equipment, office tables, cabinets, etc.
+              Cleaning tools, grass cutters, generators, office tables, cabinets, etc.
             </div>
             <div className="flex justify-end pt-1 font-mono">
               <NumberField value={a.materialsSuppliesInventory} editable={cellEditable('assets.materialsSuppliesInventory')} hasOverride={forced('assets.materialsSuppliesInventory')} onCommit={set('assets.materialsSuppliesInventory')} onRemove={unpin('assets.materialsSuppliesInventory')} emptyWhenZero />
