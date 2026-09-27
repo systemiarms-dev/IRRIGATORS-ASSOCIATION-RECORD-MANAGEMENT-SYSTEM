@@ -30,6 +30,10 @@ const LOCKED = new Set([
   'financialCondition.liabilitiesEquity.membersEquity.prior',
   'financialCondition.liabilitiesEquity.totalLiabilitiesEquity.current',
   'financialCondition.liabilitiesEquity.totalLiabilitiesEquity.prior',
+  'financialCondition.liabilitiesEquity.fundBalance.current',
+  'financialCondition.liabilitiesEquity.fundBalance.prior',
+  'financialCondition.liabilitiesEquity.equityTransactions.current',
+  'financialCondition.liabilitiesEquity.equityTransactions.prior',
 ]);
 
 export default function FS2View({ data, editable = false, edits, onFieldChange }: FS2ViewProps) {
@@ -44,7 +48,7 @@ export default function FS2View({ data, editable = false, edits, onFieldChange }
     ((fc.liabilitiesEquity.currentLiabilities?.current ?? 0) + (fc.liabilitiesEquity.nonCurrentLiabilities?.current ?? 0));
 
   const forced = (p: string) => edits?.[`${P}${p}`]?.mode === 'force';
-  const locked = (p: string) => LOCKED.has(p);
+  const locked = (p: string) => LOCKED.has(p) || p.startsWith('financialCondition.liabilitiesEquity.equityLines');
   const set = (p: string) => (v: number | string) => onFieldChange?.(`${P}${p}`, v);
   const unpin = (p: string) => () => onFieldChange?.(`${P}${p}:unpin`, '');
   const cellEditable = (p: string) => editable && !locked(p);
@@ -180,11 +184,39 @@ export default function FS2View({ data, editable = false, edits, onFieldChange }
               {cell('financialCondition.liabilitiesEquity.totalLiabilities.prior', totalLiabilitiesPrior, true)}
               {cell('financialCondition.liabilitiesEquity.totalLiabilities.current', totalLiabilitiesCurrent, true)}
             </tr>
-            <tr>
-              <td className="py-1.5 px-6 font-semibold">Member&apos;s Equity</td>
-              {cell('financialCondition.liabilitiesEquity.membersEquity.prior', fc.liabilitiesEquity.membersEquity.prior, true)}
-              {cell('financialCondition.liabilitiesEquity.membersEquity.current', fc.liabilitiesEquity.membersEquity.current, true)}
-            </tr>
+            {/* Member's Equity */}
+            {fc.liabilitiesEquity.equityLines && fc.liabilitiesEquity.equityLines.length > 0 ? (
+              <>
+                <tr>
+                  <td className="py-2 px-3 font-medium">Member&apos;s Equity</td>
+                  <td className="text-right py-2 px-3 font-mono"></td>
+                  <td className="text-right py-2 px-3 font-mono"></td>
+                </tr>
+                <tr>
+                  <td className="py-1.5 px-6 text-slate-700">Retained Surplus / Fund Balance</td>
+                  {cellSub('financialCondition.liabilitiesEquity.fundBalance.prior', fc.liabilitiesEquity.fundBalance?.prior ?? 0)}
+                  {cellSub('financialCondition.liabilitiesEquity.fundBalance.current', fc.liabilitiesEquity.fundBalance?.current ?? 0)}
+                </tr>
+                {fc.liabilitiesEquity.equityLines.map((eqLine, idx) => (
+                  <tr key={eqLine.code || idx}>
+                    <td className="py-1.5 px-6 text-slate-700">{eqLine.name}</td>
+                    {cellSub(`financialCondition.liabilitiesEquity.equityLines.${idx}.prior`, eqLine.prior)}
+                    {cellSub(`financialCondition.liabilitiesEquity.equityLines.${idx}.current`, eqLine.current)}
+                  </tr>
+                ))}
+                <tr className="font-semibold bg-slate-50/70 border-t border-slate-200">
+                  <td className="py-1.5 px-6">Total Member&apos;s Equity</td>
+                  {cell('financialCondition.liabilitiesEquity.membersEquity.prior', fc.liabilitiesEquity.membersEquity.prior, true)}
+                  {cell('financialCondition.liabilitiesEquity.membersEquity.current', fc.liabilitiesEquity.membersEquity.current, true)}
+                </tr>
+              </>
+            ) : (
+              <tr>
+                <td className="py-1.5 px-6 font-semibold">Member&apos;s Equity</td>
+                {cell('financialCondition.liabilitiesEquity.membersEquity.prior', fc.liabilitiesEquity.membersEquity.prior, true)}
+                {cell('financialCondition.liabilitiesEquity.membersEquity.current', fc.liabilitiesEquity.membersEquity.current, true)}
+              </tr>
+            )}
             <tr className="font-extrabold border-t-2 border-b-2 border-slate-900 bg-emerald-50 text-emerald-950">
               <td className="py-2.5 px-1">Total Liabilities &amp; Member&apos;s Equity</td>
               {cell('financialCondition.liabilitiesEquity.totalLiabilitiesEquity.prior', fc.liabilitiesEquity.totalLiabilitiesEquity.prior, true)}

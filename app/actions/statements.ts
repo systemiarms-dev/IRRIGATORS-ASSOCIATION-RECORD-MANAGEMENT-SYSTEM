@@ -146,7 +146,7 @@ export async function generateStatementAction(
   const normCode = (code?: string): string => {
     if (!code) return '';
     const upper = code.trim().toUpperCase();
-    return upper.replace(/^[A-Z0-9]+-(REC-|DISB-|AST-|LIAB-)/, '$1');
+    return upper.replace(/^[A-Z0-9]+-(REC-|DISB-|AST-|LIAB-|EQ-)/, '$1');
   };
 
   function sumByCategory(
@@ -178,15 +178,17 @@ export async function generateStatementAction(
     const add = (tx: any, isCurrent: boolean) => {
       if (tx.type !== expectedType) return;
       if (tx.category?.code && isKnown(normCode(tx.category.code))) return;
-      // Exclude balance sheet accounts (liabilities and non-current assets) from operating receipts & expenses
+      // Exclude balance sheet accounts (liabilities, non-current assets, and equity) from operating receipts & expenses
       const classification = tx.category?.account_classification;
       const code = tx.category?.code?.toUpperCase() || '';
       if (
         classification === 'current_liability' ||
         classification === 'non_current_liability' ||
         classification === 'non_current_asset' ||
+        classification === 'equity' ||
         code.includes('LIAB') ||
-        code.includes('AST-NONCUR')
+        code.includes('AST-NONCUR') ||
+        code.includes('EQ-')
       ) {
         return;
       }
@@ -365,16 +367,51 @@ export async function generateStatementAction(
     })
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
+  // Equity transactions: Money IN increases equity, Money OUT decreases equity
+  const isEquityTx = (t: any) => {
+    const cls = t.category?.account_classification;
+    const code = t.category?.code?.toUpperCase() || '';
+    return cls === 'equity' || code.startsWith('EQ-') || code.includes('EQUITY');
+  };
+
+  const equityLinesMap = new Map<string, { code: string; name: string; current: number; prior: number }>();
+
+  for (const t of currentTxs) {
+    if (!isEquityTx(t)) continue;
+    const code = t.category?.code || 'EQ-CUSTOM';
+    const name = t.category?.name || 'Member Equity';
+    const key = t.category?.id || `${t.type}_${code}_${name}`;
+    const amt = Number(t.amount || 0) * (t.type === 'collection' ? 1 : -1);
+    const existing = equityLinesMap.get(key) || { code, name, current: 0, prior: 0 };
+    existing.current += amt;
+    equityLinesMap.set(key, existing);
+  }
+
+  for (const t of priorTxs) {
+    if (!isEquityTx(t)) continue;
+    const code = t.category?.code || 'EQ-CUSTOM';
+    const name = t.category?.name || 'Member Equity';
+    const key = t.category?.id || `${t.type}_${code}_${name}`;
+    const amt = Number(t.amount || 0) * (t.type === 'collection' ? 1 : -1);
+    const existing = equityLinesMap.get(key) || { code, name, current: 0, prior: 0 };
+    existing.prior += amt;
+    equityLinesMap.set(key, existing);
+  }
+
+  const equityLines = Array.from(equityLinesMap.values());
+  const totalEquityTxsCurrent = equityLines.reduce((s, x) => s + x.current, 0);
+  const totalEquityTxsPrior = equityLines.reduce((s, x) => s + x.prior, 0);
+
   const totalCurrentLiabilities = (overrides?.notarialPermitFees ?? 0) + (overrides?.honorariumWagesPayable ?? 0) + (overrides?.otherAccountsPayable ?? 0) + currentLiabilitiesFromTxs;
   const totalNonCurrentLiabilities = nonCurrentLiabilitiesFromTxs;
 
-  const totalCurrentAssets = fundBalanceEndCurrent + totalCurrentLiabilities + totalNonCurrentLiabilities;
+  const totalCurrentAssets = fundBalanceEndCurrent + totalCurrentLiabilities + totalNonCurrentLiabilities + totalEquityTxsCurrent;
 
   const fs2TotalLiabilitiesCurrent = totalCurrentLiabilities + totalNonCurrentLiabilities;
   const fs2TotalLiabilitiesPrior = 0;
 
   const fs2TotalAssetsCurrent = totalCurrentAssets + (overrides?.materialsSuppliesInventory ?? 0) + officeBuildingValue;
-  const fs2TotalAssetsPrior = fundBalanceEndPrior;
+  const fs2TotalAssetsPrior = fundBalanceEndPrior + totalEquityTxsPrior;
 
   const fs2MembersEquityCurrent = fs2TotalAssetsCurrent - fs2TotalLiabilitiesCurrent;
   const fs2MembersEquityPrior = fs2TotalAssetsPrior - fs2TotalLiabilitiesPrior;
@@ -396,7 +433,7 @@ export async function generateStatementAction(
     },
     financialCondition: {
       assets: {
-        currentAssets: { current: totalCurrentAssets, prior: fundBalanceEndPrior },
+        currentAssets: { current: totalCurrentAssets, prior: fundBalanceEndPrior + totalEquityTxsPrior },
         inventorySupplies: { current: overrides?.materialsSuppliesInventory ?? 0, prior: 0 },
         officeBuilding: { current: officeBuildingValue, prior: 0 },
         totalAssets: {
@@ -417,6 +454,15 @@ export async function generateStatementAction(
           current: fs2TotalLiabilitiesCurrent,
           prior: fs2TotalLiabilitiesPrior,
         },
+        fundBalance: {
+          current: fundBalanceEndCurrent,
+          prior: fundBalanceEndPrior,
+        },
+        equityTransactions: {
+          current: totalEquityTxsCurrent,
+          prior: totalEquityTxsPrior,
+        },
+        equityLines,
         membersEquity: { current: fs2MembersEquityCurrent, prior: fs2MembersEquityPrior },
         totalLiabilitiesEquity: {
           current: fs2TotalLiabilitiesEquityCurrent,

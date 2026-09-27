@@ -13,7 +13,8 @@ export type AccountClassification =
   | 'current_asset'
   | 'non_current_asset'
   | 'current_liability'
-  | 'non_current_liability';
+  | 'non_current_liability'
+  | 'equity';
 
 export interface FixedAsset {
   id: string;
@@ -224,6 +225,9 @@ export interface FS2Data {
       currentLiabilities: { current: number; prior: number };
       nonCurrentLiabilities: { current: number; prior: number };
       totalLiabilities?: { current: number; prior: number };
+      fundBalance?: { current: number; prior: number };
+      equityTransactions?: { current: number; prior: number };
+      equityLines?: Array<{ code: string; name: string; current: number; prior: number }>;
       membersEquity: { current: number; prior: number };
       totalLiabilitiesEquity: { current: number; prior: number };
     };

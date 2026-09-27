@@ -81,7 +81,7 @@ export default function ChartOfAccountsPage() {
   // Filters for Chart of Accounts
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'collection' | 'disbursement'>('all');
-  const [classificationFilter, setClassificationFilter] = useState<'all' | 'standard' | 'asset' | 'liability'>('all');
+  const [classificationFilter, setClassificationFilter] = useState<'all' | 'standard' | 'asset' | 'liability' | 'equity'>('all');
   const [scopeFilter, setScopeFilter] = useState<'all' | 'standard' | 'custom'>('all');
 
   // Modals
@@ -193,9 +193,12 @@ export default function ChartOfAccountsPage() {
         if (classification !== 'current_asset' && classification !== 'non_current_asset') return false;
       } else if (classificationFilter === 'liability') {
         if (classification !== 'current_liability' && classification !== 'non_current_liability') return false;
+      } else if (classificationFilter === 'equity') {
+        if (classification !== 'equity') return false;
       } else if (classificationFilter === 'standard') {
         if (classification === 'current_asset' || classification === 'non_current_asset' ||
-            classification === 'current_liability' || classification === 'non_current_liability') return false;
+            classification === 'current_liability' || classification === 'non_current_liability' ||
+            classification === 'equity') return false;
       }
 
       // Scope match
@@ -796,6 +799,14 @@ export default function ChartOfAccountsPage() {
                   >
                     Liabilities
                   </button>
+                  <button
+                    onClick={() => setClassificationFilter('equity')}
+                    className={`px-2.5 py-1 rounded-md transition-all ${
+                      classificationFilter === 'equity' ? 'bg-purple-700 text-white shadow-sm' : 'text-slate-600 hover:text-purple-800'
+                    }`}
+                  >
+                    Equity
+                  </button>
                 </div>
               </div>
             </div>
@@ -868,6 +879,8 @@ export default function ChartOfAccountsPage() {
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200">Current Liability</span>
                               ) : classification === 'non_current_liability' ? (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-orange-50 text-orange-800 border border-orange-200">Non-Current Liability</span>
+                              ) : classification === 'equity' ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-50 text-purple-800 border border-purple-200">Equity</span>
                               ) : c.category_type === 'collection' ? (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">Collection</span>
                               ) : (
@@ -896,6 +909,10 @@ export default function ChartOfAccountsPage() {
                             ) : classification === 'non_current_liability' ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-800 border border-orange-200">
                                 🏛️ Non-Current Liability
+                              </span>
+                            ) : classification === 'equity' ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
+                                🏛️ Equity
                               </span>
                             ) : c.category_type === 'collection' ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -1225,6 +1242,7 @@ export default function ChartOfAccountsPage() {
                   {formType === 'collection' ? (
                     <>
                       <option value="collection">📈 Collections &amp; Operating Income (Standard)</option>
+                      <option value="equity">🏛️ Member&apos;s Equity (e.g. Capital Contributions, Share Capital Inflow)</option>
                       <option value="current_liability">📑 Current Liability (e.g. Short-Term Loans, Borrowings Incurred)</option>
                       <option value="non_current_liability">🏛️ Non-Current Liability (e.g. Long-term Loans &amp; Obligations Incurred)</option>
                       <option value="current_asset">🏢 Current Asset (e.g. Accounts/Loan Receivable Collection, Short-term Fund)</option>
@@ -1233,6 +1251,7 @@ export default function ChartOfAccountsPage() {
                   ) : (
                     <>
                       <option value="disbursement">📉 Disbursements &amp; Operating Expense (Standard)</option>
+                      <option value="equity">🏛️ Member&apos;s Equity (e.g. Capital Withdrawal, Dividend / Patronage Refund)</option>
                       <option value="current_liability">📑 Current Liability (e.g. Debt/Loan Payment, Accounts Payable Settlement)</option>
                       <option value="non_current_liability">🏛️ Non-Current Liability (e.g. Long-term Debt Amortization)</option>
                       <option value="current_asset">🏢 Current Asset (e.g. Lending/Receivable Outlay, Short-term Advance)</option>
@@ -1277,11 +1296,11 @@ export default function ChartOfAccountsPage() {
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-bold text-slate-700">Category Code (Optional)</label>
-                  <span className="text-[10px] text-slate-400">e.g. REC-RENT or DISB-FUEL</span>
+                  <span className="text-[10px] text-slate-400">e.g. EQ-SHARE, REC-RENT, or DISB-FUEL</span>
                 </div>
                 <input
                   type="text"
-                  placeholder={formType === 'collection' ? 'REC-...' : 'DISB-...'}
+                  placeholder={formClassification === 'equity' ? 'EQ-...' : formType === 'collection' ? 'REC-...' : 'DISB-...'}
                   value={formCode}
                   onChange={(e) => setFormCode(e.target.value)}
                   className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-medium uppercase focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
@@ -1566,6 +1585,7 @@ export default function ChartOfAccountsPage() {
                   >
                     <option value="collection">📈 Collections (Income / Money IN)</option>
                     <option value="disbursement">📉 Disbursements (Expense / Money OUT)</option>
+                    <option value="equity">🏛️ Member&apos;s Equity (Capital Contributions / Equity Adjustments)</option>
                     <option value="current_asset">🏢 Current Asset (Short-Term Receivables / Advances)</option>
                     <option value="non_current_asset">🏗️ Non-Current Asset (Long-term / Capital)</option>
                     <option value="current_liability">📑 Current Liability (Accrued Wages / Supplier Payables)</option>

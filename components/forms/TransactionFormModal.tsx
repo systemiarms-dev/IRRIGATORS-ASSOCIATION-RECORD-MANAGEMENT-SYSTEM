@@ -534,11 +534,20 @@ export default function TransactionFormModal({
               <option value="">
                 {filteredCategories.length > 0 ? '-- Select Budget Line Item --' : '-- No categories defined for this IA --'}
               </option>
-              {filteredCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  [{c.code}] {c.name}
-                </option>
-              ))}
+              {filteredCategories.map((c) => {
+                const tag = c.account_classification === 'equity'
+                  ? ' (🏛️ Equity)'
+                  : c.account_classification === 'current_liability' || c.account_classification === 'non_current_liability'
+                  ? ' (📑 Liability)'
+                  : c.account_classification === 'current_asset' || c.account_classification === 'non_current_asset'
+                  ? ' (🏢 Asset)'
+                  : '';
+                return (
+                  <option key={c.id} value={c.id}>
+                    [{c.code}] {c.name}{tag}
+                  </option>
+                );
+              })}
               <option value={CUSTOM_OPTION}>-- Custom / Other (one-time note below) --</option>
             </select>
             {isCustomCategory && (

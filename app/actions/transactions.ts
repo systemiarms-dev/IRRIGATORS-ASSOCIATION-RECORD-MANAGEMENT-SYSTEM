@@ -97,7 +97,9 @@ export async function createBudgetCategoryAction(input: {
   }
 
   let prefix = input.category_type === 'collection' ? 'REC' : 'DISB';
-  if (input.account_classification === 'current_liability') {
+  if (input.account_classification === 'equity') {
+    prefix = 'EQ';
+  } else if (input.account_classification === 'current_liability') {
     prefix = 'LIAB-CUR';
   } else if (input.account_classification === 'non_current_liability') {
     prefix = 'LIAB-NONCUR';

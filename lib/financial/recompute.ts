@@ -33,6 +33,10 @@ const LOCKED_DERIVED_PATHS = new Set<string>([
   'fs2.financialCondition.liabilitiesEquity.membersEquity.prior',
   'fs2.financialCondition.liabilitiesEquity.totalLiabilitiesEquity.current',
   'fs2.financialCondition.liabilitiesEquity.totalLiabilitiesEquity.prior',
+  'fs2.financialCondition.liabilitiesEquity.fundBalance.current',
+  'fs2.financialCondition.liabilitiesEquity.fundBalance.prior',
+  'fs2.financialCondition.liabilitiesEquity.equityTransactions.current',
+  'fs2.financialCondition.liabilitiesEquity.equityTransactions.prior',
 
   'fs3.cashReceipts.total',
   'fs3.cashDisbursements.total',
@@ -164,9 +168,18 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
     const currentLiabilities = ensurePair(le, 'currentLiabilities');
     const nonCurrentLiabilities = ensurePair(le, 'nonCurrentLiabilities');
     const totalLiabilities = ensurePair(le, 'totalLiabilities');
+    const eqTransactions = ensurePair(le, 'equityTransactions');
+    const fundBalance = ensurePair(le, 'fundBalance');
 
     const fundBalanceBeginning = hashPair(fs1.membersEquity, 'fundBalanceBeginning');
     const fundBalanceEnd = hashPair(fs1.membersEquity, 'fundBalanceEnd');
+
+    if (!pinned('fs2.financialCondition.liabilitiesEquity.fundBalance.current')) {
+      fundBalance.current = fundBalanceEnd.current;
+    }
+    if (!pinned('fs2.financialCondition.liabilitiesEquity.fundBalance.prior')) {
+      fundBalance.prior = fundBalanceEnd.prior;
+    }
 
     if (!pinned('fs2.cashFlows.netSurplus.current')) cfNetSurplus.current = fs1.netSurplus.current;
     if (!pinned('fs2.cashFlows.netSurplus.prior')) cfNetSurplus.prior = fs1.netSurplus.prior;
@@ -177,11 +190,11 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
 
     if (!pinned('fs2.financialCondition.assets.currentAssets.current')) {
       currentAssets.current =
-        fundBalanceEnd.current + (currentLiabilities.current || 0) + (nonCurrentLiabilities.current || 0);
+        fundBalanceEnd.current + (currentLiabilities.current || 0) + (nonCurrentLiabilities.current || 0) + (eqTransactions.current || 0);
     }
     if (!pinned('fs2.financialCondition.assets.currentAssets.prior')) {
       currentAssets.prior =
-        fundBalanceEnd.prior + (currentLiabilities.prior || 0) + (nonCurrentLiabilities.prior || 0);
+        fundBalanceEnd.prior + (currentLiabilities.prior || 0) + (nonCurrentLiabilities.prior || 0) + (eqTransactions.prior || 0);
     }
     if (!pinned('fs2.financialCondition.assets.totalAssets.current')) {
       assets.totalAssets = assets.totalAssets || { current: 0, prior: 0 };
