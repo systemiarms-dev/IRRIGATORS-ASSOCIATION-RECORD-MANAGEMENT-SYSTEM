@@ -297,7 +297,16 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
     if (!pinned('fs3.cashBalanceThisYear')) fs3.cashBalanceThisYear = fs1.netSurplus.current;
     if (!pinned('fs3.fundBalanceLastReport')) fs3.fundBalanceLastReport = fundBalanceBeginning.current;
     if (!pinned('fs3.totalCashBalance')) fs3.totalCashBalance = fundBalanceEnd.current;
-    if (!pinned('fs3.composition.total')) ensure(fs3, 'composition').total = fundBalanceEnd.current;
+    if (!pinned('fs3.composition.total')) {
+      const comp = ensure(fs3, 'composition');
+      comp.total =
+        n0(comp.cashOnHandPetty) +
+        n0(comp.undepositedCollections) +
+        n0(comp.cashInBankRegular) +
+        n0(comp.cashInBankCBU) +
+        n0(comp.savingsAccount) +
+        n0(comp.currentAccount);
+    }
   }
 
   if (fs3 && fs4) {

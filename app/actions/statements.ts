@@ -477,13 +477,12 @@ export async function generateStatementAction(
   };
 
   // Build FS3 Model (Interconnected)
-  // Automated derivation of Section F (Composition of Cash Balance) directly from ledger transactions
+  // Automated derivation of Section F (Composition of Cash Balance) directly from current period ledger transactions
   let ledgerCashOnHand = 0;
   let ledgerBankRegular = 0;
   let ledgerBankCBU = 0;
 
-  const cumulativeTxs = allTxs.filter((t) => t.transaction_date <= periodEnd);
-  for (const tx of cumulativeTxs) {
+  for (const tx of currentTxs) {
     const amt = Number(tx.amount || 0);
     const fund = determineFundSource(tx);
     const delta = tx.type === 'collection' ? amt : -amt;
