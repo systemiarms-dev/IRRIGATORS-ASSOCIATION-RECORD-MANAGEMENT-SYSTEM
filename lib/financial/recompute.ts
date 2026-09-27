@@ -244,7 +244,7 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
     if (!pinned('fs3.cashReceipts.iaSubsidy')) cr.iaSubsidy = n0(r.omSubsidy?.current);
     if (!pinned('fs3.cashReceipts.canalRemuneration')) cr.canalRemuneration = n0(r.canalRemuIncentive?.current);
     if (!pinned('fs3.cashReceipts.otherIncome')) {
-      cr.otherIncome = n0(r.otherIncome?.current) + extraR.reduce((s, x) => s + n0(x.current), 0);
+      cr.otherIncome = n0(r.otherIncome?.current);
     }
     if (!pinned('fs3.cashReceipts.total')) {
       cr.total =
@@ -256,7 +256,8 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
         n0(cr.iaSubsidy) +
         n0(cr.canalRemuneration) +
         n0(cr.omFee) +
-        n0(cr.otherIncome);
+        n0(cr.otherIncome) +
+        extraR.reduce((s, x) => s + n0(x.current), 0);
     }
 
     const cd = ensure(fs3, 'cashDisbursements');
@@ -272,7 +273,7 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
     if (!pinned('fs3.cashDisbursements.federationShare')) cd.federationShare = n0(d.federationShare?.current);
     if (!pinned('fs3.cashDisbursements.pisoMulaSaPuso')) cd.pisoMulaSaPuso = n0(d.pisoMulaSaPuso?.current);
     if (!pinned('fs3.cashDisbursements.otherExpenses')) {
-      cd.otherExpenses = extraD.reduce((s, x) => s + n0(x.current), 0);
+      cd.otherExpenses = 0;
     }
     if (!pinned('fs3.cashDisbursements.total')) {
       cd.total =
@@ -289,7 +290,8 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
         n0(cd.distributedIAShare) +
         n0(cd.professionalFee) +
         n0(cd.federationShare) +
-        n0(cd.pisoMulaSaPuso);
+        n0(cd.pisoMulaSaPuso) +
+        extraD.reduce((s, x) => s + n0(x.current), 0);
     }
 
     const fundBalanceBeginning = hashPair(fs1.membersEquity, 'fundBalanceBeginning');

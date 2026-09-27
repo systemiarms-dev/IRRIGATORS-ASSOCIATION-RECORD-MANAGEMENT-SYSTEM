@@ -159,7 +159,20 @@ export async function generateStatementAction(
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   }
 
-  const KNOWN_REC_CODES = ['REC-ISF', 'REC-MEM', 'REC-SUB', 'REC-FIN', 'REC-DON', 'REC-CBU', 'REC-DUE', 'REC-REMU', 'REC-INT'];
+  const isKnownRecCode = (code: string) => {
+    return (
+      code === 'REC-ISF' ||
+      code === 'REC-MEM' ||
+      code === 'REC-SUB' ||
+      code === 'REC-FIN' ||
+      code === 'REC-DON' ||
+      code.includes('INT') ||
+      code.includes('INTEREST') ||
+      code.includes('REM') ||
+      code.includes('CANAL') ||
+      code.includes('DUE')
+    );
+  };
   const KNOWN_DISB_CODES = ['DISB-TRAV', 'DISB-CLEAR', 'DISB-PROF', 'DISB-FED', 'DISB-PISO', 'DISB-MISC', 'DISB-LATERAL', 'DISB-SHARE', 'DISB-REPAIR', 'DISB-SUPP', 'DISB-HON', 'DISB-TAX', 'DISB-MEET'];
 
   /**
@@ -203,7 +216,7 @@ export async function generateStatementAction(
     return Array.from(map.values());
   }
 
-  const extraReceipts = buildExtraLines(currentTxs, priorTxs, 'collection', (c) => KNOWN_REC_CODES.includes(c));
+  const extraReceipts = buildExtraLines(currentTxs, priorTxs, 'collection', isKnownRecCode);
   const extraDisbursements = buildExtraLines(currentTxs, priorTxs, 'disbursement', (c) => KNOWN_DISB_CODES.includes(c));
 
   // Apply overrides if provided (Full editable capability)
@@ -213,24 +226,24 @@ export async function generateStatementAction(
       prior: overrides?.membershipFeesPrior ?? sumByCategory(priorTxs, 'collection', (c) => c === 'REC-MEM'),
     },
     annualDues: {
-      current: overrides?.annualDuesCurrent ?? 0,
-      prior: overrides?.annualDuesPrior ?? 0,
+      current: overrides?.annualDuesCurrent ?? sumByCategory(currentTxs, 'collection', (c) => c.includes('DUE')),
+      prior: overrides?.annualDuesPrior ?? sumByCategory(priorTxs, 'collection', (c) => c.includes('DUE')),
     },
     omSubsidy: {
       current: overrides?.omSubsidyCurrent ?? sumByCategory(currentTxs, 'collection', (c) => c === 'REC-ISF' || c === 'REC-SUB'),
       prior: overrides?.omSubsidyPrior ?? sumByCategory(priorTxs, 'collection', (c) => c === 'REC-ISF' || c === 'REC-SUB'),
     },
     canalRemuIncentive: {
-      current: overrides?.canalRemuCurrent ?? 0,
-      prior: overrides?.canalRemuPrior ?? 0,
+      current: overrides?.canalRemuCurrent ?? sumByCategory(currentTxs, 'collection', (c) => c.includes('REM') || c.includes('CANAL')),
+      prior: overrides?.canalRemuPrior ?? sumByCategory(priorTxs, 'collection', (c) => c.includes('REM') || c.includes('CANAL')),
     },
     finesPenalties: {
       current: overrides?.finesPenaltiesCurrent ?? sumByCategory(currentTxs, 'collection', (c) => c === 'REC-FIN'),
       prior: overrides?.finesPenaltiesPrior ?? sumByCategory(priorTxs, 'collection', (c) => c === 'REC-FIN'),
     },
     interestEarned: {
-      current: overrides?.interestEarnedCurrent ?? 0,
-      prior: overrides?.interestEarnedPrior ?? 0,
+      current: overrides?.interestEarnedCurrent ?? sumByCategory(currentTxs, 'collection', (c) => c.includes('INT') || c.includes('INTEREST')),
+      prior: overrides?.interestEarnedPrior ?? sumByCategory(priorTxs, 'collection', (c) => c.includes('INT') || c.includes('INTEREST')),
     },
     otherIncome: {
       current: overrides?.otherIncomeCurrent ?? sumByCategory(currentTxs, 'collection', (c) => c === 'REC-DON'),
@@ -537,7 +550,7 @@ export async function generateStatementAction(
       iaSubsidy: fs1.receipts.omSubsidy.current,
       canalRemuneration: fs1.receipts.canalRemuIncentive.current,
       omFee: 0,
-      otherIncome: fs1.receipts.otherIncome.current + extraReceipts.reduce((s, x) => s + x.current, 0),
+      otherIncome: fs1.receipts.otherIncome.current,
       total: fs1.receipts.total.current,
     },
     cashDisbursements: {
@@ -550,7 +563,7 @@ export async function generateStatementAction(
       snacksMeetings: 0,
       collectionExpenses: 0,
       miscExpenses: fs1.disbursements.otherExpenses.current,
-      otherExpenses: extraDisbursements.reduce((s, x) => s + x.current, 0),
+      otherExpenses: 0,
       distributedIAShare: fs1.disbursements.distributedIAShare.current,
       professionalFee: fs1.disbursements.professionalFee.current,
       federationShare: fs1.disbursements.federationShare.current,
