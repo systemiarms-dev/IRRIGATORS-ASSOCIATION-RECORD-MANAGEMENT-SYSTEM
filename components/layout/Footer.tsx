@@ -8,11 +8,11 @@ export default function Footer() {
         <div className="flex flex-col items-start min-w-0 order-1">
           <div className="font-bold text-white tracking-wide flex items-center gap-1.5 truncate max-w-full text-[11px]">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="truncate">NLFIA - Nangurisan Laya Farmers Irrigators Association, Inc.</span>
+            <span className="truncate">NIA BRIS</span>
           </div>
           <div className="hidden sm:flex text-slate-500 items-center gap-1.5">
             <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
-            <span>Ipil, Gonzaga, Cagayan &bull; SEC Reg. No. CN202060557 &bull; NIA</span>
+            <span>Sta. Cruz, Gonzaga, Cagayan</span>
           </div>
         </div>
         <div className="text-slate-500 font-medium text-[10px] sm:text-[11px] whitespace-nowrap shrink-0 order-3 lg:order-2 self-center lg:self-auto">
