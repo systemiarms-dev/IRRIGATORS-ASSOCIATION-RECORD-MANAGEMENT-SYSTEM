@@ -179,25 +179,25 @@ async function runAudit() {
 
     if (!txErr && txCreated) {
       cleanupIds.transactions.push(testTxId);
-      record('Phase 2', 'Bookkeeper Role: Log Disbursement Transaction', true, `Tx#: ${txCreated.transaction_number}, Amount: ₱${txCreated.amount}`);
+      record('Phase 2', 'Treasurer Role: Log Disbursement Transaction', true, `Tx#: ${txCreated.transaction_number}, Amount: ₱${txCreated.amount}`);
     } else {
-      record('Phase 2', 'Bookkeeper Role: Log Disbursement Transaction', false, txErr ? txErr.message : 'Failed');
+      record('Phase 2', 'Treasurer Role: Log Disbursement Transaction', false, txErr ? txErr.message : 'Failed');
     }
 
-    // Test Treasurer Read-Only Guard
-    // Simulate server action logic for treasurer:
-    const simulateTreasurerAction = (role) => {
-      if (role === 'treasurer') {
-        return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can record or modify transactions.' };
+    // Test Bookkeeper Read-Only Guard
+    // Simulate server action logic for bookkeeper:
+    const simulateBookkeeperAction = (role) => {
+      if (role === 'bookkeeper') {
+        return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can record or modify transactions.' };
       }
       return { success: true };
     };
-    const treasurerGuard = simulateTreasurerAction('treasurer');
-    record('Phase 2', 'Treasurer Role: Mutation Guard Blocks Logging', !treasurerGuard.success, treasurerGuard.message);
+    const bookkeeperGuard = simulateBookkeeperAction('bookkeeper');
+    record('Phase 2', 'Bookkeeper Role: Mutation Guard Blocks Logging', !bookkeeperGuard.success, bookkeeperGuard.message);
 
-    // Bookkeeper deletes transaction
+    // Treasurer deletes transaction
     const { error: delErr } = await supabase.from('transactions').delete().eq('id', testTxId);
-    record('Phase 2', 'Bookkeeper Role: Delete Ledger Transaction', !delErr, 'Row deleted with clean cleanup');
+    record('Phase 2', 'Treasurer Role: Delete Ledger Transaction', !delErr, 'Row deleted with clean cleanup');
 
     // Test File Size Limits:
     const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -235,7 +235,7 @@ async function runAudit() {
 
     if (!fsErr && fsCreated) {
       cleanupIds.statements.push(testFsId);
-      record('Phase 3', 'Bookkeeper Role: Generate FS-1 Statement of Operations', true, `Statement#: ${fsCreated.statement_number}, Type: ${fsCreated.statement_type}`);
+      record('Phase 3', 'Treasurer Role: Generate FS-1 Statement of Operations', true, `Statement#: ${fsCreated.statement_number}, Type: ${fsCreated.statement_type}`);
       
       // Inline edit simulation
       const { data: fsUpdated, error: updErr } = await supabase
@@ -244,23 +244,23 @@ async function runAudit() {
         .eq('id', testFsId)
         .select().single();
       
-      record('Phase 3', 'Bookkeeper Role: Inline Edit / Override Financial Figures', !updErr && fsUpdated.report_data.netSurplus === 65000, 'Surplus updated to ₱65,000.00');
+      record('Phase 3', 'Treasurer Role: Inline Edit / Override Financial Figures', !updErr && fsUpdated.report_data.netSurplus === 65000, 'Surplus updated to ₱65,000.00');
 
       // Cleanup statement
       await supabase.from('financial_statements').delete().eq('id', testFsId);
     } else {
-      record('Phase 3', 'Bookkeeper Role: Generate FS Statement', false, fsErr ? fsErr.message : 'Failed');
+      record('Phase 3', 'Treasurer Role: Generate FS Statement', false, fsErr ? fsErr.message : 'Failed');
     }
 
-    // Verify Treasurer Guard on Statements
-    const simulateTreasurerFsAction = (role) => {
-      if (role === 'treasurer') {
-        return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can generate or modify financial statements.' };
+    // Verify Bookkeeper Guard on Statements
+    const simulateBookkeeperFsAction = (role) => {
+      if (role === 'bookkeeper') {
+        return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can generate or modify financial statements.' };
       }
       return { success: true };
     };
-    const trFsGuard = simulateTreasurerFsAction('treasurer');
-    record('Phase 3', 'Treasurer Role: Mutation Guard Blocks FS Generation', !trFsGuard.success, trFsGuard.message);
+    const bkFsGuard = simulateBookkeeperFsAction('bookkeeper');
+    record('Phase 3', 'Bookkeeper Role: Mutation Guard Blocks FS Generation', !bkFsGuard.success, bkFsGuard.message);
 
     // ================================================================
     // PHASE 4: Farmer-Member Registry

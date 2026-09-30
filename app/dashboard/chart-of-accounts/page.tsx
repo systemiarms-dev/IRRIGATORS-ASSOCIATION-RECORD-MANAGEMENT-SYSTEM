@@ -120,7 +120,7 @@ export default function ChartOfAccountsPage() {
   const [assetNotes, setAssetNotes] = useState('');
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
-  const isReadOnly = currentUser?.role === 'treasurer' || currentUser?.role === 'auditor';
+  const isReadOnly = currentUser?.role === 'bookkeeper' || currentUser?.role === 'auditor';
 
   // Initial Load
   useEffect(() => {

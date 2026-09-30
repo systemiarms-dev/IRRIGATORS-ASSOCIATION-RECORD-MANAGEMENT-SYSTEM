@@ -46,11 +46,14 @@ export async function createFixedAssetAction(input: {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
 
-  if (user.role === 'treasurer' || user.role === 'auditor') {
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return {
       success: false,
-      message: 'You have read-only access. Only bookkeepers and administrators can register fixed assets.',
+      message: 'You have read-only access. Only treasurers and administrators can register fixed assets.',
     };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
+    return UNAUTHORIZED_RESPONSE;
   }
 
   let targetAssoc = user.association_id;
@@ -118,11 +121,14 @@ export async function deleteFixedAssetAction(id: string): Promise<ActionResponse
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
 
-  if (user.role === 'treasurer' || user.role === 'auditor') {
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return {
       success: false,
-      message: 'You have read-only access. Only bookkeepers and administrators can remove fixed assets.',
+      message: 'You have read-only access. Only treasurers and administrators can remove fixed assets.',
     };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
+    return UNAUTHORIZED_RESPONSE;
   }
 
   try {

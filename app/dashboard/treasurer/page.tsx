@@ -48,7 +48,7 @@ export default function TreasurerPage() {
     }
   }, [previewVoucherTx]);
 
-  const canWrite = userRole === 'super_admin' || userRole === 'admin' || userRole === 'bookkeeper';
+  const canWrite = userRole === 'super_admin' || userRole === 'admin' || userRole === 'treasurer';
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -256,7 +256,7 @@ export default function TreasurerPage() {
           ) : (
             <div className="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <Eye className="w-4 h-4 text-amber-600" />
-              <span>Read &amp; View Only ({userRole === 'auditor' ? 'Auditor' : userRole === 'treasurer' ? 'Treasurer' : 'View Only'})</span>
+              <span>Read &amp; View Only ({userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
             </div>
           )}
 

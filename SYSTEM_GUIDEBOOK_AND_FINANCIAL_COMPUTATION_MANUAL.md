@@ -26,8 +26,8 @@ The system enforces strict **Separation of Duties (SoD)** to prevent financial f
 | :--- | :--- | :---: | :---: | :---: | :---: |
 | **Super Admin** | System-wide oversight across all IAs, system configuration, database backup | Yes | Yes | Yes | Yes |
 | **IA President** | Executive leadership, governance, administrative approval, signatory | View Only | View Only | View Only | Yes |
-| **Bookkeeper / Encoder** | Daily recording of collections, expenses, vouchers, and asset registry | **Yes** | **Yes** | **Yes** | No |
-| **Treasurer** | Fiduciary custodian of cash vault and bank accounts; certification signatory | View Only | View Only | View Only | **Yes** |
+| **Treasurer / Encoder** | Primary input of all records: collections, expenses, vouchers, asset & member registry | **Yes** | **Yes** | **Yes** | **Yes** |
+| **Bookkeeper** | Fiduciary review, account inspection, general ledger and financial statements audit | View Only | View Only | View Only | No |
 | **Auditor** | Independent verification, examination of receipts/vouchers, audit overrides | View Only | View Only | View Only | **Yes** |
 | **Farmer Member** | View individual dues, payments, land parcel records, and published reports | No | No | No | No |
 
@@ -439,7 +439,7 @@ Each association possesses an isolated namespace (`association_id`). Transaction
 ## 7. Official Document Sign-Off & Notarization Workflow
 
 When an annual statement is ready for submission to NIA, SEC, and BIR:
-1. **Compilation:** The Bookkeeper clicks the **`Generate FS Report`** button &rarr; configures **Comparative Reporting Period** (e.g. CY 2026 vs CY 2025) &rarr; reviews authorized signatories &rarr; clicks **`Generate FS Report`**.
+1. **Compilation:** The Treasurer clicks the **`Generate FS Report`** button &rarr; configures **Comparative Reporting Period** (e.g. CY 2026 vs CY 2025) &rarr; reviews authorized signatories &rarr; clicks **`Generate FS Report`**.
 2. **Review & Audit Adjustments:** The Auditor inspects the statements. If an off-ledger CPA adjustment is needed, the Auditor switches the mode toggle from **`View Only`** to **`Edit`**, inputs the certified override directly on the line item, and clicks **`Save Changes`** (or **`Discard`**). All dependent sheets auto-recompute immediately.
 3. **Fiduciary Certification:** The Treasurer reviews Section F (Cash Composition) against physical Land Bank passbooks and signs the certification block.
 4. **Notary Acknowledgment:** The Treasurer enters the Community Tax Certificate (CTC / Cedula) Number, Date of Issue, and Place of Issue in the FS-4 Notary Block.

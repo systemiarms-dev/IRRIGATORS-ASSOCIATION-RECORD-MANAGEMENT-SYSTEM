@@ -63,10 +63,10 @@ export async function generateStatementAction(
   if (!user) {
     return UNAUTHORIZED_RESPONSE;
   }
-  if (user.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can compile financial statements.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can compile financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -712,10 +712,10 @@ export async function updateFinancialStatementAction(
 ): Promise<ActionResponse<FinancialStatement>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can modify financial statements.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can modify financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -766,10 +766,10 @@ export async function updateFinancialStatementAction(
 export async function renameFinancialStatementAction(id: string, newTitle: string): Promise<ActionResponse<FinancialStatement>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can rename financial statements.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can rename financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -802,10 +802,10 @@ export async function renameFinancialStatementAction(id: string, newTitle: strin
 export async function deleteFinancialStatementAction(id: string): Promise<ActionResponse> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can delete financial statements.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can delete financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -836,10 +836,10 @@ export async function deleteMultipleFinancialStatementsAction(
 ): Promise<ActionResponse<{ deletedCount: number }>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can delete financial statements.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can delete financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -885,10 +885,10 @@ export async function resyncStatementWithLedgerAction(
 ): Promise<ActionResponse<FinancialStatement>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can re-sync financial statements.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can re-sync financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 

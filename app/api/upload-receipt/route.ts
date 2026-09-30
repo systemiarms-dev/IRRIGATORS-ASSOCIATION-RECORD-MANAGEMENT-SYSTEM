@@ -59,7 +59,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper' && user.role !== 'treasurer') {
+    if (user.role === 'bookkeeper' || user.role === 'auditor') {
+      return NextResponse.json(
+        { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can upload receipts.' },
+        { status: 403 }
+      );
+    }
+
+    if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
       return NextResponse.json(
         { success: false, message: 'You do not have permission to upload receipts.' },
         { status: 403 }

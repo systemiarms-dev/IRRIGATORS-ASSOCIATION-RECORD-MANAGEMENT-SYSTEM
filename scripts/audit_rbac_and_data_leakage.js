@@ -70,45 +70,45 @@ async function runRbacAndLeakageAudit() {
 
     // Simulation of createTransactionAction role check:
     function simulateCreateTxPermission(role) {
-      if (role === 'treasurer') {
-        return { allowed: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can record transactions.' };
+      if (role === 'bookkeeper') {
+        return { allowed: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can record transactions.' };
       }
-      if (['super_admin', 'admin', 'bookkeeper'].includes(role)) {
+      if (['super_admin', 'admin', 'treasurer'].includes(role)) {
         return { allowed: true };
       }
       return { allowed: false, message: 'Unauthorized.' };
     }
 
-    const rolesToTest = ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor', 'member'];
+    const rolesToTest = ['super_admin', 'admin', 'treasurer', 'bookkeeper', 'auditor', 'member'];
     
-    record('RBAC: Ledger Write', 'Treasurer Blocked from Logging Transactions', !simulateCreateTxPermission('treasurer').allowed, 'Properly rejected as read-only');
+    record('RBAC: Ledger Write', 'Bookkeeper Blocked from Logging Transactions', !simulateCreateTxPermission('bookkeeper').allowed, 'Properly rejected as read-only');
     record('RBAC: Ledger Write', 'Auditor Blocked from Logging Transactions', !simulateCreateTxPermission('auditor').allowed, 'Properly rejected');
     record('RBAC: Ledger Write', 'Farmer Member Blocked from Logging Transactions', !simulateCreateTxPermission('member').allowed, 'Properly rejected');
-    record('RBAC: Ledger Write', 'Bookkeeper Permitted to Log Transactions', simulateCreateTxPermission('bookkeeper').allowed, 'Allowed');
+    record('RBAC: Ledger Write', 'Treasurer Permitted to Log Transactions', simulateCreateTxPermission('treasurer').allowed, 'Allowed');
     record('RBAC: Ledger Write', 'Head Admin Permitted to Log Transactions', simulateCreateTxPermission('admin').allowed, 'Allowed');
     record('RBAC: Ledger Write', 'Super Admin Permitted to Log Transactions', simulateCreateTxPermission('super_admin').allowed, 'Allowed');
 
     // Simulation of deleteTransactionAction role check:
     function simulateDeleteTxPermission(role) {
-      if (role === 'treasurer') return { allowed: false, message: 'Treasurers have read-only access.' };
-      if (['super_admin', 'admin', 'bookkeeper'].includes(role)) return { allowed: true };
+      if (role === 'bookkeeper') return { allowed: false, message: 'Bookkeepers have read-only access.' };
+      if (['super_admin', 'admin', 'treasurer'].includes(role)) return { allowed: true };
       return { allowed: false };
     }
 
-    record('RBAC: Ledger Delete', 'Treasurer Blocked from Deleting Transactions', !simulateDeleteTxPermission('treasurer').allowed, 'Properly blocked');
+    record('RBAC: Ledger Delete', 'Bookkeeper Blocked from Deleting Transactions', !simulateDeleteTxPermission('bookkeeper').allowed, 'Properly blocked');
     record('RBAC: Ledger Delete', 'Auditor Blocked from Deleting Transactions', !simulateDeleteTxPermission('auditor').allowed, 'Properly blocked');
-    record('RBAC: Ledger Delete', 'Bookkeeper Permitted to Delete Transactions', simulateDeleteTxPermission('bookkeeper').allowed, 'Allowed');
+    record('RBAC: Ledger Delete', 'Treasurer Permitted to Delete Transactions', simulateDeleteTxPermission('treasurer').allowed, 'Allowed');
 
     // Simulation of generateStatementAction role check:
     function simulateGenerateStatementPermission(role) {
-      if (role === 'treasurer' || role === 'auditor') return { allowed: false, message: 'Read-only access.' };
-      if (['super_admin', 'admin', 'bookkeeper'].includes(role)) return { allowed: true };
+      if (role === 'bookkeeper' || role === 'auditor') return { allowed: false, message: 'Read-only access.' };
+      if (['super_admin', 'admin', 'treasurer'].includes(role)) return { allowed: true };
       return { allowed: false };
     }
 
-    record('RBAC: FS Generation', 'Treasurer Blocked from Generating Statements', !simulateGenerateStatementPermission('treasurer').allowed, 'Properly blocked');
+    record('RBAC: FS Generation', 'Bookkeeper Blocked from Generating Statements', !simulateGenerateStatementPermission('bookkeeper').allowed, 'Properly blocked');
     record('RBAC: FS Generation', 'Auditor Blocked from Generating Statements', !simulateGenerateStatementPermission('auditor').allowed, 'Properly blocked');
-    record('RBAC: FS Generation', 'Bookkeeper Permitted to Generate Statements', simulateGenerateStatementPermission('bookkeeper').allowed, 'Allowed');
+    record('RBAC: FS Generation', 'Treasurer Permitted to Generate Statements', simulateGenerateStatementPermission('treasurer').allowed, 'Allowed');
 
     // Simulation of association creation (Super Admin only):
     function simulateCreateAssocPermission(role) {

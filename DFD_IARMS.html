@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>IARMS — Data Flow Diagram</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #bdf5c7;
+    font-family: "Comic Sans MS", "Segoe UI", sans-serif;
+  }
+  .wrap { display: flex; justify-content: center; }
+  svg { display: block; max-width: 100%; height: auto; }
+  .box  { fill: #ffffff; stroke: #000000; stroke-width: 2.2; }
+  .proc { fill: #ffffff; stroke: #000000; stroke-width: 2.2; }
+  .flow { fill: none; stroke: #000000; stroke-width: 1.8; }
+  text  { fill: #000000; font-family: "Comic Sans MS", "Segoe UI", sans-serif; }
+  .lbl  { font-size: 10.5px; }
+  .name { font-size: 12.5px; font-weight: bold; }
+  .procTxt { font-size: 11.5px; }
+  .dbTitle  { font-size: 13px; font-weight: bold; }
+  .num  { font-size: 11px; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<svg viewBox="0 0 1400 730" width="1400" height="730" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="8" refX="9" refY="4"
+            orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+      <polygon points="0 0, 10 4, 0 8" fill="#000000" />
+    </marker>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1400" height="730" fill="#bdf5c7" />
+
+  <!-- title -->
+  <text x="700" y="32" text-anchor="middle" font-size="17" font-weight="bold">IARMS — Data Flow Diagram (Level 1)</text>
+
+  <!-- ============ EXTERNAL ENTITIES ============ -->
+  <rect class="box" x="25" y="45" width="155" height="65" />
+  <text class="name" x="102.5" y="72" text-anchor="middle">Super Admin /</text>
+  <text class="name" x="102.5" y="90" text-anchor="middle">Head Admin</text>
+
+  <rect class="box" x="25" y="275" width="155" height="55" />
+  <text class="name" x="102.5" y="308" text-anchor="middle">Treasurer</text>
+
+  <rect class="box" x="25" y="370" width="155" height="55" />
+  <text class="name" x="102.5" y="403" text-anchor="middle">Bookkeeper</text>
+
+  <rect class="box" x="25" y="450" width="155" height="55" />
+  <text class="name" x="102.5" y="483" text-anchor="middle">Auditor</text>
+
+  <rect class="box" x="25" y="625" width="155" height="55" />
+  <text class="name" x="102.5" y="648" text-anchor="middle">Member</text>
+  <text x="102.5" y="666" text-anchor="middle" font-size="10.5">(Irrigator)</text>
+
+  <!-- ============ PROCESSES ============ -->
+  <rect class="proc" x="290" y="95" width="250" height="95" rx="16" />
+  <text class="num" x="298" y="114">1</text>
+  <text class="procTxt" x="415" y="140" text-anchor="middle">Manage User &amp; Association Accounts</text>
+  <text x="415" y="158" text-anchor="middle" font-size="11">(Create, Edit, Reset &amp; Delete)</text>
+
+  <rect class="proc" x="290" y="265" width="250" height="95" rx="16" />
+  <text class="num" x="298" y="284">2</text>
+  <text class="procTxt" x="415" y="310" text-anchor="middle">Record Collections &amp; Disbursements</text>
+  <text x="415" y="328" text-anchor="middle" font-size="11">&amp; Upload Receipts / Vouchers</text>
+
+  <rect class="proc" x="290" y="440" width="250" height="95" rx="16" />
+  <text class="num" x="298" y="459">3</text>
+  <text class="procTxt" x="415" y="485" text-anchor="middle">Verify Receipts &amp; Vouchers</text>
+  <text x="415" y="503" text-anchor="middle" font-size="10.5">(Audit Queue: Verify / Flag / Reject)</text>
+
+  <rect class="proc" x="950" y="215" width="250" height="95" rx="16" />
+  <text class="num" x="958" y="234">4</text>
+  <text x="1075" y="264" text-anchor="middle" font-size="12">Generate FS1–FS4</text>
+  <text x="1075" y="282" text-anchor="middle" font-size="12">Financial Statements</text>
+  <text x="1075" y="300" text-anchor="middle" font-size="10">(NIA Standard Reports)</text>
+
+  <rect class="proc" x="950" y="470" width="250" height="95" rx="16" />
+  <text class="num" x="958" y="489">5</text>
+  <text x="1075" y="519" text-anchor="middle" font-size="12">Access Dashboard</text>
+  <text x="1075" y="537" text-anchor="middle" font-size="10.5">(KPIs, Charts &amp; Summary)</text>
+
+  <!-- ============ DATA STORES ============ -->
+  <rect class="box" x="650" y="90" width="210" height="80" />
+  <text class="dbTitle" x="755" y="112" text-anchor="middle">DATABASE 1</text>
+  <text x="755" y="132" text-anchor="middle" font-size="11.5">User &amp; Association DB</text>
+  <text x="755" y="152" text-anchor="middle" font-size="9.5">(profiles, associations, categories)</text>
+
+  <rect class="box" x="650" y="265" width="210" height="240" />
+  <text class="dbTitle" x="755" y="360" text-anchor="middle">DATABASE 2</text>
+  <text x="755" y="385" text-anchor="middle" font-size="12">Financial Records DB</text>
+  <text x="755" y="407" text-anchor="middle" font-size="10">(transactions, receipts,</text>
+  <text x="755" y="422" text-anchor="middle" font-size="10">FS1–FS4 statements, audit logs)</text>
+
+  <!-- ============ OUTPUT RECIPIENTS (FS) ============ -->
+  <rect class="box" x="1250" y="185" width="135" height="45" />
+  <text x="1317.5" y="204" text-anchor="middle" font-size="11" font-weight="bold">Treasurer /</text>
+  <text x="1317.5" y="219" text-anchor="middle" font-size="11" font-weight="bold">Admin</text>
+
+  <rect class="box" x="1250" y="245" width="135" height="45" />
+  <text x="1317.5" y="273" text-anchor="middle" font-size="11.5" font-weight="bold">Members</text>
+
+  <rect class="box" x="1250" y="305" width="135" height="45" />
+  <text x="1317.5" y="333" text-anchor="middle" font-size="11.5" font-weight="bold">Auditor</text>
+
+  <!-- ============ OUTPUT RECIPIENTS (Dashboard) ============ -->
+  <rect class="box" x="960" y="610" width="135" height="45" />
+  <text x="1027.5" y="629" text-anchor="middle" font-size="11" font-weight="bold">Treasurer /</text>
+  <text x="1027.5" y="644" text-anchor="middle" font-size="11" font-weight="bold">Admin</text>
+
+  <rect class="box" x="1110" y="610" width="135" height="45" />
+  <text x="1177.5" y="638" text-anchor="middle" font-size="11.5" font-weight="bold">Members</text>
+
+  <rect class="box" x="1250" y="610" width="135" height="45" />
+  <text x="1317.5" y="638" text-anchor="middle" font-size="11.5" font-weight="bold">Auditor</text>
+
+  <!-- ============ DATA FLOWS ============ -->
+  <!-- Admin -> Process 1 -->
+  <path class="flow" d="M180 77 L235 77 L235 130 L290 130" marker-end="url(#ah)" />
+  <text class="lbl" x="185" y="68">Account Action</text>
+
+  <!-- Treasurer -> Process 2 -->
+  <path class="flow" d="M180 302 L290 302" marker-end="url(#ah)" />
+  <text x="183" y="293" font-size="11">Log In</text>
+  <text x="183" y="322" font-size="10">Transaction Records</text>
+
+  <!-- Bookkeeper -> Process 2 -->
+  <path class="flow" d="M180 397 L250 397 L250 345 L290 345" marker-end="url(#ah)" />
+  <text x="183" y="338" font-size="10">Log In</text>
+
+  <!-- Auditor <-> Process 3 -->
+  <path class="flow" d="M180 490 L290 490" marker-end="url(#ah)" marker-start="url(#ah)" />
+  <text x="183" y="465" font-size="10">Receipt &amp; Document</text>
+  <text x="183" y="477" font-size="10">Status</text>
+
+  <!-- Member -> Process 5 -->
+  <path class="flow" d="M180 652 L250 652 L250 690 L905 690 L905 525 L950 525" marker-end="url(#ah)" />
+  <text x="560" y="682" text-anchor="middle" font-size="11">Log In</text>
+
+  <!-- Process 1 <-> Database 1 -->
+  <path class="flow" d="M540 125 L650 125" marker-end="url(#ah)" />
+  <text class="lbl" x="595" y="117" text-anchor="middle">User Data</text>
+  <path class="flow" d="M650 155 L540 155" marker-end="url(#ah)" />
+  <text class="lbl" x="595" y="172" text-anchor="middle">User Data</text>
+
+  <!-- Database 1 -> Database 2 -->
+  <path class="flow" d="M755 170 L755 265" marker-end="url(#ah)" />
+  <text x="762" y="225" font-size="9.5">Association Reference</text>
+
+  <!-- Process 2 <-> Database 2 -->
+  <path class="flow" d="M540 305 L650 305" marker-end="url(#ah)" />
+  <text x="595" y="283" text-anchor="middle" font-size="9.5">Financial Transaction</text>
+  <text x="595" y="295" text-anchor="middle" font-size="9.5">Data</text>
+  <path class="flow" d="M650 335 L540 335" marker-end="url(#ah)" />
+  <text x="595" y="352" text-anchor="middle" font-size="9.5">Transaction Records</text>
+
+  <!-- Process 3 <-> Database 2 -->
+  <path class="flow" d="M540 465 L650 465" marker-end="url(#ah)" />
+  <text x="595" y="447" text-anchor="middle" font-size="9">Receipt &amp; Document</text>
+  <text x="595" y="459" text-anchor="middle" font-size="9">Status</text>
+  <path class="flow" d="M650 495 L540 495" marker-end="url(#ah)" />
+  <text x="595" y="513" text-anchor="middle" font-size="9.5">Verification Status</text>
+
+  <!-- Database 2 <-> Process 4 -->
+  <path class="flow" d="M860 270 L950 270" marker-end="url(#ah)" />
+  <text x="905" y="261" text-anchor="middle" font-size="9.5">Retrieve Records</text>
+  <path class="flow" d="M950 300 L860 300" marker-end="url(#ah)" />
+  <text x="905" y="318" text-anchor="middle" font-size="9">Financial Statement</text>
+  <text x="905" y="330" text-anchor="middle" font-size="9">Record</text>
+
+  <!-- Database 2 <-> Process 5 -->
+  <path class="flow" d="M860 480 L950 480" marker-end="url(#ah)" />
+  <text x="905" y="463" text-anchor="middle" font-size="9">Financial Statement</text>
+  <text x="905" y="474" text-anchor="middle" font-size="9">Summary</text>
+  <path class="flow" d="M950 500 L860 500" marker-end="url(#ah)" />
+  <text x="905" y="517" text-anchor="middle" font-size="9.5">Retrieve Records</text>
+
+  <!-- Process 4 -> recipients -->
+  <path class="flow" d="M1200 267 L1250 267" marker-end="url(#ah)" />
+  <path class="flow" d="M1225 207 L1225 327" />
+  <path class="flow" d="M1225 207 L1250 207" marker-end="url(#ah)" />
+  <path class="flow" d="M1225 327 L1250 327" marker-end="url(#ah)" />
+  <text x="1317" y="175" text-anchor="middle" font-size="10">Generated Financial Statement</text>
+
+  <!-- Process 5 -> recipients -->
+  <path class="flow" d="M1075 565 L1075 590" />
+  <path class="flow" d="M1027 590 L1317 590" />
+  <path class="flow" d="M1027 590 L1027 610" marker-end="url(#ah)" />
+  <path class="flow" d="M1177 590 L1177 610" marker-end="url(#ah)" />
+  <path class="flow" d="M1317 590 L1317 610" marker-end="url(#ah)" />
+  <text x="1065" y="583" text-anchor="end" font-size="10">Website Access</text>
+  <text x="1085" y="583" font-size="10">Dashboard View</text>
+
+</svg>
+</div>
+</body>
+</html>

@@ -49,10 +49,10 @@ export async function getMembersAction(associationId?: string): Promise<ActionRe
 export async function createMemberAction(formData: FormData): Promise<ActionResponse<Profile>> {
   const admin = await requireUser();
   if (!admin) return UNAUTHORIZED_RESPONSE;
-  if (admin.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can register farmer members.' };
+  if (admin.role === 'bookkeeper') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can register farmer members.' };
   }
-  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'bookkeeper') {
+  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -136,10 +136,10 @@ export async function createMemberAction(formData: FormData): Promise<ActionResp
 export async function updateMemberAction(memberId: string, formData: FormData): Promise<ActionResponse<Profile>> {
   const admin = await requireUser();
   if (!admin) return UNAUTHORIZED_RESPONSE;
-  if (admin.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can edit farmer members.' };
+  if (admin.role === 'bookkeeper') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can edit farmer members.' };
   }
-  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'bookkeeper') {
+  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -198,10 +198,10 @@ export async function updateMemberAction(memberId: string, formData: FormData): 
 export async function deleteMemberAction(memberId: string): Promise<ActionResponse> {
   const admin = await requireUser();
   if (!admin) return UNAUTHORIZED_RESPONSE;
-  if (admin.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can remove farmer members.' };
+  if (admin.role === 'bookkeeper') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can remove farmer members.' };
   }
-  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'bookkeeper') {
+  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 

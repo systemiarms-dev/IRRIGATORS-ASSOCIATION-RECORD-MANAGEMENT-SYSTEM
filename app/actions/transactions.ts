@@ -63,10 +63,10 @@ export async function createBudgetCategoryAction(input: {
 }): Promise<ActionResponse<BudgetCategory>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer' || user.role === 'auditor') {
-    return { success: false, message: 'You have read-only access. Only bookkeepers and administrators can manage chart of accounts categories.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'You have read-only access. Only treasurers and administrators can manage chart of accounts categories.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -143,10 +143,10 @@ export async function createBudgetCategoryAction(input: {
 export async function deleteBudgetCategoryAction(id: string): Promise<ActionResponse> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer' || user.role === 'auditor') {
-    return { success: false, message: 'You have read-only access. Only bookkeepers and administrators can remove categories.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'You have read-only access. Only treasurers and administrators can remove categories.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -201,10 +201,10 @@ export async function deleteBudgetCategoryAction(id: string): Promise<ActionResp
 export async function toggleBudgetCategoryActiveAction(id: string, isActive: boolean): Promise<ActionResponse<BudgetCategory>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer' || user.role === 'auditor') {
-    return { success: false, message: 'You have read-only access. Only bookkeepers and administrators can manage chart of accounts categories.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'You have read-only access. Only treasurers and administrators can manage chart of accounts categories.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -241,10 +241,10 @@ export async function restoreStandardCategoriesAction(
 ): Promise<ActionResponse<{ added: number; existing: number; total: number }>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer' || user.role === 'auditor') {
-    return { success: false, message: 'You have read-only access. Only bookkeepers and administrators can restore categories.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'You have read-only access. Only treasurers and administrators can restore categories.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -292,10 +292,10 @@ export async function updateBudgetCategoryAction(
 ): Promise<ActionResponse<BudgetCategory>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer' || user.role === 'auditor') {
-    return { success: false, message: 'You have read-only access. Only bookkeepers and administrators can edit categories.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'You have read-only access. Only treasurers and administrators can edit categories.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -378,10 +378,10 @@ export async function getTransactionsAction(
 export async function createTransactionAction(payload: CreateTransactionPayload): Promise<ActionResponse<Transaction>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can record transactions.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can record transactions.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 
@@ -561,7 +561,10 @@ export async function uploadReceiptMetadataAction(
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
 
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper' && user.role !== 'treasurer') {
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can upload receipts.' };
+  }
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return { success: false, message: 'You do not have permission to upload receipts.' };
   }
 
@@ -702,10 +705,10 @@ export async function uploadReceiptMetadataAction(
 export async function deleteTransactionAction(id: string): Promise<ActionResponse> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
-  if (user.role === 'treasurer') {
-    return { success: false, message: 'Treasurers have read-only access. Only bookkeepers and administrators can delete transactions.' };
+  if (user.role === 'bookkeeper' || user.role === 'auditor') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can delete transactions.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'bookkeeper') {
+  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
     return UNAUTHORIZED_RESPONSE;
   }
 

@@ -383,9 +383,16 @@ export default function AccountManagementPage() {
               )}
               {profile?.role === 'treasurer' && (
                 <>
-                  <li>Logging collections & official disbursement voucher entries.</li>
-                  <li>Recording operational expenditures across 15 official budget line items.</li>
-                  <li>Compiling and recalculating FS1–FS4 comparative financial statements.</li>
+                  <li>Full record entry: logging collections, disbursement vouchers, and receipt attachments.</li>
+                  <li>Registering farmer members, budget categories, and fixed assets with depreciation.</li>
+                  <li>Compiling, adjusting, and notarizing FS1–FS4 comparative financial statements.</li>
+                </>
+              )}
+              {profile?.role === 'bookkeeper' && (
+                <>
+                  <li>Read-only inspection of farmer member registry and chart of accounts.</li>
+                  <li>Viewing collections & disbursement transactions and official receipts without modification.</li>
+                  <li>Accessing, reviewing, and printing comparative financial statements (FS1–FS4).</li>
                 </>
               )}
               {profile?.role === 'auditor' && (
