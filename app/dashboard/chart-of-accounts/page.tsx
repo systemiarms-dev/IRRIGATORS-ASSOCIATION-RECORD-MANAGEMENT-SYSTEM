@@ -52,6 +52,7 @@ import {
   restoreStandardCategoriesAction,
 } from '@/app/actions/transactions';
 import { isStandardNiaAccount } from '@/lib/financial/standardAccounts';
+import { canWriteFinancialData } from '@/lib/auth/roles';
 import {
   getFixedAssetsAction,
   createFixedAssetAction,
@@ -120,10 +121,23 @@ export default function ChartOfAccountsPage() {
   const [assetNotes, setAssetNotes] = useState('');
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
-  const isReadOnly = currentUser?.role === 'bookkeeper' || currentUser?.role === 'auditor';
+  // The Financial Suite is view-only for the Super Admin, the system-wide
+  // Bookkeeper, and the Auditor: they may browse categories and fixed assets
+  // but never add, edit, toggle, restore, or delete them.
+  const isReadOnly = !canWriteFinancialData(currentUser?.role);
   // Super Admin and the system-wide (view-only) Bookkeeper may browse every
   // association's chart of accounts and fixed assets.
   const canSelectAssociation = isSuperAdmin || currentUser?.role === 'bookkeeper';
+
+  // Role name shown inside the "Read & View Only" chip for non-editing roles.
+  const readOnlyRoleLabel =
+    currentUser?.role === 'super_admin'
+      ? 'Super Admin'
+      : currentUser?.role === 'bookkeeper'
+        ? 'Bookkeeper'
+        : currentUser?.role === 'auditor'
+          ? 'Auditor'
+          : 'View Only';
 
   // Initial Load
   useEffect(() => {
@@ -529,7 +543,7 @@ export default function ChartOfAccountsPage() {
                 <div className="text-xs font-black text-slate-800 tracking-tight flex items-center gap-1.5">
                   <span>Scope by Association</span>
                   <span className="hidden sm:inline-block text-[11px] text-slate-400 font-normal">
-                    {isSuperAdmin ? '(Super Admin Mode)' : '(View Only Mode)'}
+                    {isSuperAdmin ? '(Super Admin — View Only)' : '(View Only Mode)'}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-medium truncate hidden xs:block">
@@ -598,7 +612,7 @@ export default function ChartOfAccountsPage() {
 
           {/* Action Button */}
           <div className="flex items-center gap-2">
-            {!isReadOnly && (
+            {!isReadOnly ? (
               activeView === 'chart' ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -627,6 +641,11 @@ export default function ChartOfAccountsPage() {
                   <span>Register Equipment / Asset</span>
                 </button>
               )
+            ) : (
+              <div className="px-3 py-2.5 rounded-xl bg-white/95 text-amber-800 border border-amber-300 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                <Lock className="w-4 h-4 text-amber-600" />
+                <span>Read &amp; View Only ({readOnlyRoleLabel})</span>
+              </div>
             )}
           </div>
         </div>

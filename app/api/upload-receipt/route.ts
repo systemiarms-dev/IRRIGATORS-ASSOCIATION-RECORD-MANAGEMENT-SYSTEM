@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import { getSessionUser } from '@/lib/auth/session';
+import { canWriteFinancialData, SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE } from '@/lib/auth/roles';
 import { localDb, RECEIPTS_BUCKET } from '@/lib/db/localDb';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Receipt } from '@/types';
@@ -66,9 +67,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
+    if (!canWriteFinancialData(user.role)) {
       return NextResponse.json(
-        { success: false, message: 'You do not have permission to upload receipts.' },
+        {
+          success: false,
+          message:
+            user.role === 'super_admin'
+              ? SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE
+              : 'You do not have permission to upload receipts.',
+        },
         { status: 403 }
       );
     }

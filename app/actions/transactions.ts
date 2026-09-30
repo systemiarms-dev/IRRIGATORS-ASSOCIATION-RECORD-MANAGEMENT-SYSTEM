@@ -8,7 +8,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { ActionResponse, CreateTransactionPayload, Transaction, BudgetCategory, Receipt, Profile, FundSource, AccountClassification } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, toPublicProfile, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
-import { hasSystemWideReadScope } from '@/lib/auth/roles';
+import { hasSystemWideReadScope, canWriteFinancialData, SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE } from '@/lib/auth/roles';
 import { calculateFundBalances, getFundLabel, determineFundSource } from '@/lib/utils/fundSources';
 import { isStandardNiaAccount, seedStandardCategoriesForAssociation } from '@/lib/financial/standardAccounts';
 
@@ -67,8 +67,10 @@ export async function createBudgetCategoryAction(input: {
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'You have read-only access. Only treasurers and administrators can manage chart of accounts categories.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   const name = (input.name || '').trim();
@@ -147,8 +149,10 @@ export async function deleteBudgetCategoryAction(id: string): Promise<ActionResp
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'You have read-only access. Only treasurers and administrators can remove categories.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   try {
@@ -205,8 +209,10 @@ export async function toggleBudgetCategoryActiveAction(id: string, isActive: boo
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'You have read-only access. Only treasurers and administrators can manage chart of accounts categories.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   try {
@@ -245,8 +251,10 @@ export async function restoreStandardCategoriesAction(
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'You have read-only access. Only treasurers and administrators can restore categories.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   const targetAssocId = user.role === 'super_admin' ? (associationId || user.association_id) : user.association_id;
@@ -296,8 +304,10 @@ export async function updateBudgetCategoryAction(
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'You have read-only access. Only treasurers and administrators can edit categories.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   try {
@@ -382,8 +392,10 @@ export async function createTransactionAction(payload: CreateTransactionPayload)
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can record transactions.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   // Determine target association - strictly force non-superadmins to their own association,
@@ -565,8 +577,13 @@ export async function uploadReceiptMetadataAction(
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can upload receipts.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return { success: false, message: 'You do not have permission to upload receipts.' };
+  if (!canWriteFinancialData(user.role)) {
+    return {
+      success: false,
+      message: user.role === 'super_admin'
+        ? SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE
+        : 'You do not have permission to upload receipts.',
+    };
   }
 
   // Determine the receiving association - strictly force non-superadmins to their
@@ -709,8 +726,10 @@ export async function deleteTransactionAction(id: string): Promise<ActionRespons
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can delete transactions.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   try {

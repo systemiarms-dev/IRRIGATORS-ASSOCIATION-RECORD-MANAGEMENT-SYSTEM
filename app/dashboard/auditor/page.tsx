@@ -6,7 +6,7 @@ import { getReceiptQueueAction, auditVerifyReceiptAction, auditVerifyAllPendingA
 import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
 import { Receipt, VerificationStatus, Profile, Association, UserRole } from '@/types';
-import { hasSystemWideReadScope } from '@/lib/auth/roles';
+import { hasSystemWideReadScope, canDecideAuditQueue } from '@/lib/auth/roles';
 import { getStatusBadgeProps, formatDate, formatBytes, formatPHP, getReceiptImageUrl } from '@/lib/utils/formatters';
 import { 
   ShieldCheck, CheckCircle2, AlertTriangle, XCircle, FileText, 
@@ -20,7 +20,9 @@ export default function AuditorPage() {
   const [statusFilter, setStatusFilter] = useState<VerificationStatus | 'all'>('pending');
   const [selectedAssocId, setSelectedAssocId] = useState<string>('all');
   const [associations, setAssociations] = useState<Association[]>([]);
-  const [userRole, setUserRole] = useState<UserRole>('auditor');
+  // Default to a view-only role so privileged actions never flash before the
+  // real profile role arrives (fail-closed rendering).
+  const [userRole, setUserRole] = useState<UserRole>('bookkeeper');
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [previewImageReceipt, setPreviewImageReceipt] = useState<Receipt | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
@@ -32,10 +34,10 @@ export default function AuditorPage() {
   const [verifyingAll, setVerifyingAll] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Only Super Admin / Head Admin / Auditor may act on receipts. The system-wide
-  // Bookkeeper (if it opens this URL directly) stays strictly view-only.
-  const canDecide =
-    userRole === 'super_admin' || userRole === 'admin' || userRole === 'auditor';
+  // Head Admin / Auditor decide the Verification & Audit Queue. The Super Admin
+  // and the system-wide Bookkeeper (if they open this URL directly) stay
+  // strictly view-only in the Financial Suite.
+  const canDecide = canDecideAuditQueue(userRole);
 
   // Auto-dismiss the action feedback banner
   useEffect(() => {
@@ -178,7 +180,7 @@ export default function AuditorPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {canDecide && (
+          {canDecide ? (
           <button
             onClick={() => {
               if (confirmAll) {
@@ -217,6 +219,11 @@ export default function AuditorPage() {
             )}
             {confirmAll ? 'Confirm — Verify All?' : `Verify All Pending (${counts.pending})`}
           </button>
+          ) : (
+            <div className="px-3 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
+              <Eye className="w-4 h-4 text-amber-600" />
+              <span>Read &amp; View Only ({userRole === 'super_admin' ? 'Super Admin' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
+            </div>
           )}
 
           <button

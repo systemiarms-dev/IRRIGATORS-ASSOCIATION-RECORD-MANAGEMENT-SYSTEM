@@ -7,7 +7,7 @@ import { getProfilesAction, clearAllRecordsAction } from '@/app/actions/admin';
 import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
 import { Transaction, BudgetCategory, Profile, TransactionType, UserRole, Association } from '@/types';
-import { hasSystemWideReadScope } from '@/lib/auth/roles';
+import { hasSystemWideReadScope, canWriteFinancialData } from '@/lib/auth/roles';
 import { formatPHP, formatDate } from '@/lib/utils/formatters';
 import { calculateFundBalances, getFundShortLabel } from '@/lib/utils/fundSources';
 import TransactionFormModal from '@/components/forms/TransactionFormModal';
@@ -30,7 +30,9 @@ export default function TreasurerPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [bannerMsg, setBannerMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isClearing, setIsClearing] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>('treasurer');
+  // Default to a view-only role so privileged actions never flash before the
+  // real profile role arrives (fail-closed rendering).
+  const [userRole, setUserRole] = useState<UserRole>('bookkeeper');
   const [userAssocId, setUserAssocId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -49,7 +51,7 @@ export default function TreasurerPage() {
     }
   }, [previewVoucherTx]);
 
-  const canWrite = userRole === 'super_admin' || userRole === 'admin' || userRole === 'treasurer';
+  const canWrite = canWriteFinancialData(userRole);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -257,7 +259,7 @@ export default function TreasurerPage() {
           ) : (
             <div className="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <Eye className="w-4 h-4 text-amber-600" />
-              <span>Read &amp; View Only ({userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
+              <span>Read &amp; View Only ({userRole === 'super_admin' ? 'Super Admin' : userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
             </div>
           )}
 

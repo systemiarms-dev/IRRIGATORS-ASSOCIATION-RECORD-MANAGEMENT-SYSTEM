@@ -4,7 +4,7 @@ import { localDb } from '@/lib/db/localDb';
 import { ActionResponse, FinancialStatement, StatementType, FinancialStatementBreakdown, FS1Data, FS2Data, FS3Data, FS4Data, StatementFinancialOverrides, FinancialStatementEdits } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
-import { hasSystemWideReadScope } from '@/lib/auth/roles';
+import { hasSystemWideReadScope, canWriteFinancialData, SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE } from '@/lib/auth/roles';
 import { determineFundSource } from '@/lib/utils/fundSources';
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -67,8 +67,10 @@ export async function generateStatementAction(
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can compile financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   try {
@@ -716,8 +718,10 @@ export async function updateFinancialStatementAction(
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can modify financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   const stmt = await localDb.getFinancialStatementById(id);
@@ -770,8 +774,10 @@ export async function renameFinancialStatementAction(id: string, newTitle: strin
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can rename financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   if (!newTitle || newTitle.trim().length === 0) {
@@ -806,8 +812,10 @@ export async function deleteFinancialStatementAction(id: string): Promise<Action
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can delete financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   const stmt = await localDb.getFinancialStatementById(id);
@@ -840,8 +848,10 @@ export async function deleteMultipleFinancialStatementsAction(
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can delete financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   if (!Array.isArray(ids) || ids.length === 0) {
@@ -889,8 +899,10 @@ export async function resyncStatementWithLedgerAction(
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can re-sync financial statements.' };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   try {

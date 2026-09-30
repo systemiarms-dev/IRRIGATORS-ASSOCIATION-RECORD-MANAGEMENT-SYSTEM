@@ -2,7 +2,7 @@
 
 import { localDb } from '@/lib/db/localDb';
 import { requireUser, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
-import { hasSystemWideReadScope } from '@/lib/auth/roles';
+import { hasSystemWideReadScope, canWriteFinancialData, SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE } from '@/lib/auth/roles';
 import { ActionResponse, FixedAsset } from '@/types';
 import { revalidatePath } from 'next/cache';
 
@@ -53,8 +53,10 @@ export async function createFixedAssetAction(input: {
       message: 'You have read-only access. Only treasurers and administrators can register fixed assets.',
     };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   let targetAssoc = user.association_id;
@@ -128,8 +130,10 @@ export async function deleteFixedAssetAction(id: string): Promise<ActionResponse
       message: 'You have read-only access. Only treasurers and administrators can remove fixed assets.',
     };
   }
-  if (user.role !== 'super_admin' && user.role !== 'admin' && user.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
+  if (!canWriteFinancialData(user.role)) {
+    return user.role === 'super_admin'
+      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
+      : UNAUTHORIZED_RESPONSE;
   }
 
   try {
