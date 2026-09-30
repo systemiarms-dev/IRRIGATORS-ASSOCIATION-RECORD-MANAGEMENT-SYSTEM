@@ -68,7 +68,7 @@ export default function Sidebar({
           label: 'Irrigators Associations',
           href: '/dashboard/associations',
           icon: Building2,
-          roles: ['super_admin'],
+          roles: ['super_admin', 'bookkeeper'],
           badge: 'Registry',
           description: 'Registry & NIA Profile',
         },

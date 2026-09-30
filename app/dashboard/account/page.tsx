@@ -390,9 +390,9 @@ export default function AccountManagementPage() {
               )}
               {profile?.role === 'bookkeeper' && (
                 <>
-                  <li>Read-only inspection of farmer member registry and chart of accounts.</li>
-                  <li>Viewing collections & disbursement transactions and official receipts without modification.</li>
-                  <li>Accessing, reviewing, and printing comparative financial statements (FS1–FS4).</li>
+                  <li>Single system-wide account: view-only access to the records of every registered association.</li>
+                  <li>Read-only inspection of member registries, chart of accounts, fixed assets, and the cash ledger.</li>
+                  <li>Accessing, reviewing, and printing FS1–FS4 financial statements — no create, edit, delete, or modify rights.</li>
                 </>
               )}
               {profile?.role === 'auditor' && (

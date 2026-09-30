@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useState, useTransition, useEffect } from 'react';
+import Link from 'next/link';
 import { useLoadOnce } from '@/lib/hooks/useLoadOnce';
 import { 
   getProfilesAction, updateUserRoleAction, deleteUserAccountAction, 
@@ -48,10 +49,11 @@ export default function AdminUsersPage() {
   const [showResetPassword, setShowResetPassword] = useState(false);
 
   // Treasurer/Auditor usernames are fixed to the association short code (never editable).
+  // The Bookkeeper is a single system-wide account, so its username is free-form.
   const fixedAssocId = currentUserRole === 'super_admin' ? createForm.associationId : currentUserAssocId || createForm.associationId;
   const selectedAssoc = associations.find((a) => a.id === fixedAssocId);
   const assocShortCode = (selectedAssoc?.code || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const isFixedUsername = createForm.role === 'treasurer' || createForm.role === 'auditor' || createForm.role === 'bookkeeper';
+  const isFixedUsername = createForm.role === 'treasurer' || createForm.role === 'auditor';
   const generatedUsername = isFixedUsername && assocShortCode ? `${createForm.role}_${assocShortCode}` : '';
 
   useEffect(() => {
@@ -300,6 +302,33 @@ export default function AdminUsersPage() {
     );
   }
 
+  // The Bookkeeper is a single, system-wide view-only account: it may inspect
+  // financial reports and records of every association, but it never manages
+  // user accounts and cannot create, edit, delete, or modify any data.
+  if (!loading && currentUserRole === 'bookkeeper') {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="p-6 sm:p-8 rounded-2xl bg-white border border-amber-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-6 h-6" />
+          </div>
+          <h1 className="text-lg font-black text-slate-900">User Account Manager is restricted</h1>
+          <p className="text-xs text-slate-500 font-medium max-w-xl mx-auto leading-relaxed">
+            The Bookkeeper is the system&apos;s single authorized view-only account. It can read the
+            financial reports and records of every registered association, but it has no permission to
+            create, edit, delete, or modify any data — including officer and member accounts.
+          </p>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-md active:scale-95"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Back to Overview Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Association Filter Strip for Super Admin */}
@@ -420,7 +449,7 @@ export default function AdminUsersPage() {
               roleFilter === 'bookkeeper' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Bookkeepers
+            Bookkeeper
           </button>
           <button
             onClick={() => setRoleFilter('treasurer')}
@@ -499,7 +528,7 @@ export default function AdminUsersPage() {
                           className="px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 bg-white"
                         >
                           <option value="admin">Head Admin</option>
-                          <option value="bookkeeper">Bookkeeper</option>
+                          <option value="bookkeeper">System Bookkeeper (View Only)</option>
                           <option value="treasurer">Treasurer</option>
                           <option value="auditor">Auditor</option>
                         </select>
@@ -643,15 +672,26 @@ export default function AdminUsersPage() {
                       onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}
                       className="w-full text-xs p-2.5 border rounded-xl border-slate-300 font-bold"
                     >
-                      <option value="bookkeeper">Association Bookkeeper</option>
                       <option value="treasurer">Association Treasurer (Read &amp; View Only)</option>
                       <option value="auditor">Internal Auditor</option>
+                      {currentUserRole === 'super_admin' && <option value="bookkeeper">System Bookkeeper (Single View-Only Account)</option>}
                       {currentUserRole === 'super_admin' && <option value="admin">Association Head Admin</option>}
                     </select>
                   </div>
               </div>
 
-              {currentUserRole === 'super_admin' ? (
+              {currentUserRole === 'super_admin' && createForm.role === 'bookkeeper' ? (
+                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-700 truncate">
+                    <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span>Scope:</span>
+                    <span className="text-amber-800 font-mono font-bold truncate">System-wide (All Associations)</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold shrink-0 ml-2">
+                    View Only
+                  </span>
+                </div>
+              ) : currentUserRole === 'super_admin' ? (
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700">Associated Irrigators Association *</label>
                   <select

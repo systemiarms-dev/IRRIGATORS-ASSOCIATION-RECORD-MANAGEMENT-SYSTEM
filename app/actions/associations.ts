@@ -4,6 +4,7 @@ import { localDb } from '@/lib/db/localDb';
 import { ActionResponse, Association } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireSuperAdmin, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { hashPassword, generateRandomPassword } from '@/lib/auth/password';
 import { isValidPhilippineMobile, normalizePhilippineMobile } from '@/lib/utils/phone';
 import { purgeReceiptStorage } from '@/lib/storage/receipts';
@@ -11,7 +12,8 @@ import { seedStandardCategoriesForAssociation } from '@/lib/financial/standardAc
 
 /**
  * Fetch registered Irrigators Associations directly from Supabase Cloud.
- * Officers only ever see their own association; super admins see the full registry.
+ * Super Admin and the system-wide Bookkeeper see the full registry (the
+ * Bookkeeper is strictly view-only); association officers see only their own.
  */
 export async function getAssociationsAction(): Promise<ActionResponse<Association[]>> {
   const user = await requireUser();
@@ -19,10 +21,9 @@ export async function getAssociationsAction(): Promise<ActionResponse<Associatio
 
   try {
     const associations = await localDb.getAssociations();
-    const scoped =
-      user.role === 'super_admin'
-        ? associations
-        : associations.filter((a) => a.id === user.association_id);
+    const scoped = hasSystemWideReadScope(user.role)
+      ? associations
+      : associations.filter((a) => a.id === user.association_id);
     return { success: true, message: 'Associations fetched successfully.', data: scoped };
   } catch (error: any) {
     return { success: false, message: error.message || 'Error fetching associations from Supabase.' };
@@ -30,7 +31,8 @@ export async function getAssociationsAction(): Promise<ActionResponse<Associatio
 }
 
 /**
- * Fetch single association by ID. Officers may only read their own association.
+ * Fetch single association by ID. Officers may only read their own association;
+ * Super Admin and the system-wide Bookkeeper may read any of them.
  */
 export async function getAssociationByIdAction(id: string): Promise<ActionResponse<Association>> {
   const user = await requireUser();
@@ -41,7 +43,7 @@ export async function getAssociationByIdAction(id: string): Promise<ActionRespon
     if (!association) {
       return { success: false, message: 'Association not found.' };
     }
-    if (user.role !== 'super_admin' && association.id !== user.association_id) {
+    if (!hasSystemWideReadScope(user.role) && association.id !== user.association_id) {
       return UNAUTHORIZED_RESPONSE;
     }
     return { success: true, message: 'Association details fetched.', data: association };
@@ -120,9 +122,11 @@ export async function createAssociationAction(formData: FormData): Promise<Actio
 
     // Auto-seed default initial accounts for this new association with
     // standard system default passwords (<role>123) consistent across all IAs.
+    // NOTE: No per-association Bookkeeper is provisioned. The Bookkeeper is a
+    // single system-wide, view-only account created by the Super Admin that can
+    // read the financial reports and records of every association.
     const assocCleanCode = code.toLowerCase().replace(/[^a-z0-9]/g, '');
     const adminPassword = 'admin123';
-    const bookkeeperPassword = 'bookkeeper123';
     const treasurerPassword = 'treasurer123';
     const auditorPassword = 'auditor123';
     
@@ -137,22 +141,6 @@ export async function createAssociationAction(formData: FormData): Promise<Actio
       farm_location: mailing_address,
       farm_size_hectares: 2.5,
       contact_number,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      token_version: 0,
-    });
-
-    // Bookkeeper
-    await localDb.createUser({
-      id: `user-bookkeeper-${assocCleanCode}`,
-      username: `bookkeeper_${assocCleanCode}`,
-      password: hashPassword(bookkeeperPassword),
-      full_name: `Bookkeeper ${name.split(' ')[0]}`,
-      role: 'bookkeeper',
-      association_id: newAssoc.id,
-      farm_location: mailing_address,
-      farm_size_hectares: 2.0,
-      contact_number: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       token_version: 0,
@@ -213,7 +201,7 @@ export async function createAssociationAction(formData: FormData): Promise<Actio
 
     return {
       success: true,
-      message: `Association "${name}" (${code}) created successfully with initial officer logins and standard NIA Chart of Accounts! Initial accounts provisioned: admin_${assocCleanCode} (admin123), bookkeeper_${assocCleanCode} (bookkeeper123), treasurer_${assocCleanCode} (treasurer123), auditor_${assocCleanCode} (auditor123).`,
+      message: `Association "${name}" (${code}) created successfully with initial officer logins and standard NIA Chart of Accounts! Initial accounts provisioned: admin_${assocCleanCode} (admin123), treasurer_${assocCleanCode} (treasurer123), auditor_${assocCleanCode} (auditor123). The system-wide Bookkeeper account is not duplicated per association — manage it from the User Account Manager (Super Admin only).`,
       data: newAssoc,
     };
   } catch (error: any) {

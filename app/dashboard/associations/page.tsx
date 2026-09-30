@@ -4,10 +4,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { getAssociationsAction, deleteAssociationAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
 import { Association, UserRole } from '@/types';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import AssociationFormModal from '@/components/forms/AssociationFormModal';
 import { 
   Building2, PlusCircle, Pencil, Trash2, MapPin, User, Phone, 
-  FileText, Shield, Layers, Users, Loader2, CheckCircle2, ArrowRight
+  FileText, Shield, Layers, Users, Loader2, CheckCircle2, ArrowRight, Eye
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -33,7 +34,7 @@ export default function AssociationsManagementPage() {
 
       if (assocRes.success && assocRes.data) {
         const selfData = selfRes.success && selfRes.data ? selfRes.data : null;
-        if (selfData && selfData.role !== 'super_admin' && selfData.association_id) {
+        if (selfData && !hasSystemWideReadScope(selfData.role) && selfData.association_id) {
           setAssociations(assocRes.data.filter((a) => a.id === selfData.association_id));
         } else {
           setAssociations(assocRes.data);
@@ -92,6 +93,12 @@ export default function AssociationsManagementPage() {
             </p>
           </div>
         </div>
+
+        {userRole === 'bookkeeper' && (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 text-xs font-extrabold border border-amber-200 shrink-0 self-start sm:self-auto">
+            <Eye className="w-4 h-4" /> View Only &bull; All Associations
+          </div>
+        )}
 
         {userRole === 'super_admin' && (
           <button

@@ -5,6 +5,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { ActionResponse, Profile } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireRole, requireUser, toPublicProfile, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { hashPassword } from '@/lib/auth/password';
 import { isValidPhilippineMobile, normalizePhilippineMobile } from '@/lib/utils/phone';
 
@@ -34,7 +35,7 @@ export async function getMembersAction(associationId?: string): Promise<ActionRe
   if (!user) return UNAUTHORIZED_RESPONSE;
 
   try {
-    const effectiveAssoc = user.role === 'super_admin' ? associationId : (user.association_id || undefined);
+    const effectiveAssoc = hasSystemWideReadScope(user.role) ? associationId : (user.association_id || undefined);
     const members = await localDb.getUsers(effectiveAssoc, 'member');
     return { success: true, message: 'Farmer members retrieved successfully.', data: members };
   } catch (error: any) {

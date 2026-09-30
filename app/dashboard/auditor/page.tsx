@@ -6,6 +6,7 @@ import { getReceiptQueueAction, auditVerifyReceiptAction, auditVerifyAllPendingA
 import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
 import { Receipt, VerificationStatus, Profile, Association, UserRole } from '@/types';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { getStatusBadgeProps, formatDate, formatBytes, formatPHP, getReceiptImageUrl } from '@/lib/utils/formatters';
 import { 
   ShieldCheck, CheckCircle2, AlertTriangle, XCircle, FileText, 
@@ -30,6 +31,11 @@ export default function AuditorPage() {
   const [confirmAll, setConfirmAll] = useState(false);
   const [verifyingAll, setVerifyingAll] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Only Super Admin / Head Admin / Auditor may act on receipts. The system-wide
+  // Bookkeeper (if it opens this URL directly) stays strictly view-only.
+  const canDecide =
+    userRole === 'super_admin' || userRole === 'admin' || userRole === 'auditor';
 
   // Auto-dismiss the action feedback banner
   useEffect(() => {
@@ -65,7 +71,7 @@ export default function AuditorPage() {
       }
       if (selfRes.success && selfRes.data) {
         setUserRole(selfRes.data.role);
-        if (selfRes.data.role !== 'super_admin' && selfRes.data.association_id) {
+        if (!hasSystemWideReadScope(selfRes.data.role) && selfRes.data.association_id) {
           setSelectedAssocId(selfRes.data.association_id);
         }
       }
@@ -116,7 +122,8 @@ export default function AuditorPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Association Filter Strip for Super Admin */}
-      {userRole === 'super_admin' && (
+      {/* Association Filter Strip for system-wide roles (Super Admin & view-only Bookkeeper) */}
+      {hasSystemWideReadScope(userRole) && (
         <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-emerald-600" />
@@ -171,6 +178,7 @@ export default function AuditorPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {canDecide && (
           <button
             onClick={() => {
               if (confirmAll) {
@@ -209,6 +217,7 @@ export default function AuditorPage() {
             )}
             {confirmAll ? 'Confirm — Verify All?' : `Verify All Pending (${counts.pending})`}
           </button>
+          )}
 
           <button
             onClick={() => loadData()}
@@ -372,6 +381,7 @@ export default function AuditorPage() {
                     <Eye className="w-3.5 h-3.5" /> View Voucher
                   </button>
 
+                  {canDecide && (
                   <button
                     onClick={() => {
                       setSelectedReceipt(rcpt);
@@ -381,6 +391,7 @@ export default function AuditorPage() {
                   >
                     <ShieldCheck className="w-3.5 h-3.5" /> Audit Decision
                   </button>
+                  )}
                 </div>
               </div>
             );
@@ -389,7 +400,7 @@ export default function AuditorPage() {
       )}
 
       {/* Decision Modal */}
-      {selectedReceipt && (
+      {selectedReceipt && canDecide && (
         <Dialog open={Boolean(selectedReceipt)} onOpenChange={() => setSelectedReceipt(null)}>
           <DialogContent className="max-w-md p-6 bg-white rounded-2xl" onClose={() => setSelectedReceipt(null)}>
             <DialogHeader>

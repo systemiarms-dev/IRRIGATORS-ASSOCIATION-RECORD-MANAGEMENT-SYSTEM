@@ -8,6 +8,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { ActionResponse, CreateTransactionPayload, Transaction, BudgetCategory, Receipt, Profile, FundSource, AccountClassification } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, toPublicProfile, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { calculateFundBalances, getFundLabel, determineFundSource } from '@/lib/utils/fundSources';
 import { isStandardNiaAccount, seedStandardCategoriesForAssociation } from '@/lib/financial/standardAccounts';
 
@@ -338,7 +339,7 @@ export async function getBudgetCategoriesAction(associationId?: string): Promise
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
 
-  const effectiveAssoc = user.role === 'super_admin' ? associationId : (user.association_id || undefined);
+  const effectiveAssoc = hasSystemWideReadScope(user.role) ? associationId : (user.association_id || undefined);
   try {
     const categories = await localDb.getBudgetCategories(effectiveAssoc);
     return { success: true, message: 'Budget categories fetched.', data: categories };
@@ -359,7 +360,7 @@ export async function getTransactionsAction(
   if (!user) return UNAUTHORIZED_RESPONSE;
 
   let effectiveAssoc = associationIdFilter;
-  if (user.role !== 'super_admin') {
+  if (!hasSystemWideReadScope(user.role)) {
     effectiveAssoc = user.association_id || undefined;
   }
 
@@ -536,7 +537,7 @@ export async function getFundBalancesAction(associationId?: string): Promise<Act
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   let targetAssoc = associationId;
-  if (user.role !== 'super_admin') {
+  if (!hasSystemWideReadScope(user.role)) {
     targetAssoc = user.association_id || undefined;
   }
   try {

@@ -29,7 +29,7 @@ IARMS is a **progressive web application (PWA)** designed to digitize and stream
 - **Collections & Disbursements Ledger** — Log payments, expenses, and track cash flow in real time
 - **Receipt/Voucher Management** — Upload, verify, and audit official vouchers with status tracking
 - **Multi-Association Support** — Super admin can manage multiple IAs from a single dashboard
-- **Role-Based Access Control** — Super Admin, Head Admin, Treasurer, and Auditor roles
+- **Role-Based Access Control** — Super Admin, Bookkeeper (single system-wide view-only account), Head Admin, Treasurer, and Auditor roles
 - **PWA Installable** — Works offline and installable on mobile devices
 
 ---
@@ -253,47 +253,49 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## User Roles & Permissions
 
-| Permission | Super Admin | Head Admin | Treasurer | Auditor |
-|:-----------|:----------:|:----------:|:---------:|:-------:|
-| **Association Management** | | | | |
-| Create / Edit / Delete IAs | ✅ | ❌ | ❌ | ❌ |
-| View All IAs | ✅ | ❌ | ❌ | ❌ |
-| View Own IA Only | ✅ | ✅ | ✅ | ✅ |
-| **User Management** | | | | |
-| Create Officer Accounts | ✅ | ✅* | ❌ | ❌ |
-| Edit Officer Profiles | ✅ | ✅* | ❌ | ❌ |
-| Reset Officer Passwords | ✅ | ✅* | ❌ | ❌ |
-| Reassign Roles | ✅ | ❌ | ❌ | ❌ |
-| Delete Officer Accounts | ✅ | ✅* | ❌ | ❌ |
-| Print Officer Directory | ✅ | ❌ | ❌ | ❌ |
-| **Financial Statements** | | | | |
-| Generate FS1–FS4 | ✅ | ✅ | ✅ | ❌ |
-| View FS1–FS4 | ✅ | ✅ | ✅ | ✅ |
-| Edit FS Line Items | ✅ | ✅ | ✅ | ❌ |
-| Rename / Delete Statements | ✅ | ✅ | ✅ | ❌ |
-| **Transaction Ledger** | | | | |
-| Log Collections | ✅ | ❌ | ✅ | ❌ |
-| Log Disbursements | ✅ | ❌ | ✅ | ❌ |
-| Delete Transactions | ✅ | ❌ | ✅ | ❌ |
-| View Ledger | ✅ | ✅ | ✅ | ✅ |
-| Search & Filter Ledger | ✅ | ✅ | ✅ | ✅ |
-| Export Ledger to CSV | ✅ | ✅ | ✅ | ✅ |
-| **Receipt / Voucher Management** | | | | |
-| Upload Receipts | ✅ | ❌ | ✅ | ❌ |
-| Review Audit Queue | ✅ | ❌ | ❌ | ✅ |
-| Verify / Flag / Reject | ✅ | ❌ | ❌ | ✅ |
-| Bulk Verify All Pending | ✅ | ❌ | ❌ | ✅ |
-| **Dashboard** | | | | |
-| View KPI Cards | ✅ | ✅ | ✅ | ✅ |
-| View Consolidated Overview | ✅ | ❌ | ❌ | ❌ |
-| View Monthly Charts | ✅ | ✅ | ✅ | ✅ |
-| **Administration** | | | | |
-| Purge All Financial Records | ✅ | ❌ | ❌ | ❌ |
-| Edit Own Profile | ✅ | ✅ | ✅ | ✅ |
-| Change Own Password | ✅ | ✅ | ✅ | ✅ |
-| View Role Summary | ✅ | ✅ | ✅ | ✅ |
+| Permission | Super Admin | Bookkeeper | Head Admin | Treasurer | Auditor |
+|:-----------|:----------:|:----------:|:----------:|:---------:|:-------:|
+| **Association Management** | | | | | |
+| Create / Edit / Delete IAs | ✅ | ❌ | ❌ | ❌ | ❌ |
+| View All IAs | ✅ | ✅ | ❌ | ❌ | ❌ |
+| View Own IA Only | ✅ | —\*\* | ✅ | ✅ | ✅ |
+| **User Management** | | | | | |
+| Create Officer Accounts | ✅ | ❌ | ✅* | ❌ | ❌ |
+| Edit Officer Profiles | ✅ | ❌ | ✅* | ❌ | ❌ |
+| Reset Officer Passwords | ✅ | ❌ | ✅* | ❌ | ❌ |
+| Reassign Roles | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Delete Officer Accounts | ✅ | ❌ | ✅* | ❌ | ❌ |
+| Print Officer Directory | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Financial Statements** | | | | | |
+| Generate FS1–FS4 | ✅ | ❌ | ✅ | ✅ | ❌ |
+| View FS1–FS4 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Edit FS Line Items | ✅ | ❌ | ✅ | ✅ | ❌ |
+| Rename / Delete Statements | ✅ | ❌ | ✅ | ✅ | ❌ |
+| **Transaction Ledger** | | | | | |
+| Log Collections | ✅ | ❌ | ❌ | ✅ | ❌ |
+| Log Disbursements | ✅ | ❌ | ❌ | ✅ | ❌ |
+| Delete Transactions | ✅ | ❌ | ❌ | ✅ | ❌ |
+| View Ledger | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Search & Filter Ledger | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Export Ledger to CSV | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Receipt / Voucher Management** | | | | | |
+| Upload Receipts | ✅ | ❌ | ❌ | ✅ | ❌ |
+| Review Audit Queue | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Verify / Flag / Reject | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Bulk Verify All Pending | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **Dashboard** | | | | | |
+| View KPI Cards | ✅ | ✅ | ✅ | ✅ | ✅ |
+| View Consolidated Overview | ✅ | ✅ | ❌ | ❌ | ❌ |
+| View Monthly Charts | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Administration** | | | | | |
+| Purge All Financial Records | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Edit Own Profile | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Change Own Password | ✅ | ✅ | ✅ | ✅ | ✅ |
+| View Role Summary | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 > \* Head Admin can only manage Treasurer and Auditor within their own association. Cannot create other Head Admins.
+>
+> \*\* The **Bookkeeper** is a *single system-wide account* (one per installation, created only by the Super Admin, `association_id = NULL`). It has **view-only** access to the financial reports and records of **every** association and **no permission to create, edit, delete, or modify any data** — only its own profile and password. Existing databases can be migrated with `supabase_migration_bookkeeper_systemwide.sql`; new associations no longer auto-provision a `bookkeeper_<code>` login.
 
 ---
 

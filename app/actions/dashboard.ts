@@ -3,18 +3,22 @@
 import { localDb } from '@/lib/db/localDb';
 import { ActionResponse, DashboardMetrics, AssociationMetricSummary } from '@/types';
 import { requireUser, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 
 /**
  * Compute real-time KPI metrics and analytics charts data directly from Supabase Cloud.
- * Supports consolidated multi-association view for Super Admin and association-scoped view for officers.
+ * Supports consolidated multi-association view for Super Admin and the Bookkeeper
+ * (view-only, system-wide) and association-scoped view for officers.
  */
 export async function getDashboardMetricsAction(associationIdFilter?: string): Promise<ActionResponse<DashboardMetrics>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
 
-  // Determine effective association filter based on user role and input
+  // Determine effective association filter based on user role and input.
+  // Super Admin and the system-wide Bookkeeper may read any/all associations;
+  // every other officer is pinned to their own association.
   let effectiveAssocId = associationIdFilter;
-  if (user.role !== 'super_admin') {
+  if (!hasSystemWideReadScope(user.role)) {
     effectiveAssocId = user.association_id || undefined;
   }
 
@@ -77,9 +81,9 @@ export async function getDashboardMetricsAction(associationIdFilter?: string): P
 
     const categoryBreakdown = Object.values(categoryMap);
 
-    // Compute breakdown per association for Super Admin
+    // Compute breakdown per association for system-wide roles (Super Admin, Bookkeeper)
     let associationSummaries: AssociationMetricSummary[] = [];
-    if (user.role === 'super_admin' && (!effectiveAssocId || effectiveAssocId === 'all')) {
+    if (hasSystemWideReadScope(user.role) && (!effectiveAssocId || effectiveAssocId === 'all')) {
       const perAssocData = await Promise.all(
         allAssocs.map(async (assoc) => {
           const [assocTxs, assocUsers, assocReceipts] = await Promise.all([

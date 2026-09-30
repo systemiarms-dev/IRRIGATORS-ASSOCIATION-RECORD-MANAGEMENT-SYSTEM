@@ -2,6 +2,7 @@
 
 import { localDb } from '@/lib/db/localDb';
 import { requireUser, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { ActionResponse, FixedAsset } from '@/types';
 import { revalidatePath } from 'next/cache';
 
@@ -13,7 +14,7 @@ export async function getFixedAssetsAction(
   if (!user) return UNAUTHORIZED_RESPONSE;
 
   let targetAssoc = associationId;
-  if (user.role !== 'super_admin') {
+  if (!hasSystemWideReadScope(user.role)) {
     targetAssoc = user.association_id || undefined;
   }
 

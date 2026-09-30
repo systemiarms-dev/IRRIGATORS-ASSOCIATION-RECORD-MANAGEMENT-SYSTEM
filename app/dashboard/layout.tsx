@@ -4,6 +4,7 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import Footer from '@/components/layout/Footer';
 import { getSessionUser } from '@/lib/auth/session';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
@@ -12,8 +13,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect('/login');
   }
 
-  const associationName = user.association?.name || (user.role === 'super_admin' ? 'IARMS' : 'Irrigators Association');
-  const associationCode = user.association?.code || (user.role === 'super_admin' ? 'IARMS' : 'IA');
+  const isSystemWide = hasSystemWideReadScope(user.role);
+  const associationName = user.association?.name || (isSystemWide ? 'IARMS' : 'Irrigators Association');
+  const associationCode = user.association?.code || (isSystemWide ? 'IARMS' : 'IA');
 
   return (
     <div

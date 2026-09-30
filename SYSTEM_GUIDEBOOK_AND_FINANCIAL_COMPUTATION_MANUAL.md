@@ -27,9 +27,11 @@ The system enforces strict **Separation of Duties (SoD)** to prevent financial f
 | **Super Admin** | System-wide oversight across all IAs, system configuration, database backup | Yes | Yes | Yes | Yes |
 | **IA President** | Executive leadership, governance, administrative approval, signatory | View Only | View Only | View Only | Yes |
 | **Treasurer / Encoder** | Primary input of all records: collections, expenses, vouchers, asset & member registry | **Yes** | **Yes** | **Yes** | **Yes** |
-| **Bookkeeper** | Fiduciary review, account inspection, general ledger and financial statements audit | View Only | View Only | View Only | No |
+| **Bookkeeper** | **Single system-wide account** — view-only inspection of the financial reports and records of **every** registered IA (no association of its own) | **View Only** | **View Only** | **View Only** | No |
 | **Auditor** | Independent verification, examination of receipts/vouchers, audit overrides | View Only | View Only | View Only | **Yes** |
 | **Farmer Member** | View individual dues, payments, land parcel records, and published reports | No | No | No | No |
+
+> **Bookkeeper rules:** exactly **one** Bookkeeper account exists per installation and it is created/managed only by the Super Admin (it has `association_id = NULL`). It may **view** every module — IA registry, member roster, ledger, chart of accounts, fixed assets, FS1–FS4, dashboard KPIs — but it has **no permission to create, edit, delete, or modify any data**. Only its own profile details and password can be changed (My Account Settings).
 
 ---
 
@@ -40,7 +42,7 @@ The system sidebar is divided into three distinct operational suites: **Core Man
 ```
 [Core Management]
 ├── Overview Dashboard         (/dashboard)
-├── Irrigators Associations    (/dashboard/associations) [Super Admin]
+├── Irrigators Associations    (/dashboard/associations) [Super Admin / Bookkeeper]
 └── Farmer Members             (/dashboard/members)
 
 [Financial Suite]
@@ -55,7 +57,7 @@ The system sidebar is divided into three distinct operational suites: **Core Man
 ```
 
 ### 3.1 Overview Dashboard (`/dashboard`)
-1. **Association Scope Bar (for Super Admin):** Quick-tap buttons allow switching between **`All Associations (Consolidated)`** or specific IAs (e.g. `NLFIA • Nangurisan`).
+1. **Association Scope Bar (for Super Admin and the view-only Bookkeeper):** Quick-tap buttons allow switching between **`All Associations (Consolidated)`** or specific IAs (e.g. `NLFIA • Nangurisan`).
 2. **Executive Header Action Buttons:**
    - **`Log Payment / Voucher`**: Directly opens the financial transaction modal.
    - **`Open Auditor Queue`**: Navigates straight to the internal audit and receipt verification queue.
@@ -206,10 +208,11 @@ This is the double-entry bookkeeping engine for all daily cash, bank, and vouche
    - Click **`Print Accounts (PDF)`** (Printer icon) to print the authorized officer directory roster.
    - Click **`Purge Records`** (or **`Purge Association Records`**) to wipe transaction data when resetting fiscal environments.
 2. **Role Filter Tabs:**
-   - Filter directory by **`All Accounts (N)`**, **`Head Admins`**, **`Bookkeepers`**, **`Treasurers`**, or **`Auditors`**.
+   - Filter directory by **`All Accounts (N)`**, **`Head Admins`**, **`Bookkeeper`**, **`Treasurers`**, or **`Auditors`**.
    - Click **`Refresh`** to reload user accounts.
 3. **Register New Officer Account Modal:**
-   - Encode `Full Legal Name *`, `System Username *` (automatically generated and locked to `{role}_{code}` for Treasurer, Auditor, and Bookkeeper), `Initial Password *` (with show/hide eye toggle), `Officer Role *`, `Associated Irrigators Association *`, and `Mobile / Contact Number` (11-digit Philippine format).
+   - Encode `Full Legal Name *`, `System Username *` (automatically generated and locked to `{role}_{code}` for Treasurer and Auditor only), `Initial Password *` (with show/hide eye toggle), `Officer Role *`, `Associated Irrigators Association *`, and `Mobile / Contact Number` (11-digit Philippine format).
+   - **`System Bookkeeper (Single View-Only Account)`** appears in `Officer Role *` for the Super Admin only. It cannot be assigned to an association: the modal shows `Scope: System-wide (All Associations)`, and the system rejects a second Bookkeeper account.
    - Click **`Create Account`** (or **`Cancel`**).
 4. **Directory Table Actions:**
    - Inline role dropdown: Change permissions instantly (Super Admin).

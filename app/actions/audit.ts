@@ -4,6 +4,7 @@ import { localDb } from '@/lib/db/localDb';
 import { ActionResponse, Receipt, VerificationStatus } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 
 /**
  * Bulk-verify all pending receipts currently visible in the auditor queue.
@@ -64,7 +65,7 @@ export async function getReceiptQueueAction(
   if (!user) return UNAUTHORIZED_RESPONSE;
 
   let effectiveAssoc = associationIdFilter;
-  if (user.role !== 'super_admin') {
+  if (!hasSystemWideReadScope(user.role)) {
     effectiveAssoc = user.association_id || undefined;
   }
 

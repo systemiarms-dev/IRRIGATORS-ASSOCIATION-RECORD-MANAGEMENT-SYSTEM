@@ -38,7 +38,7 @@ export default function Header({
 
   const navItems = [
     { label: 'Overview Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
-    { label: 'Irrigators Associations', href: '/dashboard/associations', icon: Building2, roles: ['super_admin'] },
+    { label: 'Irrigators Associations', href: '/dashboard/associations', icon: Building2, roles: ['super_admin', 'bookkeeper'] },
     { label: 'Farmer Members', href: '/dashboard/members', icon: Users, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer'] },
     { label: 'Collections & Expenses', href: '/dashboard/treasurer', icon: Wallet, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer'] },
     { label: 'Verification & Audit Queue', href: '/dashboard/auditor', icon: ShieldCheck, roles: ['super_admin', 'admin', 'auditor'] },

@@ -7,13 +7,14 @@ import { getDashboardMetricsAction } from '@/app/actions/dashboard';
 import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
 import { UserRole, DashboardMetrics, Association } from '@/types';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { formatPHP } from '@/lib/utils/formatters';
 import FinancialTrendsChart from '@/components/charts/FinancialTrendsChart';
 import ExpenseBreakdownChart from '@/components/charts/ExpenseBreakdownChart';
 import { 
   Wallet, TrendingUp, TrendingDown, FileText, ArrowRight, 
   Loader2, Landmark, CheckCircle2, BarChart3, PieChart, Coins, 
-  ShieldCheck, FileSpreadsheet, Building2, Layers, Filter, Receipt 
+  ShieldCheck, FileSpreadsheet, Building2, Layers, Filter, Receipt, Eye 
 } from 'lucide-react';
 
 export default function DashboardOverviewPage() {
@@ -38,7 +39,7 @@ export default function DashboardOverviewPage() {
         if (profileRes.data.association) {
           setUserAssocName(profileRes.data.association.name);
         }
-        if (profileRes.data.role !== 'super_admin' && profileRes.data.association_id) {
+        if (!hasSystemWideReadScope(profileRes.data.role) && profileRes.data.association_id) {
           setSelectedAssocId(profileRes.data.association_id);
         }
       }
@@ -70,13 +71,13 @@ export default function DashboardOverviewPage() {
   // Selected association metadata
   const currentAssoc = associations.find((a) => a.id === selectedAssocId);
   const activeTitle = selectedAssocId === 'all'
-    ? (userRole === 'super_admin' ? 'IRRIGATORS ASSOCIATION RECORD MANAGEMENT SYSTEM' : (userAssocName || 'NANGURISAN LAYA FARMERS IRRIGATORS ASSOCIATION, INC.'))
+    ? (hasSystemWideReadScope(userRole) ? 'IRRIGATORS ASSOCIATION RECORD MANAGEMENT SYSTEM' : (userAssocName || 'NANGURISAN LAYA FARMERS IRRIGATORS ASSOCIATION, INC.'))
     : (currentAssoc?.name || 'IRRIGATORS ASSOCIATION');
 
   return (
     <div className="space-y-6">
-      {/* Association Selector Strip for Super Admin */}
-      {userRole === 'super_admin' && (
+      {/* Association Selector Strip for system-wide roles (Super Admin & view-only Bookkeeper) */}
+      {hasSystemWideReadScope(userRole) && (
         <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-emerald-600" />
@@ -121,6 +122,11 @@ export default function DashboardOverviewPage() {
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] sm:text-[11px] font-extrabold border border-emerald-200">
               Executive Financial &amp; Operations Dashboard
             </div>
+            {userRole === 'bookkeeper' && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[10px] sm:text-[11px] font-extrabold border border-amber-200 w-fit">
+                <Eye className="w-3 h-3" /> View Only &bull; Every Association
+              </div>
+            )}
             <h1 className="text-base sm:text-xl font-black tracking-tight text-slate-900 leading-tight">
               {activeTitle}
             </h1>
@@ -214,8 +220,8 @@ export default function DashboardOverviewPage() {
             </div>
           </div>
 
-          {/* Association Breakdown Table (For Super Admin Consolidated View) */}
-          {userRole === 'super_admin' && selectedAssocId === 'all' && metrics?.associationSummaries && metrics.associationSummaries.length > 0 && (
+          {/* Association Breakdown Table (For system-wide consolidated view) */}
+          {hasSystemWideReadScope(userRole) && selectedAssocId === 'all' && metrics?.associationSummaries && metrics.associationSummaries.length > 0 && (
             <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -228,7 +234,7 @@ export default function DashboardOverviewPage() {
                   href="/dashboard/associations"
                   className="self-start sm:self-auto text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 shrink-0"
                 >
-                  <span>Manage IAs</span>
+                  <span>{userRole === 'super_admin' ? 'Manage IAs' : 'View IAs'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

@@ -7,6 +7,7 @@ import { getProfilesAction, clearAllRecordsAction } from '@/app/actions/admin';
 import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
 import { Transaction, BudgetCategory, Profile, TransactionType, UserRole, Association } from '@/types';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { formatPHP, formatDate } from '@/lib/utils/formatters';
 import { calculateFundBalances, getFundShortLabel } from '@/lib/utils/fundSources';
 import TransactionFormModal from '@/components/forms/TransactionFormModal';
@@ -70,7 +71,7 @@ export default function TreasurerPage() {
         if (selfRes.data.association_id) {
           setUserAssocId(selfRes.data.association_id);
         }
-        if (selfRes.data.role !== 'super_admin' && selfRes.data.association_id) {
+        if (!hasSystemWideReadScope(selfRes.data.role) && selfRes.data.association_id) {
           setSelectedAssocId(selfRes.data.association_id);
         }
       }
@@ -190,8 +191,8 @@ export default function TreasurerPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Association Selector Strip for Super Admin */}
-      {userRole === 'super_admin' && (
+      {/* Association Selector Strip for system-wide roles (Super Admin & view-only Bookkeeper) */}
+      {hasSystemWideReadScope(userRole) && (
         <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-emerald-600" />

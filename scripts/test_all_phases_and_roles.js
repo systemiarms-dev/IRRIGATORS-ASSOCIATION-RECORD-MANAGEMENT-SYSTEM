@@ -86,7 +86,7 @@ async function runAudit() {
     const roleAccounts = [
       { role: 'super_admin', username: 'superadmin', pass: 'superadmin123' },
       { role: 'admin', username: 'admin_nlfia', pass: 'admin123' },
-      { role: 'bookkeeper', username: 'bookkeeper_nlfia', pass: 'bookkeeper123' },
+      { role: 'bookkeeper', username: 'iabookkeeper', pass: 'iabookkeeper123' },
       { role: 'treasurer', username: 'treasurer_nlfia', pass: 'treasurer123' },
       { role: 'auditor', username: 'auditor_nlfia', pass: 'auditor123' },
     ];

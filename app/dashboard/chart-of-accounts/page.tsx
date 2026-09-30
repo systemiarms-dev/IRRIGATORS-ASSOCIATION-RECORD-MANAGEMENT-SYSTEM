@@ -121,6 +121,9 @@ export default function ChartOfAccountsPage() {
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
   const isReadOnly = currentUser?.role === 'bookkeeper' || currentUser?.role === 'auditor';
+  // Super Admin and the system-wide (view-only) Bookkeeper may browse every
+  // association's chart of accounts and fixed assets.
+  const canSelectAssociation = isSuperAdmin || currentUser?.role === 'bookkeeper';
 
   // Initial Load
   useEffect(() => {
@@ -134,7 +137,8 @@ export default function ChartOfAccountsPage() {
 
         if (userRes.success && userRes.data) {
           setCurrentUser(userRes.data);
-          const initialAssoc = userRes.data.role === 'super_admin'
+          const roleAllowsAll = userRes.data.role === 'super_admin' || userRes.data.role === 'bookkeeper';
+          const initialAssoc = roleAllowsAll
             ? (assocRes.data?.[0]?.id || '')
             : (userRes.data.association_id || '');
           setSelectedAssocId(initialAssoc);
@@ -157,7 +161,7 @@ export default function ChartOfAccountsPage() {
   useEffect(() => {
     if (!currentUser) return;
     async function loadData() {
-      const targetAssoc = isSuperAdmin ? selectedAssocId : (currentUser?.association_id || undefined);
+      const targetAssoc = canSelectAssociation ? selectedAssocId : (currentUser?.association_id || undefined);
       setLoadingAssets(true);
       try {
         const [catRes, assetRes] = await Promise.all([
@@ -179,7 +183,7 @@ export default function ChartOfAccountsPage() {
     startTransition(() => {
       loadData();
     });
-  }, [currentUser, selectedAssocId, isSuperAdmin]);
+  }, [currentUser, selectedAssocId, canSelectAssociation]);
 
   // Filtered categories
   const filteredCategories = useMemo(() => {
@@ -513,8 +517,8 @@ export default function ChartOfAccountsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* Super Admin Dedicated Association Selector Strip */}
-      {isSuperAdmin && (
+      {/* Association Selector Strip for system-wide roles (Super Admin & view-only Bookkeeper) */}
+      {canSelectAssociation && (
         <div className="p-3 sm:p-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -525,7 +529,7 @@ export default function ChartOfAccountsPage() {
                 <div className="text-xs font-black text-slate-800 tracking-tight flex items-center gap-1.5">
                   <span>Scope by Association</span>
                   <span className="hidden sm:inline-block text-[11px] text-slate-400 font-normal">
-                    (Super Admin Mode)
+                    {isSuperAdmin ? '(Super Admin Mode)' : '(View Only Mode)'}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-medium truncate hidden xs:block">

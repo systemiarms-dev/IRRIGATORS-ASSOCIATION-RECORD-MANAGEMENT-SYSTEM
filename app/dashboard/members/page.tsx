@@ -6,6 +6,7 @@ import { getMembersAction, createMemberAction, updateMemberAction, deleteMemberA
 import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
 import { Profile, UserRole, Association } from '@/types';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { formatDate } from '@/lib/utils/formatters';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Users, PlusCircle, Loader2, Trash2, Pencil, Building2, UserRound, MapPin, Phone, RefreshCw, ChevronUp, ChevronDown, Eye } from 'lucide-react';
@@ -47,7 +48,7 @@ export default function MembersPage() {
       if (selfRes.success && selfRes.data) {
         setUserRole(selfRes.data.role);
         if (selfRes.data.association_id) setUserAssocId(selfRes.data.association_id);
-        if (selfRes.data.role !== 'super_admin' && selfRes.data.association_id) {
+        if (!hasSystemWideReadScope(selfRes.data.role) && selfRes.data.association_id) {
           setSelectedAssocId(selfRes.data.association_id);
         }
       }
@@ -140,8 +141,8 @@ export default function MembersPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Association Selector Strip for Super Admin */}
-      {userRole === 'super_admin' && (
+      {/* Association Selector Strip for system-wide roles (Super Admin & view-only Bookkeeper) */}
+      {hasSystemWideReadScope(userRole) && (
         <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-emerald-600" />

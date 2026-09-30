@@ -4,6 +4,7 @@ import { localDb } from '@/lib/db/localDb';
 import { ActionResponse, FinancialStatement, StatementType, FinancialStatementBreakdown, FS1Data, FS2Data, FS3Data, FS4Data, StatementFinancialOverrides, FinancialStatementEdits } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { determineFundSource } from '@/lib/utils/fundSources';
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -25,7 +26,7 @@ export async function getFinancialStatementsAction(associationIdFilter?: string)
   if (!user) return UNAUTHORIZED_RESPONSE;
 
   let effectiveAssoc = associationIdFilter;
-  if (user.role !== 'super_admin') {
+  if (!hasSystemWideReadScope(user.role)) {
     effectiveAssoc = user.association_id || undefined;
   }
 

@@ -5,6 +5,7 @@ import { purgeReceiptStorage } from '@/lib/storage/receipts';
 import { ActionResponse, UserRole, Profile } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireRole, toPublicProfile, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { isValidPassword, hashPassword } from '@/lib/auth/password';
 import { isValidPhilippineMobile, normalizePhilippineMobile } from '@/lib/utils/phone';
 
@@ -15,14 +16,33 @@ const ROLE_LABELS: Record<string, string> = {
   auditor: 'Auditor',
 };
 
-const OFFICER_ROLES: UserRole[] = ['admin', 'bookkeeper', 'treasurer', 'auditor'];
+// Per-association officer roles. Exactly one holder per association.
+// 'bookkeeper' is intentionally NOT in this list: the Bookkeeper is a single
+// system-wide account (association_id = null) with view-only access to the
+// financial reports and records of every association.
+const OFFICER_ROLES: UserRole[] = ['admin', 'treasurer', 'auditor'];
+
+/**
+ * The Bookkeeper is a single authorized account for the whole system.
+ * Returns an error message when creating/assigning the role would break that.
+ */
+async function assertSingleBookkeeper(excludeUserId?: string): Promise<string | null> {
+  const holders = await localDb.getUsers(undefined, 'bookkeeper');
+  const conflict = holders.find((h) => h.id !== excludeUserId);
+  if (conflict) {
+    return `The system allows only one Bookkeeper account. ${conflict.full_name} already holds this view-only role. Edit that account instead of creating another one.`;
+  }
+  return null;
+}
 
 /**
  * Fetch all profiles filtered by role and association from Supabase.
  * - Super Admin can view all association accounts across all IAs.
- * - Association officers (admin, treasurer, auditor) can view the member/account list
- *   of their own association only (used by the treasurer page for member selection),
- *   and never the super_admin.
+ * - The system-wide Bookkeeper can view the account directory of every
+ *   association (read-only, never the super_admin).
+ * - Association officers (admin, treasurer, auditor) can view the member/account
+ *   list of their own association only (used by the treasurer page for member
+ *   selection), and never the super_admin.
  */
 export async function getProfilesAction(roleFilter?: UserRole | 'all', associationIdFilter?: string): Promise<ActionResponse<Profile[]>> {
   const admin = await requireRole('admin', 'bookkeeper', 'treasurer', 'auditor');
@@ -33,7 +53,7 @@ export async function getProfilesAction(roleFilter?: UserRole | 'all', associati
   try {
     let users: Profile[] = [];
 
-    if (admin.role === 'super_admin') {
+    if (hasSystemWideReadScope(admin.role)) {
       const targetAssoc = associationIdFilter && associationIdFilter !== 'all' ? associationIdFilter : undefined;
       users = await localDb.getUsers(targetAssoc, roleFilter);
       // Exclude super_admin accounts from the association officer management list
@@ -79,15 +99,36 @@ export async function updateUserRoleAction(userId: string, newRole: UserRole, as
       if (user.role === 'admin') {
         return { success: false, message: 'Only the System Super Administrator can manage Head Admin accounts.' };
       }
+      if (user.role === 'bookkeeper') {
+        return { success: false, message: 'Only the System Super Administrator can manage the system-wide Bookkeeper account.' };
+      }
       if (user.association_id !== admin.association_id) {
         return { success: false, message: 'You can only manage officer accounts within your own association.' };
       }
       if (newRole === 'super_admin') {
         return { success: false, message: 'Only the System Super Administrator can assign the Super Admin role.' };
       }
+      if (newRole === 'bookkeeper') {
+        return { success: false, message: 'Only the System Super Administrator can assign the system-wide Bookkeeper role.' };
+      }
     }
 
-    const effectiveAssocId = admin.role === 'super_admin' ? (associationId || user.association_id) : admin.association_id;
+    // The Bookkeeper is a single, system-wide view-only account: Super Admin
+    // only, and it never belongs to an association.
+    if (newRole === 'bookkeeper') {
+      if (admin.role !== 'super_admin') {
+        return { success: false, message: 'Only the System Super Administrator can assign the system-wide Bookkeeper role.' };
+      }
+      const bookkeeperConflict = await assertSingleBookkeeper(userId);
+      if (bookkeeperConflict) {
+        return { success: false, message: bookkeeperConflict };
+      }
+    }
+
+    let effectiveAssocId = admin.role === 'super_admin' ? (associationId || user.association_id) : admin.association_id;
+    if (newRole === 'bookkeeper') {
+      effectiveAssocId = null; // system-wide account: not tied to any association
+    }
 
     // Each association is limited to exactly ONE Head Admin, ONE Treasurer, and ONE Auditor.
     if (OFFICER_ROLES.includes(newRole)) {
@@ -112,7 +153,7 @@ export async function updateUserRoleAction(userId: string, newRole: UserRole, as
       action: 'USER_ROLE_CHANGED',
       entity_type: 'profiles',
       entity_id: userId,
-      details: `Updated user ${user.full_name} role to ${newRole} (Association: ${effectiveAssocId || 'N/A'})`,
+      details: `Updated user ${user.full_name} role to ${newRole} (Association: ${newRole === 'bookkeeper' ? 'System-wide (All Associations)' : effectiveAssocId || 'N/A'})`,
     });
 
     revalidatePath('/dashboard/admin');
@@ -156,6 +197,9 @@ export async function deleteUserAccountAction(userId: string): Promise<ActionRes
       }
       if (user.role === 'admin') {
         return { success: false, message: 'Only the System Super Administrator can delete a Head Admin account.' };
+      }
+      if (user.role === 'bookkeeper') {
+        return { success: false, message: 'Only the System Super Administrator can manage the system-wide Bookkeeper account.' };
       }
       if (user.association_id !== admin.association_id) {
         return { success: false, message: 'You can only manage accounts within your own association.' };
@@ -207,6 +251,9 @@ export async function resetUserPasswordAction(userId: string, newPassword: strin
       }
       if (targetUser.role === 'admin') {
         return { success: false, message: 'Only the System Super Administrator can reset a Head Admin password.' };
+      }
+      if (targetUser.role === 'bookkeeper') {
+        return { success: false, message: 'Only the System Super Administrator can manage the system-wide Bookkeeper account.' };
       }
       if (targetUser.association_id !== admin.association_id) {
         return { success: false, message: 'You can only reset passwords for accounts in your own association.' };
@@ -263,6 +310,9 @@ export async function updateUserProfileAction(userId: string, formData: FormData
       }
       if (user.role === 'admin') {
         return { success: false, message: 'Only the System Super Administrator can edit Head Admin accounts.' };
+      }
+      if (user.role === 'bookkeeper') {
+        return { success: false, message: 'Only the System Super Administrator can manage the system-wide Bookkeeper account.' };
       }
       if (user.association_id !== admin.association_id) {
         return { success: false, message: 'You can only edit accounts within your own association.' };
@@ -344,11 +394,23 @@ export async function createAccountAction(formData: FormData): Promise<ActionRes
     if (role === 'admin') {
       return { success: false, message: 'Only the System Super Administrator can create Head Admin accounts.' };
     }
+    if (role === 'bookkeeper') {
+      return { success: false, message: 'Only the System Super Administrator can create the system-wide Bookkeeper account.' };
+    }
     // Force association to be Head Admin's association
     association_id = admin.association_id || association_id;
   }
 
   try {
+    // The Bookkeeper is a single, system-wide view-only account: Super Admin
+    // only, never tied to an association, and never more than one.
+    if (role === 'bookkeeper') {
+      const bookkeeperConflict = await assertSingleBookkeeper();
+      if (bookkeeperConflict) {
+        return { success: false, message: bookkeeperConflict };
+      }
+    }
+
     // Each association is limited to exactly ONE Head Admin, ONE Treasurer, and ONE Auditor.
     if (OFFICER_ROLES.includes(role)) {
       const holders = await localDb.getUsers(association_id, role);
@@ -371,7 +433,7 @@ export async function createAccountAction(formData: FormData): Promise<ActionRes
       full_name,
       password: hashPassword(password),
       role,
-      association_id: role === 'super_admin' ? null : association_id,
+      association_id: role === 'super_admin' || role === 'bookkeeper' ? null : association_id,
       farm_location: farm_location || null,
       farm_size_hectares: farm_size_hectares || 0,
       contact_number: contact_number || null,
@@ -387,7 +449,7 @@ export async function createAccountAction(formData: FormData): Promise<ActionRes
       action: 'USER_ACCOUNT_CREATED_BY_ADMIN',
       entity_type: 'profiles',
       entity_id: newUser.id,
-      details: `Created new ${role} account for ${full_name} (${username}) in association ${association_id}`,
+      details: `Created new ${role} account for ${full_name} (${username}) in association ${role === 'bookkeeper' ? 'System-wide (All Associations)' : association_id}`,
     });
 
     revalidatePath('/dashboard/admin');
