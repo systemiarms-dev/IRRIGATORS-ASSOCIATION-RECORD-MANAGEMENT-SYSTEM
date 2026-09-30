@@ -6,44 +6,54 @@ export interface ExportMetadata {
   [key: string]: string | number;
 }
 
+/** Optional letterhead override for the generated spreadsheet. */
+export interface ExportOrgHeader {
+  name?: string;
+  subtitle?: string;
+}
+
+const DEFAULT_ORG_NAME = 'NANGURISAN LAYA FARMERS IRRIGATORS ASSOCIATION, INC. (NLFIA)';
+const DEFAULT_ORG_SUBTITLE = 'Ipil, Gonzaga, Cagayan • SEC Reg. No. CN202060557 • NIA Recognized';
+
+const csvQuote = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+
 /**
  * Enhanced Excel CSV exporter with UTF-8 BOM, professional headers, and safe escaping.
+ * Pass `org` to override the default association letterhead (multi-association reports).
  */
 export function exportToExcelCSV(
   filename: string,
   reportTitle: string,
   metadata: ExportMetadata,
   headers: string[],
-  rows: (string | number)[][]
+  rows: (string | number)[][],
+  org?: ExportOrgHeader
 ) {
   const csvLines: string[] = [];
 
   // 1. Formal Association Header
-  csvLines.push('"NANGURISAN LAYA FARMERS IRRIGATORS ASSOCIATION, INC. (NLFIA)"');
-  csvLines.push('"Ipil, Gonzaga, Cagayan • SEC Reg. No. CN202060557 • NIA Recognized"');
-  csvLines.push(`"Report Title: ${reportTitle.toUpperCase()}"`);
-  csvLines.push(`"Generated On: ${new Date().toLocaleString('en-US')}"`);
+  csvLines.push(csvQuote(org?.name?.trim() || DEFAULT_ORG_NAME));
+  csvLines.push(csvQuote(org?.subtitle?.trim() || DEFAULT_ORG_SUBTITLE));
+  csvLines.push(csvQuote(`Report Title: ${reportTitle.toUpperCase()}`));
+  csvLines.push(csvQuote(`Generated On: ${new Date().toLocaleString('en-US')}`));
   csvLines.push('');
 
   // 2. Report Metadata Key-Value pairs
   Object.entries(metadata).forEach(([key, value]) => {
-    const safeKey = String(key).replace(/"/g, '""');
-    const safeVal = String(value).replace(/"/g, '""');
-    csvLines.push(`"${safeKey}","${safeVal}"`);
+    csvLines.push(`${csvQuote(key)},${csvQuote(value)}`);
   });
   csvLines.push('');
 
   // 3. Column Headers
-  const safeHeaders = headers.map((h) => `"${String(h).replace(/"/g, '""')}"`);
-  csvLines.push(safeHeaders.join(','));
+  csvLines.push(headers.map(csvQuote).join(','));
 
   // 4. Data Rows
   rows.forEach((row) => {
-    const safeRow = row.map((cell) => {
-      const cellStr = cell === null || cell === undefined ? '' : String(cell);
-      return `"${cellStr.replace(/"/g, '""')}"`;
-    });
-    csvLines.push(safeRow.join(','));
+    csvLines.push(
+      row
+        .map((cell) => csvQuote(cell === null || cell === undefined ? '' : cell))
+        .join(',')
+    );
   });
 
   // 5. UTF-8 BOM for Microsoft Excel compatibility

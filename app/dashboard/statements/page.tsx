@@ -28,9 +28,10 @@ import {
   FileText, Printer, Loader2, Calculator, Trash2,
   Layers, TrendingUp, Wallet, Landmark, HelpCircle, Shield, Pencil,
   CheckCircle2, Tag, Building2, Save, Calendar, Sparkles, X, Users, AlertTriangle, Eye,
-  RefreshCw,
+  RefreshCw, FileSpreadsheet,
 } from 'lucide-react';
-import { exportToPDFPrint, buildExportFilename } from '@/lib/utils/export';
+import { exportToExcelCSV, exportToPDFPrint, buildExportFilename } from '@/lib/utils/export';
+import { buildStatementExcelPayload } from '@/lib/financial/statementExcel';
 
 export default function FinancialStatementsPage() {
   const [statements, setStatements] = useState<FinancialStatement[]>([]);
@@ -531,6 +532,66 @@ export default function FinancialStatementsPage() {
     }
   }
 
+  /**
+   * Filename stem shared by the Print and Export Excel actions so both outputs
+   * of the same report carry an identical document name.
+   */
+  function activeStatementStem(suffixLabel?: string) {
+    if (!selectedStatement) return buildExportFilename('Financial_Statement');
+    const stmtCode =
+      selectedStatement.association?.code ||
+      associations.find((a) => a.id === selectedStatement.association_id)?.code ||
+      'IA';
+    const fsLabel = FS_TAB_LABELS[activeFSTab].replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase();
+    return buildExportFilename(
+      stmtCode,
+      suffixLabel ? `${fsLabel}_${suffixLabel}` : fsLabel,
+      selectedStatement.statement_number,
+      selectedStatement.title
+    );
+  }
+
+  /**
+   * Download the report currently on screen (FS1–FS4, including any manual
+   * edits still in the draft) as an Excel-compatible spreadsheet. Available to
+   * every role — exporting is a read action, never a mutation.
+   */
+  function handleExportStatementExcel() {
+    if (!selectedStatement) return;
+    const reportData = viewReportData();
+    if (!reportData) {
+      setBannerMsg({ type: 'error', text: 'This statement has no report data to export yet.' });
+      return;
+    }
+
+    const payload = buildStatementExcelPayload({
+      tab: activeFSTab,
+      breakdown: reportData,
+      edits: viewEdits(),
+      statementNumber: selectedStatement.statement_number,
+      statementTitle: selectedStatement.title,
+      periodStart: selectedStatement.period_start,
+      periodEnd: selectedStatement.period_end,
+      orgName: selectedStatement.association?.name || undefined,
+      orgSubtitle: selectedStatement.association?.mailing_address || undefined,
+    });
+
+    if (!payload) {
+      setBannerMsg({ type: 'error', text: `${activeFSTab} has no data available for Excel export yet.` });
+      return;
+    }
+
+    exportToExcelCSV(
+      activeStatementStem('Excel'),
+      payload.reportTitle,
+      payload.metadata,
+      payload.headers,
+      payload.rows,
+      { name: payload.orgName, subtitle: payload.orgSubtitle }
+    );
+    setBannerMsg({ type: 'success', text: `${activeFSTab} report exported to Excel.` });
+  }
+
   // Inline rename state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -904,20 +965,21 @@ export default function FinancialStatementsPage() {
                     {editMode === 'auto' && (
                       <button
                         onClick={() => {
-                          const stmtCode =
-                            selectedStatement.association?.code ||
-                            associations.find((a) => a.id === selectedStatement.association_id)?.code ||
-                            'IA';
-                          const fsLabel = FS_TAB_LABELS[activeFSTab].replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase();
-                          exportToPDFPrint(
-                            buildExportFilename(stmtCode, fsLabel, selectedStatement.statement_number, selectedStatement.title)
-                          );
+                          exportToPDFPrint(activeStatementStem());
                         }}
                         className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95"
                       >
                         <Printer className="w-4 h-4 text-emerald-400" /> Print {FS_TAB_LABELS[activeFSTab]}
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={handleExportStatementExcel}
+                      title="Download the report on screen as an Excel-compatible spreadsheet"
+                      className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-100" /> Export Excel
+                    </button>
                     {editMode === 'manual' && hasEdits && (
                       <>
                         <button
