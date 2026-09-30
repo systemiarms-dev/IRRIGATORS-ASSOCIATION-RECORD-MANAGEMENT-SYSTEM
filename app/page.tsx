@@ -61,7 +61,7 @@ export default function LandingPage() {
 
           {/* Description */}
           <p className="text-xs sm:text-sm text-emerald-50 max-w-lg leading-relaxed font-medium animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
-            Official record management, financial statement generation (FS1&ndash;FS4), and
+            Official record management, financial statement generation, and
             collection ledgers for Irrigators Associations.
           </p>
 
