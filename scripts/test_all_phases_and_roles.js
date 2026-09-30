@@ -117,9 +117,22 @@ async function runAudit() {
       .from('profiles')
       .select('username, role, association_id')
       .eq('association_id', 'ia-nangurisan');
-    const hasBookkeeper = nlfiaUsers && nlfiaUsers.some(u => u.role === 'bookkeeper');
     const hasTreasurer = nlfiaUsers && nlfiaUsers.some(u => u.role === 'treasurer');
-    record('Phase 0', 'Verify IA has both Bookkeeper & Treasurer accounts', hasBookkeeper && hasTreasurer, `Found ${nlfiaUsers ? nlfiaUsers.length : 0} officers in NLFIA`);
+    // The Bookkeeper is ONE system-wide account (association_id = NULL), so an IA
+    // must have a Treasurer but must NOT have a per-IA bookkeeper of its own.
+    const { data: bookkeepers } = await supabase
+      .from('profiles')
+      .select('id, username, role, association_id')
+      .eq('role', 'bookkeeper');
+    const hasSingleSystemBookkeeper =
+      bookkeepers && bookkeepers.length === 1 && !bookkeepers[0].association_id;
+    const hasPerIaBookkeeper = !!(nlfiaUsers && nlfiaUsers.some(u => u.role === 'bookkeeper'));
+    record(
+      'Phase 0',
+      'Verify IA has Treasurer + single system-wide Bookkeeper',
+      !!hasTreasurer && hasSingleSystemBookkeeper && !hasPerIaBookkeeper,
+      `Officers in NLFIA: ${nlfiaUsers ? nlfiaUsers.length : 0} | system bookkeeper: ${bookkeepers && bookkeepers[0] ? bookkeepers[0].username : 'none'} | per-IA bookkeeper: ${hasPerIaBookkeeper ? 'present (unexpected)' : 'none'}`
+    );
 
     // ================================================================
     // PHASE 1: Dashboard Analytics & Scoping
@@ -252,15 +265,19 @@ async function runAudit() {
       record('Phase 3', 'Treasurer Role: Generate FS Statement', false, fsErr ? fsErr.message : 'Failed');
     }
 
-    // Verify Bookkeeper Guard on Statements
-    const simulateBookkeeperFsAction = (role) => {
-      if (role === 'bookkeeper') {
-        return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can generate or modify financial statements.' };
+    // Verify Bookkeeper Policy on Statements: compiling an FS report is a
+    // read-only derivation of the ledger and is open to every role, but any
+    // modification of a compiled statement stays blocked.
+    const simulateBookkeeperFsAction = (action, role) => {
+      if (role === 'bookkeeper' && action === 'modify') {
+        return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can modify financial statements.' };
       }
       return { success: true };
     };
-    const bkFsGuard = simulateBookkeeperFsAction('bookkeeper');
-    record('Phase 3', 'Bookkeeper Role: Mutation Guard Blocks FS Generation', !bkFsGuard.success, bkFsGuard.message);
+    const bkFsGenerate = simulateBookkeeperFsAction('generate', 'bookkeeper');
+    record('Phase 3', 'Bookkeeper Role: Permitted to Generate FS Report', bkFsGenerate.success, 'Allowed — read-only compilation of the ledger');
+    const bkFsModify = simulateBookkeeperFsAction('modify', 'bookkeeper');
+    record('Phase 3', 'Bookkeeper Role: Mutation Guard Blocks FS Modification', !bkFsModify.success, bkFsModify.message);
 
     // ================================================================
     // PHASE 4: Farmer-Member Registry
@@ -398,7 +415,10 @@ async function runAudit() {
     const audCount = (nlfiaOfficers || []).filter(o => o.role === 'auditor').length;
 
     record('Phase 7', 'Officer Limit Enforced (1 Head Admin per IA)', adminCount === 1, `Count: ${adminCount}`);
-    record('Phase 7', 'Officer Limit Enforced (1 Bookkeeper per IA)', bkCount === 1, `Count: ${bkCount}`);
+    // Bookkeeper is a single system-wide account (association_id = NULL), so a
+    // per-IA bookkeeper must never exist — see assertSingleBookkeeper in
+    // app/actions/admin.ts.
+    record('Phase 7', 'Officer Lock (No per-IA Bookkeeper — single system-wide account)', bkCount === 0, `Count: ${bkCount}`);
     record('Phase 7', 'Officer Limit Enforced (1 Treasurer per IA)', trCount === 1, `Count: ${trCount}`);
     record('Phase 7', 'Officer Limit Enforced (1 Auditor per IA)', audCount === 1, `Count: ${audCount}`);
 

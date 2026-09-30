@@ -99,16 +99,28 @@ async function runRbacAndLeakageAudit() {
     record('RBAC: Ledger Delete', 'Auditor Blocked from Deleting Transactions', !simulateDeleteTxPermission('auditor').allowed, 'Properly blocked');
     record('RBAC: Ledger Delete', 'Treasurer Permitted to Delete Transactions', simulateDeleteTxPermission('treasurer').allowed, 'Allowed');
 
-    // Simulation of generateStatementAction role check:
+    // Simulation of generateStatementAction role check: compiling an FS report
+    // is a read-only derivation of the ledger, so EVERY role may generate one.
     function simulateGenerateStatementPermission(role) {
+      return { allowed: true };
+    }
+
+    // Editing/re-syncing/deleting a compiled statement stays restricted to the
+    // roles that write financial data (Head Admin & Treasurer).
+    function simulateEditStatementPermission(role) {
       if (role === 'bookkeeper' || role === 'auditor') return { allowed: false, message: 'Read-only access.' };
-      if (['super_admin', 'admin', 'treasurer'].includes(role)) return { allowed: true };
+      if (['admin', 'treasurer'].includes(role)) return { allowed: true };
       return { allowed: false };
     }
 
-    record('RBAC: FS Generation', 'Bookkeeper Blocked from Generating Statements', !simulateGenerateStatementPermission('bookkeeper').allowed, 'Properly blocked');
-    record('RBAC: FS Generation', 'Auditor Blocked from Generating Statements', !simulateGenerateStatementPermission('auditor').allowed, 'Properly blocked');
+    record('RBAC: FS Generation', 'Bookkeeper Permitted to Generate Statements', simulateGenerateStatementPermission('bookkeeper').allowed, 'Allowed — read-only compilation of the ledger');
+    record('RBAC: FS Generation', 'Auditor Permitted to Generate Statements', simulateGenerateStatementPermission('auditor').allowed, 'Allowed — read-only compilation of the ledger');
     record('RBAC: FS Generation', 'Treasurer Permitted to Generate Statements', simulateGenerateStatementPermission('treasurer').allowed, 'Allowed');
+    record('RBAC: FS Generation', 'Head Admin Permitted to Generate Statements', simulateGenerateStatementPermission('admin').allowed, 'Allowed');
+    record('RBAC: FS Editing', 'Bookkeeper Blocked from Editing Statements', !simulateEditStatementPermission('bookkeeper').allowed, 'Properly blocked — generate only');
+    record('RBAC: FS Editing', 'Auditor Blocked from Editing Statements', !simulateEditStatementPermission('auditor').allowed, 'Properly blocked — generate only');
+    record('RBAC: FS Editing', 'Treasurer Permitted to Edit Statements', simulateEditStatementPermission('treasurer').allowed, 'Allowed');
+    record('RBAC: FS Editing', 'Head Admin Permitted to Edit Statements', simulateEditStatementPermission('admin').allowed, 'Allowed');
 
     // Simulation of association creation (Super Admin only):
     function simulateCreateAssocPermission(role) {

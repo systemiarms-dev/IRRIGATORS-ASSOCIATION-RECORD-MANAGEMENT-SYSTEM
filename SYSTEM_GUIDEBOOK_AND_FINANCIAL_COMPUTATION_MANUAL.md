@@ -25,13 +25,15 @@ The system enforces strict **Separation of Duties (SoD)** to prevent financial f
 | Role | Operational Scope | Can Add Transactions? | Can Edit Chart of Accounts? | Can Generate Statements? | Can Sign / Notarize? |
 | :--- | :--- | :---: | :---: | :---: | :---: |
 | **Super Admin** | System-wide oversight across all IAs, system configuration, database backup | Yes | Yes | Yes | Yes |
-| **IA President** | Executive leadership, governance, administrative approval, signatory | View Only | View Only | View Only | Yes |
+| **IA President** | Executive leadership, governance, administrative approval, signatory | View Only | View Only | **Yes** | Yes |
 | **Treasurer / Encoder** | Primary input of all records: collections, expenses, vouchers, asset & member registry | **Yes** | **Yes** | **Yes** | **Yes** |
-| **Bookkeeper** | **Single system-wide account** — view-only inspection of the financial reports and records of **every** registered IA (no association of its own) | **View Only** | **View Only** | **View Only** | No |
-| **Auditor** | Independent verification, examination of receipts/vouchers, audit overrides | View Only | View Only | View Only | **Yes** |
+| **Bookkeeper** | **Single system-wide account** — view-only inspection of the financial reports and records of **every** registered IA (no association of its own) | **View Only** | **View Only** | **Yes** | No |
+| **Auditor** | Independent verification, examination of receipts/vouchers, audit overrides | View Only | View Only | **Yes** | **Yes** |
 | **Farmer Member** | View individual dues, payments, land parcel records, and published reports | No | No | No | No |
 
-> **Bookkeeper rules:** exactly **one** Bookkeeper account exists per installation and it is created/managed only by the Super Admin (it has `association_id = NULL`). It may **view** every module — IA registry, member roster, ledger, chart of accounts, fixed assets, FS1–FS4, dashboard KPIs — but it has **no permission to create, edit, delete, or modify any data**. Only its own profile details and password can be changed (My Account Settings).
+> **FS Report generation is open to every role.** `Generate FS Report` compiles the *existing* ledger into FS1–FS4 — it never alters financial records — so every account that can open the Financial Statements module (Super Admin, IA President/Head Admin, Treasurer, Bookkeeper, Auditor) may generate, print, and export a report. **Editing, renaming, re-syncing, or deleting a compiled statement remains restricted to the Head Admin and Treasurer.** Farmer Members do not see the Financial Statements module.
+
+> **Bookkeeper rules:** exactly **one** Bookkeeper account exists per installation and it is created/managed only by the Super Admin (it has `association_id = NULL`). It may **view** every module — IA registry, member roster, ledger, chart of accounts, fixed assets, FS1–FS4, dashboard KPIs — and it may **compile (generate) FS reports** as a read-only derivation of the ledger, but it has **no permission to create, edit, delete, or modify any other data**, and it can never edit, rename, re-sync, or delete a compiled statement. Only its own profile details and password can be changed (My Account Settings).
 
 ---
 
@@ -153,9 +155,10 @@ This is the double-entry bookkeeping engine for all daily cash, bank, and vouche
 
 ### 3.6 Financial Statements (`/dashboard/statements`)
 1. **Header Banner & Statement Compilation:**
-   - Click the **`Generate FS Report`** button in the top banner.
+   - Click the **`Generate FS Report`** button in the top banner. The button is available to **every role** that can open this module — Head Admin, Treasurer, Auditor, Bookkeeper, and Super Admin — because compiling a report only *reads* the ledger; it never changes it.
+   - Roles without edit rights also see an amber **`View Only &mdash; {Role} (cannot edit reports)`** badge beside the button: they can generate, view, print, and export the report, but cannot modify it.
 2. **Generate Official FS Report (FS1 – FS4) Modal:**
-   - Select **`Target Irrigators Association *`** (for Super Admins).
+   - Select **`Target Irrigators Association *`** (for Super Admin & Bookkeeper — the system-wide accounts).
    - Configure **`Comparative Reporting Period`**:
      - Select **`Reporting Year (Current) *`** (e.g. `CY 2026`).
      - **`Comparative Prior Year *`** is automatically locked to `CY 2025 (Prior Year)`.
@@ -170,10 +173,9 @@ This is the double-entry bookkeeping engine for all daily cash, bank, and vouche
    - **`FS4: Balance Sheet`**: Statement of Net Worth & Balance Sheet.
 4. **Active Statement Management (Left Panel):**
    - Displays all compiled statements under **`Active Statement`**.
-   - Click **`Rename statement`** (Pencil icon) to edit statement title inline (press Enter to confirm).
-   - Click **`Delete statement`** (Trash icon) to open the **`Confirm Statement Deletion`** dialog &rarr; click **`Delete Statement`** or **`Cancel`**.
-5. **Mode Switcher Bar & In-Line Adjustments:**
-   - **`View Only`** (Layers icon): Read-only view generated from the ledger and transactions.
+   - **Head Admin & Treasurer only:** Click **`Rename statement`** (Pencil icon) to edit statement title inline (press Enter to confirm), or **`Delete statement`** (Trash icon) to open the **`Confirm Statement Deletion`** dialog &rarr; click **`Delete Statement`** or **`Cancel`**. All other roles see the list without these controls.
+5. **Mode Switcher Bar & In-Line Adjustments (Head Admin & Treasurer only):**
+   - **`View Only`** (Layers icon): Read-only view generated from the ledger and transactions. This is the only mode available to the Super Admin, Bookkeeper, and Auditor.
    - **`Edit`** (Pencil icon): Click directly on line items to input Certified Public Accountant (CPA) adjustments. All totals, net surplus, cash balances, and equity auto-recompute in real-time across all 4 sheets.
    - Action buttons: Click **`Save Changes`** (Save icon) or **`Discard`** (X icon).
 6. **Print & PDF Export:**
@@ -442,8 +444,8 @@ Each association possesses an isolated namespace (`association_id`). Transaction
 ## 7. Official Document Sign-Off & Notarization Workflow
 
 When an annual statement is ready for submission to NIA, SEC, and BIR:
-1. **Compilation:** The Treasurer clicks the **`Generate FS Report`** button &rarr; configures **Comparative Reporting Period** (e.g. CY 2026 vs CY 2025) &rarr; reviews authorized signatories &rarr; clicks **`Generate FS Report`**.
-2. **Review & Audit Adjustments:** The Auditor inspects the statements. If an off-ledger CPA adjustment is needed, the Auditor switches the mode toggle from **`View Only`** to **`Edit`**, inputs the certified override directly on the line item, and clicks **`Save Changes`** (or **`Discard`**). All dependent sheets auto-recompute immediately.
+1. **Compilation:** Any signed-in officer (Head Admin, Treasurer, Auditor, Bookkeeper, or Super Admin) clicks the **`Generate FS Report`** button &rarr; configures **Comparative Reporting Period** (e.g. CY 2026 vs CY 2025) &rarr; reviews authorized signatories &rarr; clicks **`Generate FS Report`**. Compiling only reads the ledger, so it is open to every role.
+2. **Review & Audit Adjustments:** The Auditor inspects the statements. If an off-ledger CPA adjustment is needed, the **Head Admin or Treasurer** (the roles permitted to edit financial statements) switches the mode toggle from **`View Only`** to **`Edit`**, inputs the certified override directly on the line item, and clicks **`Save Changes`** (or **`Discard`**). All dependent sheets auto-recompute immediately.
 3. **Fiduciary Certification:** The Treasurer reviews Section F (Cash Composition) against physical Land Bank passbooks and signs the certification block.
 4. **Notary Acknowledgment:** The Treasurer enters the Community Tax Certificate (CTC / Cedula) Number, Date of Issue, and Place of Issue in the FS-4 Notary Block.
 5. **Print & PDF Export:** While in **`View Only`** mode, click **`Print FS1: Receipts & Expenses`** (or **`Print FS2: Cash Flows`**, **`Print FS3: Cash Statement`**, **`Print FS4: Balance Sheet`**) to generate the crisp, borderless, audit-ready physical document package.

@@ -64,18 +64,15 @@ export async function generateStatementAction(
   if (!user) {
     return UNAUTHORIZED_RESPONSE;
   }
-  if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can compile financial statements.' };
-  }
-  if (!canWriteFinancialData(user.role)) {
-    return user.role === 'super_admin'
-      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
-      : UNAUTHORIZED_RESPONSE;
-  }
+  // Compiling an FS report is a READ-ONLY derivation of the existing ledger, so
+  // it is open to EVERY signed-in role (Super Admin, Head Admin, Treasurer,
+  // Bookkeeper, Auditor). What stays restricted to `canWriteFinancialData`
+  // (Head Admin / Treasurer) is everything that MUTATES a compiled report:
+  // editing, renaming, re-syncing, and deleting — see the other actions below.
 
   try {
     let targetAssociationId = user.association_id;
-  if (user.role === 'super_admin' && associationId) {
+  if (hasSystemWideReadScope(user.role) && associationId) {
     targetAssociationId = associationId;
   }
   if (!targetAssociationId) {

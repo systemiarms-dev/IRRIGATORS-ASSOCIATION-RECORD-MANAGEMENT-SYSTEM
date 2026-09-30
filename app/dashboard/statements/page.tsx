@@ -693,18 +693,19 @@ export default function FinancialStatementsPage() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {canEditReports ? (
-            <button
-              onClick={() => requestNav(openGenerateModal, 'You have unsaved changes. Generating a new report will start with the saved ledger figures.')}
-              disabled={isGenerating}
-              className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
-            >
-              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />} Generate FS Report
-            </button>
-          ) : (
+          {/* Every role may compile an FS report — it is a read-only derivation
+              of the ledger. Editing stays limited to Head Admin / Treasurer. */}
+          <button
+            onClick={() => requestNav(openGenerateModal, 'You have unsaved changes. Generating a new report will start with the saved ledger figures.')}
+            disabled={isGenerating}
+            className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
+          >
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />} Generate FS Report
+          </button>
+          {!canEditReports && (
             <div className="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <Eye className="w-4 h-4 text-amber-600" />
-              <span>Read &amp; View Only ({userRole === 'super_admin' ? 'Super Admin' : userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
+              <span>View Only &mdash; {userRole === 'super_admin' ? 'Super Admin' : userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'} (cannot edit reports)</span>
             </div>
           )}
         </div>
@@ -1065,7 +1066,7 @@ export default function FinancialStatementsPage() {
 
             <div className="relative">
               <form onSubmit={handleGenerateSubmit} className="space-y-4 pt-2">
-                {userRole === 'super_admin' && associations.length > 0 ? (
+                {hasSystemWideReadScope(userRole) && associations.length > 0 ? (
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-700">Target Irrigators Association *</label>
                     <select
