@@ -189,6 +189,16 @@ export default function TransactionFormModal({
       return;
     }
 
+    // Receipt / Official Voucher is mandatory for every collection and expense entry
+    if (!file) {
+      setErrorMsg(
+        fileUploadError
+          ? 'The attached Receipt / Official Voucher is not valid. Please attach a JPG, PNG, WebP image or PDF document before saving.'
+          : 'The Receipt / Official Voucher is required. Please attach the official receipt or voucher file (JPG, PNG, WebP or PDF) before saving.'
+      );
+      return;
+    }
+
     // Insufficient Funds / Over-Disbursement Check
     if (type === 'disbursement') {
       const avail = effectiveFund === 'cash_on_hand'
@@ -898,7 +908,7 @@ export default function TransactionFormModal({
             <div className="flex flex-wrap items-center justify-between gap-1.5">
               <label className={`${labelCls} flex items-center gap-1.5`}>
                 <FileText className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Receipt / Official Voucher (Optional)</span>
+                <span>Receipt / Official Voucher *</span>
               </label>
               <div className="flex items-center gap-1.5 text-[10px]">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold">
@@ -1059,8 +1069,8 @@ export default function TransactionFormModal({
             )}
 
             {!file && !fileUploadError && (
-              <p className="text-[10px] text-slate-400 font-medium">
-                No voucher uploaded — the record shows &ldquo;Pending Voucher&rdquo; and nothing is auto-created until you attach a file.
+              <p className="text-[10px] text-rose-500 font-semibold">
+                Required: attach the official Receipt / Voucher file (JPG, PNG, WebP or PDF) before saving — transactions without an attached voucher cannot be logged.
               </p>
             )}
           </div>

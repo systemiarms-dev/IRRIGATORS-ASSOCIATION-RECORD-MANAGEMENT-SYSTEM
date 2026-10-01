@@ -422,6 +422,10 @@ export async function createTransactionAction(payload: CreateTransactionPayload)
     return { success: false, message: 'Please select a budget category.' };
   }
 
+  if (!payload.receipt_id) {
+    return { success: false, message: 'A Receipt / Official Voucher attachment is required for every collection and expense entry. Please attach the receipt or voucher file first.' };
+  }
+
   if (!['collection', 'disbursement'].includes(payload.type)) {
     return { success: false, message: 'Invalid transaction type.' };
   }

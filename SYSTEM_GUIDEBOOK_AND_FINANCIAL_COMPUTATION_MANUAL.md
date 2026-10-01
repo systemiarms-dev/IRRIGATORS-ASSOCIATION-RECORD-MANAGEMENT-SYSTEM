@@ -130,7 +130,7 @@ This is the double-entry bookkeeping engine for all daily cash, bank, and vouche
    - **`Payee / Payer Name`**: Farmer, contractor, or officer name.
    - **`Lateral / Turnout Section`**: Turnout service section.
    - **`Particulars / Operational Notes`**: Complete operational audit narrative.
-   - **`Attach Receipt / Voucher (Optional)`**: Upload receipt photo or PDF (up to 10MB).
+   - **`Receipt / Official Voucher *`**: Upload receipt photo or PDF (Images &le; 5MB, PDF &le; 10MB). **Required** — the transaction cannot be saved without an attached receipt/voucher file.
    - Action buttons: Click **`Save to Ledger`** (or **`Cancel`**).
 5. **Ledger Table Row Actions:**
    - **Receipt Status Button:** Click the status pill (`Verified`, `Flagged`, `Rejected`, or `Review`) to open the **Voucher Preview** lightbox modal.
