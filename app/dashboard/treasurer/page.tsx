@@ -263,14 +263,16 @@ export default function TreasurerPage() {
             </div>
           )}
 
-          <Link
-            href="/dashboard/chart-of-accounts"
-            className="px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
-            title="Manage Chart of Accounts"
-          >
-            <BookOpen className="w-4 h-4 text-emerald-700" />
-            <span>Chart of Accounts</span>
-          </Link>
+          {userRole !== 'bookkeeper' && (
+            <Link
+              href="/dashboard/chart-of-accounts"
+              className="px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+              title="Manage Chart of Accounts"
+            >
+              <BookOpen className="w-4 h-4 text-emerald-700" />
+              <span>Chart of Accounts</span>
+            </Link>
+          )}
 
           <button
             onClick={handleExportTransactionsExcel}

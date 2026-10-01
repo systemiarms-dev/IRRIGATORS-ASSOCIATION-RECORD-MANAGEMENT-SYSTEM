@@ -38,12 +38,12 @@ export default function Header({
 
   const navItems = [
     { label: 'Overview Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
-    { label: 'Irrigators Associations', href: '/dashboard/associations', icon: Building2, roles: ['super_admin', 'bookkeeper'] },
-    { label: 'Farmer Members', href: '/dashboard/members', icon: Users, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer'] },
+    { label: 'Irrigators Associations', href: '/dashboard/associations', icon: Building2, roles: ['super_admin'] },
+    { label: 'Farmer Members', href: '/dashboard/members', icon: Users, roles: ['super_admin', 'admin', 'treasurer'] },
     { label: 'Collections & Expenses', href: '/dashboard/treasurer', icon: Wallet, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer'] },
     { label: 'Verification & Audit Queue', href: '/dashboard/auditor', icon: ShieldCheck, roles: ['super_admin', 'admin', 'auditor'] },
     { label: 'Financial Statements', href: '/dashboard/statements', icon: FileText, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
-    { label: 'Chart of Accounts', href: '/dashboard/chart-of-accounts', icon: BookOpen, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
+    { label: 'Chart of Accounts', href: '/dashboard/chart-of-accounts', icon: BookOpen, roles: ['super_admin', 'admin', 'treasurer', 'auditor'] },
     { label: 'User Account Manager', href: '/dashboard/admin', icon: Users, roles: ['super_admin', 'admin'] },
     { label: 'My Account Settings', href: '/dashboard/account', icon: UserCheck, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
   ];

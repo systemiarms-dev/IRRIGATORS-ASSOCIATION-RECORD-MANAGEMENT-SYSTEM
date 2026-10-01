@@ -230,13 +230,15 @@ export default function DashboardOverviewPage() {
                   </h3>
                   <p className="text-xs text-slate-500">Live breakdown by individual irrigators association</p>
                 </div>
-                <Link
-                  href="/dashboard/associations"
-                  className="self-start sm:self-auto text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 shrink-0"
-                >
-                  <span>{userRole === 'super_admin' ? 'Manage IAs' : 'View IAs'}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                {userRole === 'super_admin' && (
+                  <Link
+                    href="/dashboard/associations"
+                    className="self-start sm:self-auto text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 shrink-0"
+                  >
+                    <span>Manage IAs</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
               </div>
 
               <div className="-mx-5 px-5 overflow-x-auto">
