@@ -4,7 +4,7 @@ import { localDb } from '@/lib/db/localDb';
 import { ActionResponse, Receipt, VerificationStatus } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
-import { hasSystemWideReadScope, canDecideAuditQueue, SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE } from '@/lib/auth/roles';
+import { hasSystemWideReadScope, canDecideAuditQueue, SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE, HEAD_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE } from '@/lib/auth/roles';
 
 /**
  * Bulk-verify all pending receipts currently visible in the auditor queue.
@@ -17,12 +17,16 @@ export async function auditVerifyAllPendingAction(
 ): Promise<ActionResponse<{ verified: number }>> {
   const user = await requireRole('admin', 'auditor');
   if (!user) return UNAUTHORIZED_RESPONSE;
-  // `requireRole` lets Super Admin through by inheritance, but the Financial
-  // Suite is view-only for that account — it may never decide the queue.
+  // `requireRole` lets Super Admin and Head Admin through by inheritance, but
+  // the queue is decided by the Auditor alone — those accounts stay view-only.
   if (!canDecideAuditQueue(user.role)) {
-    return user.role === 'super_admin'
-      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
-      : UNAUTHORIZED_RESPONSE;
+    if (user.role === 'super_admin') {
+      return { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE };
+    }
+    if (user.role === 'admin') {
+      return { success: false, message: HEAD_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE };
+    }
+    return UNAUTHORIZED_RESPONSE;
   }
 
   let effectiveAssoc = associationIdFilter;
@@ -94,12 +98,16 @@ export async function auditVerifyReceiptAction(
 ): Promise<ActionResponse> {
   const user = await requireRole('admin', 'auditor');
   if (!user) return UNAUTHORIZED_RESPONSE;
-  // `requireRole` lets Super Admin through by inheritance, but the Financial
-  // Suite is view-only for that account — it may never decide the queue.
+  // `requireRole` lets Super Admin and Head Admin through by inheritance, but
+  // the queue is decided by the Auditor alone — those accounts stay view-only.
   if (!canDecideAuditQueue(user.role)) {
-    return user.role === 'super_admin'
-      ? { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE }
-      : UNAUTHORIZED_RESPONSE;
+    if (user.role === 'super_admin') {
+      return { success: false, message: SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE };
+    }
+    if (user.role === 'admin') {
+      return { success: false, message: HEAD_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE };
+    }
+    return UNAUTHORIZED_RESPONSE;
   }
 
   if (!['pending', 'verified', 'flagged', 'rejected'].includes(newStatus)) {

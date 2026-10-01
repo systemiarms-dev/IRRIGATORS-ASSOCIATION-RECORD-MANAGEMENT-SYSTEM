@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     if (user.role === 'bookkeeper' || user.role === 'auditor') {
       return NextResponse.json(
-        { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can upload receipts.' },
+        { success: false, message: 'Bookkeepers have read-only access. Only the Treasurer can upload receipts.' },
         { status: 403 }
       );
     }

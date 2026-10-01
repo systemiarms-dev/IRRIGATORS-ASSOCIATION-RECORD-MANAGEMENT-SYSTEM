@@ -8,8 +8,10 @@ import { getSelfProfileAction } from '@/app/actions/auth';
 import { Profile, UserRole, Association } from '@/types';
 import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { formatDate } from '@/lib/utils/formatters';
+import { exportToExcelCSV, buildExportFilename } from '@/lib/utils/export';
+import { parseMemberSpreadsheet, downloadMemberImportTemplate, MemberImportResult } from '@/lib/utils/memberImport';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Users, PlusCircle, Loader2, Trash2, Pencil, Building2, UserRound, MapPin, Phone, RefreshCw, ChevronUp, ChevronDown, Eye } from 'lucide-react';
+import { Users, PlusCircle, Loader2, Trash2, Pencil, Building2, UserRound, MapPin, Phone, RefreshCw, ChevronUp, ChevronDown, Eye, Upload, Download, FileSpreadsheet } from 'lucide-react';
 import { PhilippinePhoneInput } from '@/components/ui/philippine-phone-input';
 
 export default function MembersPage() {
@@ -25,6 +27,16 @@ export default function MembersPage() {
   const [bannerMsg, setBannerMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Bulk "Import Excel" state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importResult, setImportResult] = useState<MemberImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importFailures, setImportFailures] = useState<string[]>([]);
+  const [importAssocId, setImportAssocId] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
 
   const canWrite = userRole === 'super_admin' || userRole === 'admin';
 
@@ -139,6 +151,126 @@ export default function MembersPage() {
     }
   }
 
+  // Exports the currently visible member roster as an Excel-compatible CSV,
+  // using the same letterhead/metadata layout as the rest of the system.
+  function handleExportMembersExcel() {
+    const targetAssoc = selectedAssocId !== 'all' ? associations.find((a) => a.id === selectedAssocId) : undefined;
+    const scopeCode = targetAssoc?.code || 'Consolidated';
+
+    exportToExcelCSV(
+      buildExportFilename(`${scopeCode}_Farmer_Members_Registry`),
+      `Farmer Member Registry (${scopeCode})`,
+      {
+        Scope: targetAssoc ? `${targetAssoc.name} (${targetAssoc.code})` : 'All Associations (Consolidated)',
+        'Total Members': members.length,
+      },
+      ['Full Name', 'Association', 'Farm Location / Sector', 'Farm Size (hectares)', 'Mobile Number', 'Registered'],
+      members.map((m) => [
+        m.full_name,
+        m.association?.code || targetAssoc?.code || 'IA',
+        m.farm_location || '',
+        m.farm_size_hectares ?? 0,
+        m.contact_number || '',
+        formatDate(m.created_at),
+      ]),
+      targetAssoc ? { name: targetAssoc.name, subtitle: targetAssoc.mailing_address } : undefined
+    );
+
+    setBannerMsg({
+      type: 'success',
+      text: `Exported ${members.length} farmer member${members.length === 1 ? '' : 's'} to Excel.`,
+    });
+  }
+
+  function openImportModal() {
+    setImportFile(null);
+    setImportResult(null);
+    setImportError(null);
+    setImportFailures([]);
+    setImportProgress(null);
+    setImportAssocId(
+      userRole === 'super_admin' ? (selectedAssocId !== 'all' ? selectedAssocId : '') : (userAssocId || '')
+    );
+    setShowImportModal(true);
+  }
+
+  async function handleImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportFile(file);
+    setImportResult(null);
+    setImportError(null);
+    setImportFailures([]);
+
+    try {
+      setImportResult(await parseMemberSpreadsheet(file));
+    } catch (err: any) {
+      setImportFile(null);
+      e.target.value = '';
+      setImportError(err?.message || 'Could not read this spreadsheet.');
+    }
+  }
+
+  async function handleImportSubmit() {
+    if (!importResult || importResult.rows.length === 0 || isImporting) return;
+    if (userRole === 'super_admin' && !importAssocId) {
+      setImportError('Choose the target Irrigators Association for these members.');
+      return;
+    }
+
+    setImportError(null);
+    setImportFailures([]);
+    setIsImporting(true);
+    setImportProgress({ done: 0, total: importResult.rows.length });
+
+    let created = 0;
+    const failures: string[] = [];
+
+    try {
+      for (const row of importResult.rows) {
+        const formData = new FormData();
+        formData.append('full_name', row.full_name);
+        formData.append('farm_location', row.farm_location);
+        formData.append('farm_size_hectares', row.farm_size_hectares || '0');
+        formData.append('contact_number', row.contact_number);
+        if (userRole === 'super_admin') formData.append('association_id', importAssocId);
+
+        const res = await createMemberAction(formData);
+        if (res.success) created += 1;
+        else failures.push(`Row ${row.rowNumber} — ${res.message}`);
+
+        setImportProgress({ done: created + failures.length, total: importResult.rows.length });
+      }
+    } catch (err: any) {
+      failures.push(err?.message || 'Unexpected error while importing members.');
+    } finally {
+      setIsImporting(false);
+      setImportProgress(null);
+    }
+
+    if (created > 0) loadData();
+
+    if (failures.length === 0) {
+      setShowImportModal(false);
+      setBannerMsg({
+        type: 'success',
+        text: `Imported ${created} farmer member${created === 1 ? '' : 's'} from ${importResult.fileName}.`,
+      });
+      return;
+    }
+
+    setImportFailures(failures);
+    setBannerMsg(
+      created > 0
+        ? {
+            type: 'success',
+            text: `Imported ${created} of ${importResult.rows.length} members — ${failures.length} row(s) could not be registered. See the import window for details.`,
+          }
+        : { type: 'error', text: `Import failed — ${failures.length} row(s) could not be registered.` }
+    );
+  }
+
   // The Farmer Members Registry is not part of the Treasurer account anymore.
   // Treasurers pick payers from the roster inside Collections & Expenses instead.
   if (!loading && userRole === 'treasurer') {
@@ -219,13 +351,30 @@ export default function MembersPage() {
           </div>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={handleExportMembersExcel}
+            disabled={loading}
+            title="Export the visible member registry to Excel"
+            className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all shadow-xs flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+          >
+            <Download className="w-4 h-4 text-emerald-700" /> Export Excel
+          </button>
           {canWrite ? (
-            <button
-              onClick={openCreateModal}
-              className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95"
-            >
-              <PlusCircle className="w-4 h-4" /> Register Farmer Member
-            </button>
+            <>
+              <button
+                onClick={openCreateModal}
+                className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" /> Register Farmer Member
+              </button>
+              <button
+                onClick={openImportModal}
+                title="Bulk-register members from an Excel or CSV file"
+                className="px-4 py-2.5 rounded-xl border border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-800 font-bold text-xs transition-all shadow-xs flex items-center gap-2 active:scale-95"
+              >
+                <Upload className="w-4 h-4" /> Import Excel
+              </button>
+            </>
           ) : (
             <div className="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <Eye className="w-4 h-4 text-amber-600" />
@@ -454,6 +603,176 @@ export default function MembersPage() {
               </button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import from Excel */}
+      <Dialog open={showImportModal} onOpenChange={(open) => { if (!open && !isImporting) setShowImportModal(false); }}>
+        <DialogContent className="max-w-3xl p-5 bg-white rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black text-emerald-900">Import Farmer Members from Excel</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Upload a spreadsheet using the Register Farmer Member fields &mdash; Full Name, Farm Location / Sector,
+              Farm Size (hectares), and Mobile Number. Each row becomes one registered member.
+            </DialogDescription>
+          </DialogHeader>
+
+          {importError && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+              {importError}
+            </div>
+          )}
+
+          <div className="space-y-3 pt-1">
+            {userRole === 'super_admin' && (
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600">Target Irrigators Association *</label>
+                <select
+                  value={importAssocId}
+                  onChange={(e) => setImportAssocId(e.target.value)}
+                  disabled={isImporting}
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:opacity-60"
+                >
+                  <option value="">-- Select an Irrigation Association --</option>
+                  {associations.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name} ({a.code})</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-[11px] font-bold text-slate-600">Spreadsheet File *</label>
+                <button
+                  type="button"
+                  onClick={downloadMemberImportTemplate}
+                  disabled={isImporting}
+                  className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:underline flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download template
+                </button>
+              </div>
+              <label className="flex items-center gap-3 px-3.5 py-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 hover:border-emerald-400 hover:bg-emerald-50/60 cursor-pointer transition-colors">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleImportFileChange}
+                  disabled={isImporting}
+                  className="sr-only"
+                />
+                <FileSpreadsheet className="w-5 h-5 text-emerald-700 shrink-0" />
+                <span className="text-xs font-bold text-slate-700 truncate">
+                  {importFile ? importFile.name : 'Choose an Excel (.xlsx, .xls) or CSV file'}
+                </span>
+                {importFile && (
+                  <span className="ml-auto text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 whitespace-nowrap shrink-0">
+                    {importResult ? `${importResult.rows.length} ready` : 'Reading...'}
+                  </span>
+                )}
+              </label>
+            </div>
+
+            {importResult && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="font-extrabold text-slate-700">
+                    {importResult.rows.length} member{importResult.rows.length === 1 ? '' : 's'} ready to import
+                  </span>
+                  {importResult.issues.length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
+                      {importResult.issues.length} row{importResult.issues.length === 1 ? '' : 's'} skipped
+                    </span>
+                  )}
+                </div>
+
+                {importResult.rows.length > 0 && (
+                  <div className="rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[11px] min-w-[520px]">
+                        <thead className="bg-slate-50 text-slate-500">
+                          <tr className="uppercase tracking-wide text-[9.5px] font-extrabold">
+                            <th className="px-2.5 py-2 text-left w-12">Row</th>
+                            <th className="px-2.5 py-2 text-left">Full Name</th>
+                            <th className="px-2.5 py-2 text-left">Farm Location / Sector</th>
+                            <th className="px-2.5 py-2 text-right">Farm Size (ha)</th>
+                            <th className="px-2.5 py-2 text-left">Mobile Number</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {importResult.rows.slice(0, 8).map((row) => (
+                            <tr key={row.rowNumber} className="text-slate-700">
+                              <td className="px-2.5 py-1.5 text-slate-400 font-semibold">{row.rowNumber}</td>
+                              <td className="px-2.5 py-1.5 font-bold text-slate-900">{row.full_name}</td>
+                              <td className="px-2.5 py-1.5">{row.farm_location || '—'}</td>
+                              <td className="px-2.5 py-1.5 text-right tabular-nums">{row.farm_size_hectares || '0'}</td>
+                              <td className="px-2.5 py-1.5 tabular-nums">{row.contact_number || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {importResult.rows.length > 8 && (
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    …and {importResult.rows.length - 8} more row{importResult.rows.length - 8 === 1 ? '' : 's'}.
+                  </p>
+                )}
+
+                {importResult.issues.length > 0 && (
+                  <div className="max-h-28 overflow-y-auto rounded-xl border border-amber-200 bg-amber-50 p-2.5 space-y-0.5">
+                    {importResult.issues.slice(0, 20).map((issue, idx) => (
+                      <p key={idx} className="text-[10.5px] font-semibold text-amber-800">
+                        {issue.rowNumber ? `Row ${issue.rowNumber}: ` : ''}{issue.message}
+                      </p>
+                    ))}
+                    {importResult.issues.length > 20 && (
+                      <p className="text-[10.5px] font-bold text-amber-700">
+                        …and {importResult.issues.length - 20} more.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {importFailures.length > 0 && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 space-y-1">
+                <p className="text-xs font-black text-rose-800">
+                  {importFailures.length} row{importFailures.length === 1 ? '' : 's'} could not be registered:
+                </p>
+                <ul className="max-h-28 overflow-y-auto list-disc list-inside space-y-0.5">
+                  {importFailures.slice(0, 20).map((failure, idx) => (
+                    <li key={idx} className="text-[11px] font-semibold text-rose-700">{failure}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setShowImportModal(false)}
+              disabled={isImporting}
+              className="px-4 py-2 text-xs font-bold rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={handleImportSubmit}
+              disabled={isImporting || !importResult || importResult.rows.length === 0 || (userRole === 'super_admin' && !importAssocId)}
+              className="px-5 py-2 text-xs font-bold rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white shadow-md active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
+            >
+              {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {isImporting
+                ? `Importing ${importProgress?.done ?? 0}/${importProgress?.total ?? 0}...`
+                : `Import ${importResult?.rows.length ?? 0} Member${importResult?.rows.length === 1 ? '' : 's'}`}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
 

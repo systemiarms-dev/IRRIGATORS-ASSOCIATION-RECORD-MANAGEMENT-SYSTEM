@@ -31,7 +31,9 @@ The system enforces strict **Separation of Duties (SoD)** to prevent financial f
 | **Auditor** | Independent verification, examination of receipts/vouchers, audit overrides | View Only | View Only | **Yes** | **Yes** |
 | **Farmer Member** | View individual dues, payments, land parcel records, and published reports | No | No | No | No |
 
-> **FS Report generation is open to every role.** `Generate FS Report` compiles the *existing* ledger into FS1–FS4 — it never alters financial records — so every account that can open the Financial Statements module (Super Admin, IA President/Head Admin, Treasurer, Bookkeeper, Auditor) may generate, print, and export a report. **Editing, renaming, re-syncing, or deleting a compiled statement remains restricted to the Head Admin and Treasurer.** Farmer Members do not see the Financial Statements module.
+> **FS Report generation is open to every role.** `Generate FS Report` compiles the *existing* ledger into FS1–FS4 — it never alters financial records — so every account that can open the Financial Statements module (Super Admin, IA President/Head Admin, Treasurer, Bookkeeper, Auditor) may generate, print, and export a report. **Editing, renaming, re-syncing, or deleting a compiled statement remains restricted to the Treasurer.** Farmer Members do not see the Financial Statements module.
+
+> **Head Admin is view-only in the Financial Suite.** The Head Admin browses **Collections & Expenses**, the **Verification & Audit Queue**, and the ledger, and it may still compile/print FS1–FS4 — but it can never record, edit, delete, or approve anything financial, and **Chart of Accounts** is hidden from its sidebar/header. Recording belongs to the Treasurer; audit decisions belong to the Auditor.
 
 > **Bookkeeper rules:** exactly **one** Bookkeeper account exists per installation and it is created/managed only by the Super Admin (it has `association_id = NULL`). It may **view** every module — IA registry, member roster, ledger, chart of accounts, fixed assets, FS1–FS4, dashboard KPIs — and it may **compile (generate) FS reports** as a read-only derivation of the ledger, but it has **no permission to create, edit, delete, or modify any other data**, and it can never edit, rename, re-sync, or delete a compiled statement. Only its own profile details and password can be changed (My Account Settings).
 
@@ -51,7 +53,7 @@ The system sidebar is divided into three distinct operational suites: **Core Man
 ├── Collections & Expenses     (/dashboard/treasurer)
 ├── Verification & Audit Queue (/dashboard/auditor)
 ├── Financial Statements       (/dashboard/statements)
-└── Chart of Accounts          (/dashboard/chart-of-accounts)
+└── Chart of Accounts          (/dashboard/chart-of-accounts) [Super Admin / Treasurer]
 
 [Administration]
 ├── User Account Manager       (/dashboard/admin) [Super Admin / Admin]
@@ -61,7 +63,7 @@ The system sidebar is divided into three distinct operational suites: **Core Man
 ### 3.1 Overview Dashboard (`/dashboard`)
 1. **Association Scope Bar (for Super Admin and the view-only Bookkeeper):** Quick-tap buttons allow switching between **`All Associations (Consolidated)`** or specific IAs (e.g. `NLFIA • Nangurisan`).
 2. **Executive Header Action Buttons:**
-   - **`Log Payment / Voucher`**: Directly opens the financial transaction modal.
+   - **`Log Payment / Voucher`** (Treasurer only): Directly opens the financial transaction modal. View-only roles (Super Admin, Head Admin, Bookkeeper, Auditor) see **`View Collections & Expenses`** instead.
    - **`Open Auditor Queue`**: Navigates straight to the internal audit and receipt verification queue.
 3. **Real-Time Key KPI Metric Cards:**
    - **`Total Collections`**: Member ISF & subsidies cash inflow.
@@ -107,8 +109,8 @@ The system sidebar is divided into three distinct operational suites: **Core Man
 ### 3.4 Collections & Expenses Ledger (`/dashboard/treasurer`)
 This is the double-entry bookkeeping engine for all daily cash, bank, and voucher movements.
 1. **Header Banner Actions:**
-   - Click **`Log Payment / Voucher`** to record financial movements.
-   - Click **`Chart of Accounts`** to open budget line configurations.
+   - Click **`Log Payment / Voucher`** to record financial movements *(Treasurer only — view-only roles see the `Read & View Only` badge instead)*.
+   - Click **`Chart of Accounts`** to open budget line configurations *(Treasurer & Super Admin only — hidden from the Head Admin)*.
    - Click **`Export CSV`** (tooltip: *Export to Excel CSV*) to export the filtered ledger to spreadsheet format.
 2. **Summary Metric Cards & Fund Breakdown:**
    - Cards display `Filtered Collections`, `Filtered Disbursements`, and `Net Ledger Balance`.
@@ -138,6 +140,7 @@ This is the double-entry bookkeeping engine for all daily cash, bank, and vouche
    - **`Delete Record`** (Trash icon): Opens the **`Confirm Transaction Deletion`** dialog &rarr; click **`Delete Transaction`** or **`Cancel`**.
 
 ### 3.5 Verification & Audit Queue (`/dashboard/auditor`)
+> **Access note:** only the **Auditor** decides the queue (`Verify All Pending`, `Audit Decision`). The Head Admin, Super Admin, and Bookkeeper browse it read-only.
 1. **Header Banner Actions:**
    - Click **`Verify All Pending (N)`** (switches to **`Confirm — Verify All?`**) to batch-approve pending receipts.
    - Click **`Refresh Queue`** to update audit submissions.
@@ -174,15 +177,16 @@ This is the double-entry bookkeeping engine for all daily cash, bank, and vouche
    - **`FS4: Balance Sheet`**: Statement of Net Worth & Balance Sheet.
 4. **Active Statement Management (Left Panel):**
    - Displays all compiled statements under **`Active Statement`**.
-   - **Head Admin & Treasurer only:** Click **`Rename statement`** (Pencil icon) to edit statement title inline (press Enter to confirm), or **`Delete statement`** (Trash icon) to open the **`Confirm Statement Deletion`** dialog &rarr; click **`Delete Statement`** or **`Cancel`**. All other roles see the list without these controls.
-5. **Mode Switcher Bar & In-Line Adjustments (Head Admin & Treasurer only):**
-   - **`View Only`** (Layers icon): Read-only view generated from the ledger and transactions. This is the only mode available to the Super Admin, Bookkeeper, and Auditor.
+   - **Treasurer only:** Click **`Rename statement`** (Pencil icon) to edit statement title inline (press Enter to confirm), or **`Delete statement`** (Trash icon) to open the **`Confirm Statement Deletion`** dialog &rarr; click **`Delete Statement`** or **`Cancel`**. All other roles see the list without these controls.
+5. **Mode Switcher Bar & In-Line Adjustments (Treasurer only):**
+   - **`View Only`** (Layers icon): Read-only view generated from the ledger and transactions. This is the only mode available to the Super Admin, Head Admin, Bookkeeper, and Auditor.
    - **`Edit`** (Pencil icon): Click directly on line items to input Certified Public Accountant (CPA) adjustments. All totals, net surplus, cash balances, and equity auto-recompute in real-time across all 4 sheets.
    - Action buttons: Click **`Save Changes`** (Save icon) or **`Discard`** (X icon).
 6. **Print & PDF Export:**
    - While in **`View Only`** mode, click **`Print {FS_TAB_LABEL}`** (e.g., **`Print FS1: Receipts & Expenses`**, **`Print FS2: Cash Flows`**, **`Print FS3: Cash Statement`**, or **`Print FS4: Balance Sheet`**) to generate official, borderless, audit-ready NIA printouts.
 
 ### 3.7 Chart of Accounts & Fixed Asset Registry (`/dashboard/chart-of-accounts`)
+> **Access note:** hidden from the Head Admin sidebar/header (the Head Admin is view-only across the Financial Suite). The **Treasurer** manages categories and fixed assets; the **Super Admin** browses read-only.
 1. **View Switcher Navigation Tabs:**
    - **`Chart of Accounts (N)`** (BookOpen icon): Manage collection, disbursement, asset, and liability accounts.
    - **`Fixed Asset Registry (N)`** (Tractor icon): Manage capital machinery, irrigation pumps, buildings, and automatic depreciation.
@@ -435,7 +439,7 @@ The system utilizes a relational foreign-key database architecture (`category_id
 ### 6.2 What happens if an account is accidentally deleted?
 1. **Statutory Account Protection:** The system's API rejects deletion requests for the 21 standard NIA accounts.
 2. **Ledger Integrity Constraint:** If an account contains existing transactions, deletion is blocked by foreign key constraints. The system prompts the user to **Deactivate** the account instead.
-3. **One-Click Restore:** If a custom category is wiped or an association was initialized with an empty chart, administrators can click **Restore Standard Accounts** on the Chart of Accounts page to automatically reinstate all 21 NIA statutory accounts.
+3. **One-Click Restore:** If a custom category is wiped or an association was initialized with an empty chart, the Treasurer can click **Restore Standard Accounts** on the Chart of Accounts page to automatically reinstate all 21 NIA statutory accounts.
 
 ### 6.3 Multi-Association Tenant Scoping
 Each association possesses an isolated namespace (`association_id`). Transactions, members, land parcels, fixed assets, and financial reports from NLFIA can never cross-pollinate with another Irrigators Association.
@@ -446,7 +450,7 @@ Each association possesses an isolated namespace (`association_id`). Transaction
 
 When an annual statement is ready for submission to NIA, SEC, and BIR:
 1. **Compilation:** Any signed-in officer (Head Admin, Treasurer, Auditor, Bookkeeper, or Super Admin) clicks the **`Generate FS Report`** button &rarr; configures **Comparative Reporting Period** (e.g. CY 2026 vs CY 2025) &rarr; reviews authorized signatories &rarr; clicks **`Generate FS Report`**. Compiling only reads the ledger, so it is open to every role.
-2. **Review & Audit Adjustments:** The Auditor inspects the statements. If an off-ledger CPA adjustment is needed, the **Head Admin or Treasurer** (the roles permitted to edit financial statements) switches the mode toggle from **`View Only`** to **`Edit`**, inputs the certified override directly on the line item, and clicks **`Save Changes`** (or **`Discard`**). All dependent sheets auto-recompute immediately.
+2. **Review & Audit Adjustments:** The Auditor inspects the statements. If an off-ledger CPA adjustment is needed, the **Treasurer** (the only role permitted to edit financial statements) switches the mode toggle from **`View Only`** to **`Edit`**, inputs the certified override directly on the line item, and clicks **`Save Changes`** (or **`Discard`**). All dependent sheets auto-recompute immediately.
 3. **Fiduciary Certification:** The Treasurer reviews Section F (Cash Composition) against physical Land Bank passbooks and signs the certification block.
 4. **Notary Acknowledgment:** The Treasurer enters the Community Tax Certificate (CTC / Cedula) Number, Date of Issue, and Place of Issue in the FS-4 Notary Block.
 5. **Print & PDF Export:** While in **`View Only`** mode, click **`Print FS1: Receipts & Expenses`** (or **`Print FS2: Cash Flows`**, **`Print FS3: Cash Statement`**, **`Print FS4: Balance Sheet`**) to generate the crisp, borderless, audit-ready physical document package.

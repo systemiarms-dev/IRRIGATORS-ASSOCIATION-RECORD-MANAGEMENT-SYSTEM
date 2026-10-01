@@ -163,9 +163,9 @@ export default function ChartOfAccountsPage() {
   const [assetNotes, setAssetNotes] = useState('');
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
-  // The Financial Suite is view-only for the Super Admin, the system-wide
-  // Bookkeeper, and the Auditor: they may browse categories and fixed assets
-  // but never add, edit, toggle, restore, or delete them.
+  // The Financial Suite is view-only for the Super Admin, the Head Admin, the
+  // system-wide Bookkeeper, and the Auditor: they may browse categories and
+  // fixed assets but never add, edit, toggle, restore, or delete them.
   const isReadOnly = !canWriteFinancialData(currentUser?.role);
   // Super Admin and the system-wide (view-only) Bookkeeper may browse every
   // association's chart of accounts and fixed assets.
@@ -175,7 +175,9 @@ export default function ChartOfAccountsPage() {
   const readOnlyRoleLabel =
     currentUser?.role === 'super_admin'
       ? 'Super Admin'
-      : currentUser?.role === 'bookkeeper'
+      : currentUser?.role === 'admin'
+        ? 'Head Admin'
+        : currentUser?.role === 'bookkeeper'
         ? 'Bookkeeper'
         : currentUser?.role === 'auditor'
           ? 'Auditor'

@@ -376,9 +376,9 @@ export default function AccountManagementPage() {
               )}
               {profile?.role === 'admin' && (
                 <>
-                  <li>Association executive management and officer credential oversight.</li>
-                  <li>Review and certified approval of FS1–FS4 comparative financial statements.</li>
-                  <li>Complete financial ledger inspection & association profile editing.</li>
+                  <li>Association executive management, officer credential oversight &amp; farmer member registry.</li>
+                  <li>View-only Financial Suite: inspect the ledger, budget categories, and fixed assets — recording stays with the Treasurer.</li>
+                  <li>Compile, review, and print FS1–FS4 comparative financial statements (report line items stay read-only).</li>
                 </>
               )}
               {profile?.role === 'treasurer' && (

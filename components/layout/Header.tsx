@@ -43,7 +43,7 @@ export default function Header({
     { label: 'Collections & Expenses', href: '/dashboard/treasurer', icon: Wallet, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer'] },
     { label: 'Verification & Audit Queue', href: '/dashboard/auditor', icon: ShieldCheck, roles: ['super_admin', 'admin', 'auditor'] },
     { label: 'Financial Statements', href: '/dashboard/statements', icon: FileText, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
-    { label: 'Chart of Accounts', href: '/dashboard/chart-of-accounts', icon: BookOpen, roles: ['super_admin', 'admin', 'treasurer'] },
+    { label: 'Chart of Accounts', href: '/dashboard/chart-of-accounts', icon: BookOpen, roles: ['super_admin', 'treasurer'] },
     { label: 'User Account Manager', href: '/dashboard/admin', icon: Users, roles: ['super_admin', 'admin'] },
     { label: 'My Account Settings', href: '/dashboard/account', icon: UserCheck, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
   ];

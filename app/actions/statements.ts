@@ -67,7 +67,7 @@ export async function generateStatementAction(
   // Compiling an FS report is a READ-ONLY derivation of the existing ledger, so
   // it is open to EVERY signed-in role (Super Admin, Head Admin, Treasurer,
   // Bookkeeper, Auditor). What stays restricted to `canWriteFinancialData`
-  // (Head Admin / Treasurer) is everything that MUTATES a compiled report:
+  // (Treasurer) is everything that MUTATES a compiled report:
   // editing, renaming, re-syncing, and deleting — see the other actions below.
 
   try {
@@ -713,7 +713,7 @@ export async function updateFinancialStatementAction(
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can modify financial statements.' };
+    return { success: false, message: 'Bookkeepers have read-only access. Only the Treasurer can modify financial statements.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'
@@ -769,7 +769,7 @@ export async function renameFinancialStatementAction(id: string, newTitle: strin
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can rename financial statements.' };
+    return { success: false, message: 'Bookkeepers have read-only access. Only the Treasurer can rename financial statements.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'
@@ -807,7 +807,7 @@ export async function deleteFinancialStatementAction(id: string): Promise<Action
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can delete financial statements.' };
+    return { success: false, message: 'Bookkeepers have read-only access. Only the Treasurer can delete financial statements.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'
@@ -843,7 +843,7 @@ export async function deleteMultipleFinancialStatementsAction(
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can delete financial statements.' };
+    return { success: false, message: 'Bookkeepers have read-only access. Only the Treasurer can delete financial statements.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'
@@ -894,7 +894,7 @@ export async function resyncStatementWithLedgerAction(
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can re-sync financial statements.' };
+    return { success: false, message: 'Bookkeepers have read-only access. Only the Treasurer can re-sync financial statements.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'

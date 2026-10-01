@@ -694,7 +694,7 @@ export default function FinancialStatementsPage() {
 
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* Every role may compile an FS report — it is a read-only derivation
-              of the ledger. Editing stays limited to Head Admin / Treasurer. */}
+              of the ledger. Editing stays limited to the Treasurer. */}
           <button
             onClick={() => requestNav(openGenerateModal, 'You have unsaved changes. Generating a new report will start with the saved ledger figures.')}
             disabled={isGenerating}
@@ -705,7 +705,7 @@ export default function FinancialStatementsPage() {
           {!canEditReports && (
             <div className="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <Eye className="w-4 h-4 text-amber-600" />
-              <span>View Only &mdash; {userRole === 'super_admin' ? 'Super Admin' : userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'} (cannot edit reports)</span>
+              <span>View Only &mdash; {userRole === 'super_admin' ? 'Super Admin' : userRole === 'admin' ? 'Head Admin' : userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'} (cannot edit reports)</span>
             </div>
           )}
         </div>

@@ -65,7 +65,7 @@ export async function createBudgetCategoryAction(input: {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'You have read-only access. Only treasurers and administrators can manage chart of accounts categories.' };
+    return { success: false, message: 'You have read-only access. Only the Treasurer can manage chart of accounts categories.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'
@@ -147,7 +147,7 @@ export async function deleteBudgetCategoryAction(id: string): Promise<ActionResp
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'You have read-only access. Only treasurers and administrators can remove categories.' };
+    return { success: false, message: 'You have read-only access. Only the Treasurer can remove categories.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'
@@ -207,7 +207,7 @@ export async function toggleBudgetCategoryActiveAction(id: string, isActive: boo
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'You have read-only access. Only treasurers and administrators can manage chart of accounts categories.' };
+    return { success: false, message: 'You have read-only access. Only the Treasurer can manage chart of accounts categories.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'
@@ -249,7 +249,7 @@ export async function restoreStandardCategoriesAction(
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'You have read-only access. Only treasurers and administrators can restore categories.' };
+    return { success: false, message: 'You have read-only access. Only the Treasurer can restore categories.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'
@@ -302,7 +302,7 @@ export async function updateBudgetCategoryAction(
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'You have read-only access. Only treasurers and administrators can edit categories.' };
+    return { success: false, message: 'You have read-only access. Only the Treasurer can edit categories.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'
@@ -390,7 +390,7 @@ export async function createTransactionAction(payload: CreateTransactionPayload)
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can record transactions.' };
+    return { success: false, message: 'Bookkeepers have read-only access. Only the Treasurer can record transactions.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'
@@ -579,7 +579,7 @@ export async function uploadReceiptMetadataAction(
   if (!user) return UNAUTHORIZED_RESPONSE;
 
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can upload receipts.' };
+    return { success: false, message: 'Bookkeepers have read-only access. Only the Treasurer can upload receipts.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return {
@@ -728,7 +728,7 @@ export async function deleteTransactionAction(id: string): Promise<ActionRespons
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can delete transactions.' };
+    return { success: false, message: 'Bookkeepers have read-only access. Only the Treasurer can delete transactions.' };
   }
   if (!canWriteFinancialData(user.role)) {
     return user.role === 'super_admin'

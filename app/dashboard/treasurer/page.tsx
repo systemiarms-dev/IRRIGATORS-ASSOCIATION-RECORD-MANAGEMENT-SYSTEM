@@ -259,11 +259,11 @@ export default function TreasurerPage() {
           ) : (
             <div className="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <Eye className="w-4 h-4 text-amber-600" />
-              <span>Read &amp; View Only ({userRole === 'super_admin' ? 'Super Admin' : userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
+              <span>Read &amp; View Only ({userRole === 'super_admin' ? 'Super Admin' : userRole === 'admin' ? 'Head Admin' : userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
             </div>
           )}
 
-          {userRole !== 'bookkeeper' && userRole !== 'auditor' && (
+          {(userRole === 'treasurer' || userRole === 'super_admin') && (
             <Link
               href="/dashboard/chart-of-accounts"
               className="px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"

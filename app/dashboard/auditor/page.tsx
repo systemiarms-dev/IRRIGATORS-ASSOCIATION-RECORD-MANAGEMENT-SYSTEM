@@ -34,9 +34,9 @@ export default function AuditorPage() {
   const [verifyingAll, setVerifyingAll] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Head Admin / Auditor decide the Verification & Audit Queue. The Super Admin
-  // and the system-wide Bookkeeper (if they open this URL directly) stay
-  // strictly view-only in the Financial Suite.
+  // Only the Auditor decides the Verification & Audit Queue. The Head Admin,
+  // Super Admin, and system-wide Bookkeeper (if they open this URL directly)
+  // stay strictly view-only in the Financial Suite.
   const canDecide = canDecideAuditQueue(userRole);
 
   // Auto-dismiss the action feedback banner
@@ -222,7 +222,7 @@ export default function AuditorPage() {
           ) : (
             <div className="px-3 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <Eye className="w-4 h-4 text-amber-600" />
-              <span>Read &amp; View Only ({userRole === 'super_admin' ? 'Super Admin' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
+              <span>Read &amp; View Only ({userRole === 'super_admin' ? 'Super Admin' : userRole === 'admin' ? 'Head Admin' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
             </div>
           )}
 

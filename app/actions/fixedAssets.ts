@@ -50,7 +50,7 @@ export async function createFixedAssetAction(input: {
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return {
       success: false,
-      message: 'You have read-only access. Only treasurers and administrators can register fixed assets.',
+      message: 'You have read-only access. Only the Treasurer can register fixed assets.',
     };
   }
   if (!canWriteFinancialData(user.role)) {
@@ -127,7 +127,7 @@ export async function deleteFixedAssetAction(id: string): Promise<ActionResponse
   if (user.role === 'bookkeeper' || user.role === 'auditor') {
     return {
       success: false,
-      message: 'You have read-only access. Only treasurers and administrators can remove fixed assets.',
+      message: 'You have read-only access. Only the Treasurer can remove fixed assets.',
     };
   }
   if (!canWriteFinancialData(user.role)) {

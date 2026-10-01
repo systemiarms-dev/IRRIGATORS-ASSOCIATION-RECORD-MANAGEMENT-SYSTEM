@@ -113,7 +113,7 @@ export default function Sidebar({
           label: 'Chart of Accounts',
           href: '/dashboard/chart-of-accounts',
           icon: BookOpen,
-          roles: ['super_admin', 'admin', 'treasurer'],
+          roles: ['super_admin', 'treasurer'],
           badge: 'Categories',
           description: 'Budget lines & categories',
         },
