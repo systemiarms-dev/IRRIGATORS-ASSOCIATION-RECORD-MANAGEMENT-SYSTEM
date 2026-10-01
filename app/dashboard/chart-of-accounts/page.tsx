@@ -66,6 +66,48 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { formatPHP } from '@/lib/utils/formatters';
 
+/* -------------------------------------------------------------------------- */
+/* Chart of Accounts numeric account codes (display-only).                     */
+/* Every category title gets a code inside its classification's 100-number     */
+/* block, shown ONLY on the Chart of Accounts page:                            */
+/*   Assets 101-199 | Liabilities 201-299 | Equity/Fund Balance 301-399        */
+/*   Revenue/Income 401-499 | Expenses 501-599                                 */
+/* The stored `code` column (REC-*, DISB-*, EQ-*, ...) is left untouched so    */
+/* transactions, fixed-asset queries and standard NIA seeding keep working.    */
+/* -------------------------------------------------------------------------- */
+type AccountCodeGroup = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+
+const ACCOUNT_CODE_RANGES: Record<AccountCodeGroup, { base: number; label: string; range: string; chipClass: string }> = {
+  asset: { base: 101, label: 'Assets', range: '101-199', chipClass: 'bg-blue-50 text-blue-800 border-blue-200' },
+  liability: { base: 201, label: 'Liabilities', range: '201-299', chipClass: 'bg-amber-50 text-amber-800 border-amber-200' },
+  equity: { base: 301, label: 'Equity / Fund Balance', range: '301-399', chipClass: 'bg-purple-50 text-purple-800 border-purple-200' },
+  revenue: { base: 401, label: 'Revenue / Income', range: '401-499', chipClass: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+  expense: { base: 501, label: 'Expenses', range: '501-599', chipClass: 'bg-rose-50 text-rose-800 border-rose-200' },
+};
+
+const ACCOUNT_CODE_GROUP_ORDER: AccountCodeGroup[] = ['asset', 'liability', 'equity', 'revenue', 'expense'];
+
+/** Which 100-number block a category belongs to, based on its classification. */
+function getAccountCodeGroup(cat: Pick<BudgetCategory, 'category_type' | 'account_classification'>): AccountCodeGroup {
+  const classification = cat.account_classification || cat.category_type;
+  switch (classification) {
+    case 'current_asset':
+    case 'non_current_asset':
+      return 'asset';
+    case 'current_liability':
+    case 'non_current_liability':
+      return 'liability';
+    case 'equity':
+      return 'equity';
+    case 'collection':
+      return 'revenue';
+    case 'disbursement':
+      return 'expense';
+    default:
+      return cat.category_type === 'collection' ? 'revenue' : 'expense';
+  }
+}
+
 export default function ChartOfAccountsPage() {
   const [currentUser, setCurrentUser] = useState<PublicProfile | null>(null);
   const [associations, setAssociations] = useState<Association[]>([]);
@@ -199,6 +241,41 @@ export default function ChartOfAccountsPage() {
     });
   }, [currentUser, selectedAssocId, canSelectAssociation]);
 
+  // Numeric account codes, assigned sequentially in display order within each
+  // classification block (Assets 101-199, Liabilities 201-299, Equity 301-399,
+  // Revenue 401-499, Expenses 501-599). Derived from the full loaded list so a
+  // code never shifts when filters/search narrow the table.
+  const categoryNumericCodes = useMemo(() => {
+    const counters: Record<AccountCodeGroup, number> = {
+      asset: ACCOUNT_CODE_RANGES.asset.base,
+      liability: ACCOUNT_CODE_RANGES.liability.base,
+      equity: ACCOUNT_CODE_RANGES.equity.base,
+      revenue: ACCOUNT_CODE_RANGES.revenue.base,
+      expense: ACCOUNT_CODE_RANGES.expense.base,
+    };
+    const map = new Map<string, number>();
+    categories.forEach((c) => {
+      const group = getAccountCodeGroup(c);
+      const code = counters[group];
+      if (code <= ACCOUNT_CODE_RANGES[group].base + 98) {
+        map.set(c.id, code);
+        counters[group] = code + 1;
+      }
+    });
+    return map;
+  }, [categories]);
+
+  // Next numeric code a new category would receive, based on its classification.
+  const formCodeGroup = useMemo(
+    () => getAccountCodeGroup({ category_type: formType, account_classification: formClassification }),
+    [formType, formClassification],
+  );
+  const nextNumericCodePreview = useMemo(() => {
+    const used = categories.filter((c) => getAccountCodeGroup(c) === formCodeGroup).length;
+    const base = ACCOUNT_CODE_RANGES[formCodeGroup].base;
+    return Math.min(base + used, base + 98);
+  }, [categories, formCodeGroup]);
+
   // Filtered categories
   const filteredCategories = useMemo(() => {
     return categories.filter((c) => {
@@ -227,14 +304,16 @@ export default function ChartOfAccountsPage() {
       // Search match
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
+        const numericCode = categoryNumericCodes.get(c.id);
+        const numericMatch = numericCode !== undefined && String(numericCode).includes(query);
         const codeMatch = c.code.toLowerCase().includes(query);
         const nameMatch = c.name.toLowerCase().includes(query);
         const descMatch = (c.description || '').toLowerCase().includes(query);
-        return codeMatch || nameMatch || descMatch;
+        return numericMatch || codeMatch || nameMatch || descMatch;
       }
       return true;
     });
-  }, [categories, typeFilter, classificationFilter, scopeFilter, searchQuery]);
+  }, [categories, categoryNumericCodes, typeFilter, classificationFilter, scopeFilter, searchQuery]);
 
   // Stats for Categories
   const stats = useMemo(() => {
@@ -834,6 +913,23 @@ export default function ChartOfAccountsPage() {
               </div>
             </div>
 
+            {/* Account Code Range Legend */}
+            <div className="px-3.5 sm:px-4 py-2.5 border-b border-slate-100 bg-slate-50/60 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Account Codes</span>
+              {ACCOUNT_CODE_GROUP_ORDER.map((group) => {
+                const info = ACCOUNT_CODE_RANGES[group];
+                return (
+                  <span
+                    key={group}
+                    className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${info.chipClass}`}
+                    title={`${info.label} account codes are numbered ${info.range}`}
+                  >
+                    {info.label} {info.range}
+                  </span>
+                );
+              })}
+            </div>
+
             {/* Table Content */}
             {loading ? (
               <div className="min-h-[250px] flex flex-col items-center justify-center text-slate-500">
@@ -874,11 +970,19 @@ export default function ChartOfAccountsPage() {
                       const isStatutory = isStandardNiaAccount(c.code) || !c.association_id;
                       const classification = c.account_classification || c.category_type;
                       const isActive = c.is_active !== false;
+                      const numericCode = categoryNumericCodes.get(c.id);
+                      const codeGroup = getAccountCodeGroup(c);
 
                       return (
                         <tr key={c.id} className={`hover:bg-slate-50/80 transition-colors ${!isActive ? 'opacity-60 bg-slate-50/40' : ''}`}>
                           <td className="py-3 px-3 sm:px-4 font-mono font-bold text-slate-800 whitespace-nowrap">
-                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-800 text-[10px] sm:text-[11px]">
+                            <span
+                              className={`inline-block px-1.5 py-0.5 rounded border text-[11px] sm:text-xs font-black ${ACCOUNT_CODE_RANGES[codeGroup].chipClass}`}
+                              title={`${ACCOUNT_CODE_RANGES[codeGroup].label} account code (${ACCOUNT_CODE_RANGES[codeGroup].range}) — internal reference: ${c.code}`}
+                            >
+                              {numericCode ?? '—'}
+                            </span>
+                            <span className="block mt-0.5 text-[9px] font-mono font-semibold text-slate-400" title={`Internal code: ${c.code}`}>
                               {c.code}
                             </span>
                           </td>
@@ -1282,6 +1386,18 @@ export default function ChartOfAccountsPage() {
                     </>
                   )}
                 </select>
+                {/* Numeric Chart of Accounts code preview for this classification */}
+                {(!isSuperAdmin || formAssocId === selectedAssocId) && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="font-bold text-slate-500">Chart of Accounts code:</span>
+                    <span className={`px-1.5 py-0.5 rounded border font-mono font-black ${ACCOUNT_CODE_RANGES[formCodeGroup].chipClass}`}>
+                      {nextNumericCodePreview}
+                    </span>
+                    <span className="text-slate-400">
+                      {ACCOUNT_CODE_RANGES[formCodeGroup].label} · {ACCOUNT_CODE_RANGES[formCodeGroup].range}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Target Association for Super Admin */}
