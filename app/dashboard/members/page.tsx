@@ -26,7 +26,7 @@ export default function MembersPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const canWrite = userRole === 'super_admin' || userRole === 'admin' || userRole === 'treasurer';
+  const canWrite = userRole === 'super_admin' || userRole === 'admin';
 
   const [formName, setFormName] = useState('');
   const [formLocation, setFormLocation] = useState('');
@@ -137,6 +137,36 @@ export default function MembersPage() {
     } finally {
       setIsDeleting(false);
     }
+  }
+
+  // The Farmer Members Registry is not part of the Treasurer account anymore.
+  // Treasurers pick payers from the roster inside Collections & Expenses instead.
+  if (!loading && userRole === 'treasurer') {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-10 text-center space-y-3">
+          <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shadow-xs">
+            <Eye className="w-6 h-6" />
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[11px] font-extrabold border border-amber-200">
+            Not Available for Treasurer Accounts
+          </div>
+          <h1 className="text-xl font-black text-slate-900 leading-tight">Farmer Members Registry</h1>
+          <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
+            The Farmer Members Registry has been removed from the Treasurer account. Members are still
+            selectable as payers when logging collections. Ask your Head Admin or Super Admin to
+            register, edit, or remove farmer members.
+          </p>
+          <button
+            onClick={() => loadData()}
+            disabled={loading}
+            className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 font-bold text-xs flex items-center gap-1.5 mx-auto disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

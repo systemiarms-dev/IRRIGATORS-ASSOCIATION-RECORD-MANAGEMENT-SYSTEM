@@ -384,7 +384,7 @@ export default function AccountManagementPage() {
               {profile?.role === 'treasurer' && (
                 <>
                   <li>Full record entry: logging collections, disbursement vouchers, and receipt attachments.</li>
-                  <li>Registering farmer members, budget categories, and fixed assets with depreciation.</li>
+                  <li>Registering budget categories and fixed assets with depreciation.</li>
                   <li>Compiling, adjusting, and notarizing FS1–FS4 comparative financial statements.</li>
                 </>
               )}

@@ -26,7 +26,7 @@ The system enforces strict **Separation of Duties (SoD)** to prevent financial f
 | :--- | :--- | :---: | :---: | :---: | :---: |
 | **Super Admin** | System-wide oversight across all IAs, system configuration, database backup | Yes | Yes | Yes | Yes |
 | **IA President** | Executive leadership, governance, administrative approval, signatory | View Only | View Only | **Yes** | Yes |
-| **Treasurer / Encoder** | Primary input of all records: collections, expenses, vouchers, asset & member registry | **Yes** | **Yes** | **Yes** | **Yes** |
+| **Treasurer / Encoder** | Primary input of all records: collections, expenses, vouchers & asset registry | **Yes** | **Yes** | **Yes** | **Yes** |
 | **Bookkeeper** | **Single system-wide account** — view-only inspection of the financial reports and records of **every** registered IA (no association of its own) | **View Only** | **View Only** | **Yes** | No |
 | **Auditor** | Independent verification, examination of receipts/vouchers, audit overrides | View Only | View Only | **Yes** | **Yes** |
 | **Farmer Member** | View individual dues, payments, land parcel records, and published reports | No | No | No | No |
@@ -45,7 +45,7 @@ The system sidebar is divided into three distinct operational suites: **Core Man
 [Core Management]
 ├── Overview Dashboard         (/dashboard)
 ├── Irrigators Associations    (/dashboard/associations) [Super Admin / Bookkeeper]
-└── Farmer Members             (/dashboard/members)
+└── Farmer Members             (/dashboard/members) [Super Admin / Head Admin]
 
 [Financial Suite]
 ├── Collections & Expenses     (/dashboard/treasurer)
@@ -87,11 +87,12 @@ The system sidebar is divided into three distinct operational suites: **Core Man
    - Click **`Edit Profile`** (Pencil icon) to modify association parameters.
    - Click the **Trash icon** to open the **`Confirm Association Removal`** modal &rarr; click **`Delete Association`** or **`Cancel`**.
 
-### 3.3 Farmer Members (`/dashboard/members`)
+### 3.3 Farmer Members (`/dashboard/members`) &mdash; *Super Admin / Head Admin*
+> **Access note:** this registry is **not available to the Treasurer account** — the module is hidden from the Treasurer sidebar/header, direct navigation shows a "Not Available for Treasurer Accounts" notice, and the server actions reject Treasurer writes. Treasurers still pick members as payers inside **Collections & Expenses**.
 1. **Header Banner & Member Registration:**
    - Click the **`Register Farmer Member`** button in the top banner.
    - Click the **`RefreshCw icon`** to refresh member data.
-   - For Auditor/Treasurer roles, a read-only badge indicates `Read & View Only`.
+   - For Auditor/Bookkeeper roles, a read-only badge indicates `Read & View Only`.
 2. **Register Farmer Member Modal:**
    - **`Target Irrigators Association *`**: Select target IA (for Super Admins).
    - **`Full Name *`**: Complete legal name of the farmer member.

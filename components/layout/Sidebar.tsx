@@ -76,7 +76,7 @@ export default function Sidebar({
           label: 'Farmer Members',
           href: '/dashboard/members',
           icon: Users,
-          roles: ['super_admin', 'admin', 'treasurer'],
+          roles: ['super_admin', 'admin'],
           badge: 'Registry',
           description: 'Member roster per IA',
         },

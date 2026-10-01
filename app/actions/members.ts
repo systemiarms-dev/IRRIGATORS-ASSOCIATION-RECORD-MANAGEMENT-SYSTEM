@@ -2,12 +2,33 @@
 
 import { localDb } from '@/lib/db/localDb';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { ActionResponse, Profile } from '@/types';
+import { ActionResponse, Profile, UserRole } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireRole, requireUser, toPublicProfile, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
 import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { hashPassword } from '@/lib/auth/password';
 import { isValidPhilippineMobile, normalizePhilippineMobile } from '@/lib/utils/phone';
+
+/**
+ * The Farmer Members Registry has been removed from the Treasurer account —
+ * only the Super Admin and Head Admin may register, edit, or remove records.
+ *
+ * Returns the denial response for the caller's role, or `null` when the caller
+ * is allowed to perform the write.
+ */
+function denyMemberRegistryWrite(role: UserRole): Pick<ActionResponse, 'success' | 'message'> | null {
+  if (role === 'bookkeeper') {
+    return { success: false, message: 'Bookkeepers have read-only access. Only administrators can manage farmer members.' };
+  }
+  if (role === 'treasurer') {
+    return {
+      success: false,
+      message: 'The Farmer Members Registry is not available for Treasurer accounts. Ask your Head Admin or Super Admin to register, edit, or remove farmer members.',
+    };
+  }
+  if (role !== 'super_admin' && role !== 'admin') return UNAUTHORIZED_RESPONSE;
+  return null;
+}
 
 /**
  * Best-effort schema self-heal so the 'member' role is always enabled in the
@@ -28,11 +49,18 @@ async function ensureMemberRoleSchema(): Promise<void> {
 /**
  * Fetch farmer members (role='member') scoped to an association.
  * - Super Admin: any association (or all).
- * - Officers (admin/treasurer/auditor): strictly their own association.
+ * - Officers (admin/auditor): strictly their own association.
+ * - Treasurer: denied — the Farmer Members Registry is not part of that account.
  */
 export async function getMembersAction(associationId?: string): Promise<ActionResponse<Profile[]>> {
   const user = await requireUser();
   if (!user) return UNAUTHORIZED_RESPONSE;
+  if (user.role === 'treasurer') {
+    return {
+      success: false,
+      message: 'The Farmer Members Registry is not available for Treasurer accounts. Ask your Head Admin or Super Admin for the member roster.',
+    };
+  }
 
   try {
     const effectiveAssoc = hasSystemWideReadScope(user.role) ? associationId : (user.association_id || undefined);
@@ -50,12 +78,8 @@ export async function getMembersAction(associationId?: string): Promise<ActionRe
 export async function createMemberAction(formData: FormData): Promise<ActionResponse<Profile>> {
   const admin = await requireUser();
   if (!admin) return UNAUTHORIZED_RESPONSE;
-  if (admin.role === 'bookkeeper') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can register farmer members.' };
-  }
-  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
-  }
+  const denied = denyMemberRegistryWrite(admin.role);
+  if (denied) return denied;
 
   const full_name = (formData.get('full_name') as string)?.trim();
   const farm_location = (formData.get('farm_location') as string)?.trim();
@@ -137,12 +161,8 @@ export async function createMemberAction(formData: FormData): Promise<ActionResp
 export async function updateMemberAction(memberId: string, formData: FormData): Promise<ActionResponse<Profile>> {
   const admin = await requireUser();
   if (!admin) return UNAUTHORIZED_RESPONSE;
-  if (admin.role === 'bookkeeper') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can edit farmer members.' };
-  }
-  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
-  }
+  const denied = denyMemberRegistryWrite(admin.role);
+  if (denied) return denied;
 
   try {
     const member = await localDb.getUserById(memberId);
@@ -199,12 +219,8 @@ export async function updateMemberAction(memberId: string, formData: FormData): 
 export async function deleteMemberAction(memberId: string): Promise<ActionResponse> {
   const admin = await requireUser();
   if (!admin) return UNAUTHORIZED_RESPONSE;
-  if (admin.role === 'bookkeeper') {
-    return { success: false, message: 'Bookkeepers have read-only access. Only treasurers and administrators can remove farmer members.' };
-  }
-  if (admin.role !== 'super_admin' && admin.role !== 'admin' && admin.role !== 'treasurer') {
-    return UNAUTHORIZED_RESPONSE;
-  }
+  const denied = denyMemberRegistryWrite(admin.role);
+  if (denied) return denied;
 
   try {
     const member = await localDb.getUserById(memberId);
