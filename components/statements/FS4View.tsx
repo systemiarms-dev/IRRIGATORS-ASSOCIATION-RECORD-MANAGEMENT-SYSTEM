@@ -10,6 +10,8 @@ interface FS4ViewProps {
   editable?: boolean;
   edits?: FinancialStatementEdits;
   onFieldChange?: (path: string, value: number | string) => void;
+  /** FS-3 Section D value, folded into CASH IN BANK for display only. */
+  fundBalanceLastReport?: number;
 }
 
 const P = 'fs4.';
@@ -22,10 +24,18 @@ const LOCKED = new Set([
   'netWorth',
 ]);
 
-export default function FS4View({ data, editable = false, edits, onFieldChange }: FS4ViewProps) {
+export default function FS4View({ data, editable = false, edits, onFieldChange, fundBalanceLastReport = 0 }: FS4ViewProps) {
   const a = data.assets;
   const l = data.liabilities;
   const n = data.notaryBlock;
+
+  // Display-only: the previous fund balance rides along on CASH IN BANK, and
+  // TOTAL ASSETS / NET WORTH move with it so the balance sheet still adds up.
+  // Stored values are untouched, so FS-3, FS-4 data and audits stay as-is.
+  const priorFundBalance = Number(fundBalanceLastReport || 0);
+  const cashInBankShown = Number(a.cashInBank || 0) + priorFundBalance;
+  const totalAssetsShown = Number(a.totalAssets || 0) + priorFundBalance;
+  const netWorthShown = Number(data.netWorth || 0) + priorFundBalance;
 
   const forced = (p: string) => edits?.[`${P}${p}`]?.mode === 'force';
   const locked = (p: string) => LOCKED.has(p);
@@ -120,7 +130,7 @@ export default function FS4View({ data, editable = false, edits, onFieldChange }
 
         <div className="space-y-1.5 text-xs pl-4">
           {row('CASH ON HAND', 'assets.cashOnHand', a.cashOnHand)}
-          {row('CASH IN BANK', 'assets.cashInBank', a.cashInBank)}
+          {row('CASH IN BANK', 'assets.cashInBank', cashInBankShown)}
           {row('RECEIVABLES : (CASH ADVANCE, LOANS, ETC)', 'assets.receivables', a.receivables)}
 
           <div className="pt-2">
@@ -135,7 +145,7 @@ export default function FS4View({ data, editable = false, edits, onFieldChange }
 
           {row('IA OFFICE BUILDING', 'assets.officeBuilding', a.officeBuilding)}
 
-          {totalRow('TOTAL ASSETS', 'assets.totalAssets', a.totalAssets)}
+          {totalRow('TOTAL ASSETS', 'assets.totalAssets', totalAssetsShown)}
         </div>
       </div>
 
@@ -168,7 +178,7 @@ export default function FS4View({ data, editable = false, edits, onFieldChange }
         <div className="text-xs font-bold uppercase text-slate-900">
           III. NET WORTH (Assets less Liabilities)
         </div>
-        {totalRow('NET WORTH', 'netWorth', data.netWorth, 'emerald')}
+        {totalRow('NET WORTH', 'netWorth', netWorthShown, 'emerald')}
       </div>
 
       {/* Certification statement */}

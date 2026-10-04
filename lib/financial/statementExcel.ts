@@ -324,9 +324,9 @@ function buildFS3(bd: FinancialStatementBreakdown, edits: FinancialStatementEdit
   b.section('F. Composition of Cash Balance (where the cash is):');
   b.line('Cash on Hand-Petty Cash', num(c?.cashOnHandPetty));
   b.line('Undeposited/Unremitted Collections', num(c?.undepositedCollections));
-  b.line('Cash in Bank (Regular Fund)', num(c?.cashInBankRegular));
+  b.line('Cash in Bank (Regular Fund)', num(c?.cashInBankRegular) + num(d.fundBalanceLastReport));
   b.line('Cash in Bank (CBU account)', num(c?.cashInBankCBU));
-  b.line('Total Cash Balance', num(c?.total));
+  b.line('Total Cash Balance', num(c?.total) + num(d.fundBalanceLastReport));
 
   return {
     reportTitle: `Cash Statement (FS3) — Year Ending December 31, ${d.yearEnding}`,
@@ -352,15 +352,17 @@ function buildFS4(bd: FinancialStatementBreakdown): StatementExcelPayload | null
   const a = d.assets;
   const l = d.liabilities;
   const n = d.notaryBlock;
+  // Display-only: mirrors FS4View, where the previous fund balance rides on CASH IN BANK.
+  const priorFundBalance = num(bd.fs3?.fundBalanceLastReport);
 
   const b = createRowBuilder(2);
   b.section('I. ASSETS');
   b.line('CASH ON HAND', num(a.cashOnHand));
-  b.line('CASH IN BANK', num(a.cashInBank));
+  b.line('CASH IN BANK', num(a.cashInBank) + priorFundBalance);
   b.line('RECEIVABLES : (CASH ADVANCE, LOANS, ETC)', num(a.receivables));
   b.line('NON-CURRENT ASSETS (FARM TOOLS & EQUIPMENT)', num(a.materialsSuppliesInventory));
   b.line('IA OFFICE BUILDING', num(a.officeBuilding));
-  b.line('TOTAL ASSETS', num(a.totalAssets));
+  b.line('TOTAL ASSETS', num(a.totalAssets) + priorFundBalance);
 
   b.blank();
   b.section('II. LIABILITIES');
@@ -378,7 +380,7 @@ function buildFS4(bd: FinancialStatementBreakdown): StatementExcelPayload | null
 
   b.blank();
   b.section('III. NET WORTH (Assets less Liabilities)');
-  b.line('NET WORTH', num(d.netWorth));
+  b.line('NET WORTH', num(d.netWorth) + priorFundBalance);
   b.blank();
   b.line('Certification', 'I HEREBY CERTIFY THAT the foregoing information is true and correct.');
   b.line('IA Treasurer (TIN ID No.)', `${d.officer?.treasurerName || ''}${d.officer?.treasurerTin ? ` — ${d.officer.treasurerTin}` : ''}`);

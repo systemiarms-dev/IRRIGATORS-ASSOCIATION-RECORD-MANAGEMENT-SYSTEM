@@ -1073,7 +1073,13 @@ export default function FinancialStatementsPage() {
                       <FS3View data={rd.fs3} editable={editMode === 'manual'} edits={edits} onFieldChange={handleReportFieldChange} />
                     )}
                     {activeFSTab === 'FS4' && rd?.fs4 && (
-                      <FS4View data={rd.fs4} editable={editMode === 'manual'} edits={edits} onFieldChange={handleReportFieldChange} />
+                      <FS4View
+                        data={rd.fs4}
+                        editable={editMode === 'manual'}
+                        edits={edits}
+                        onFieldChange={handleReportFieldChange}
+                        fundBalanceLastReport={Number(rd.fs3?.fundBalanceLastReport || 0)}
+                      />
                     )}
                   </>
                 );

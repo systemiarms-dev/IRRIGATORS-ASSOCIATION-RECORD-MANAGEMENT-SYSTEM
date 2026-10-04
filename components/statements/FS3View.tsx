@@ -105,6 +105,13 @@ export default function FS3View({ data, editable = false, edits, onFieldChange }
 
   const totalDisbursementItemsCount = standardDisbursementList.length + extraDisbursementList.length;
 
+  // Section F: the previous fund balance (row D) is folded into the
+  // "Cash in Bank (Regular Fund)" line instead of being shown as its own row,
+  // so the section total keeps adding up to every line displayed.
+  const fundBalanceLastReport = Number(data.fundBalanceLastReport || 0);
+  const cashInBankRegularShown = Number(c.cashInBankRegular || 0) + fundBalanceLastReport;
+  const compositionTotalShown = Number(c.total || 0) + fundBalanceLastReport;
+
   return (
     <div className="bg-white text-slate-900 p-4 sm:p-6 rounded-xl shadow-2xl space-y-4 w-[210mm] max-w-full mx-auto overflow-x-auto print:overflow-visible border border-slate-300 print:shadow-none print:border-none print:p-0 print:space-y-1.5 print:text-[8pt] print:leading-tight printable-statement">
       {/* Header */}
@@ -231,9 +238,22 @@ export default function FS3View({ data, editable = false, edits, onFieldChange }
         <div className="space-y-0.5 text-xs print:text-[8pt]">
           {row('Cash on Hand-Petty Cash', 'composition.cashOnHandPetty', c.cashOnHandPetty, true)}
           {row('Undeposited/Unremitted Collections', 'composition.undepositedCollections', c.undepositedCollections, true)}
-          {row('Cash in Bank (Regular Fund)', 'composition.cashInBankRegular', c.cashInBankRegular, true)}
+          {/* Shows base bank balance + previous fund balance; commits store only the base part. */}
+          <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-0.5 border-b border-slate-100 min-w-0">
+            <span className="pl-4">Cash in Bank (Regular Fund)</span>
+            <span className="font-mono shrink-0">
+              <NumberField
+                value={cashInBankRegularShown}
+                editable={cellEditable('composition.cashInBankRegular')}
+                hasOverride={forced('composition.cashInBankRegular')}
+                onCommit={(v) => set('composition.cashInBankRegular')(Number(v) - fundBalanceLastReport)}
+                onRemove={unpin('composition.cashInBankRegular')}
+                emptyWhenZero
+              />
+            </span>
+          </div>
           {row('Cash in Bank (CBU account)', 'composition.cashInBankCBU', c.cashInBankCBU, true)}
-          {totalRow('Total Cash Balance', 'composition.total', c.total)}
+          {totalRow('Total Cash Balance', 'composition.total', compositionTotalShown)}
         </div>
       </div>
 
