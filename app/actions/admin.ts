@@ -8,6 +8,7 @@ import { requireRole, toPublicProfile, UNAUTHORIZED_RESPONSE } from '@/lib/auth/
 import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { isValidPassword, hashPassword } from '@/lib/auth/password';
 import { isValidPhilippineMobile, normalizePhilippineMobile } from '@/lib/utils/phone';
+import { recordDeletion } from '@/lib/financial/deletionLog';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Head Admin',
@@ -484,8 +485,29 @@ export async function clearAllRecordsAction(associationId?: string): Promise<Act
   }
 
   try {
+    // Count what is about to be removed so the deletion can be audited.
+    const [txCount, stmtCount, receiptCount] = await Promise.all([
+      localDb.getTransactions(effectiveAssoc || undefined).then((rows) => rows.length).catch(() => 0),
+      localDb.getFinancialStatements(effectiveAssoc || undefined).then((rows) => rows.length).catch(() => 0),
+      localDb.getReceipts(effectiveAssoc || undefined).then((rows) => rows.length).catch(() => 0),
+    ]);
+
     await localDb.clearAllFinancialRecords(effectiveAssoc);
     await purgeReceiptStorage(effectiveAssoc);
+
+    await recordDeletion({
+      userId: admin.id,
+      associationId: effectiveAssoc || null,
+      kind: 'bulk_clear',
+      label: `Cleared all financial records${effectiveAssoc ? '' : ' (all associations)'}`,
+      snapshot: {
+        transactions: txCount,
+        financial_statements: stmtCount,
+        receipts: receiptCount,
+        scope: effectiveAssoc || 'all',
+      },
+    });
+
     revalidatePath('/dashboard/admin');
     revalidatePath('/dashboard/treasurer');
     revalidatePath('/dashboard/auditor');

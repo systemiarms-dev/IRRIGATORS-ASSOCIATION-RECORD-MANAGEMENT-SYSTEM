@@ -4,16 +4,18 @@ import React, { useCallback, useState, useTransition } from 'react';
 import { useLoadOnce } from '@/lib/hooks/useLoadOnce';
 import { getTransactionsAction, getBudgetCategoriesAction, deleteTransactionAction } from '@/app/actions/transactions';
 import { getProfilesAction, clearAllRecordsAction } from '@/app/actions/admin';
+import { getDeletedRecordsAction, restoreDeletedRecordAction, permanentlyDeleteRecordAction } from '@/app/actions/deletedRecords';
 import { getAssociationsAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
-import { Transaction, BudgetCategory, Profile, TransactionType, UserRole, Association } from '@/types';
+import { Transaction, BudgetCategory, Profile, TransactionType, UserRole, Association, DeletedRecordEntry } from '@/types';
 import { hasSystemWideReadScope, canWriteFinancialData } from '@/lib/auth/roles';
+import { labelizeFieldName } from '@/lib/financial/deletedRecords';
 import { formatPHP, formatDate } from '@/lib/utils/formatters';
 import { calculateFundBalances, getFundShortLabel } from '@/lib/utils/fundSources';
 import TransactionFormModal from '@/components/forms/TransactionFormModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Link from 'next/link';
-import { Wallet, PlusCircle, ArrowUpRight, ArrowDownLeft, FileCheck, RefreshCw, Loader2, Trash2, Printer, Download, Building2, Tag, Search, Eye, AlertTriangle, ExternalLink, BookOpen } from 'lucide-react';
+import { Wallet, PlusCircle, ArrowUpRight, ArrowDownLeft, FileCheck, RefreshCw, Loader2, Trash2, Printer, Download, Building2, Tag, Search, Eye, AlertTriangle, ExternalLink, BookOpen, RotateCcw } from 'lucide-react';
 import { exportToExcelCSV, buildExportFilename } from '@/lib/utils/export';
 
 export default function TreasurerPage() {
@@ -38,6 +40,14 @@ export default function TreasurerPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
+  const [showDeletedModal, setShowDeletedModal] = useState(false);
+  const [deletedRecords, setDeletedRecords] = useState<DeletedRecordEntry[]>([]);
+  const [deletedLoading, setDeletedLoading] = useState(false);
+  const [restoringRecordId, setRestoringRecordId] = useState<string | null>(null);
+  const [purgingRecordId, setPurgingRecordId] = useState<string | null>(null);
+  const [pendingPurgeId, setPendingPurgeId] = useState<string | null>(null);
+  const [recordFeedback, setRecordFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const [previewVoucherTx, setPreviewVoucherTx] = useState<Transaction | null>(null);
   const [voucherImageLoading, setVoucherImageLoading] = useState(true);
   const [voucherImageError, setVoucherImageError] = useState(false);
@@ -52,6 +62,19 @@ export default function TreasurerPage() {
   }, [previewVoucherTx]);
 
   const canWrite = canWriteFinancialData(userRole);
+
+  // Deletions happen moments apart, so show the clock time as well as the date.
+  function formatDeletedAt(value: string): string {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat('en-PH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -85,6 +108,78 @@ export default function TreasurerPage() {
   }, [selectedAssocId]);
 
   useLoadOnce(loadData);
+
+  const loadDeletedRecords = useCallback(async () => {
+    setDeletedLoading(true);
+    try {
+      const res = await getDeletedRecordsAction();
+      if (res.success && res.data) {
+        setDeletedRecords(res.data);
+      } else {
+        setBannerMsg({ type: 'error', text: res.message || 'Failed to load deleted records.' });
+      }
+    } catch (err: any) {
+      setBannerMsg({ type: 'error', text: err?.message || 'Failed to load deleted records.' });
+    } finally {
+      setDeletedLoading(false);
+    }
+  }, []);
+
+  function openDeletedRecords() {
+    setRecordFeedback(null);
+    setPendingPurgeId(null);
+    setShowDeletedModal(true);
+    loadDeletedRecords();
+  }
+
+  /** Put a deleted ledger row back into the Collections & Disbursements ledger. */
+  async function handleRestoreDeletedRecord(record: DeletedRecordEntry) {
+    if (restoringRecordId) return;
+    setRestoringRecordId(record.id);
+    setPendingPurgeId(null);
+    setRecordFeedback(null);
+    setBannerMsg(null);
+    try {
+      const res = await restoreDeletedRecordAction(record.id);
+      if (res.success) {
+        setDeletedRecords((prev) => prev.filter((entry) => entry.id !== record.id));
+        const feedback = { type: 'success' as const, text: res.message || 'Ledger record restored successfully.' };
+        setRecordFeedback(feedback);
+        setBannerMsg(feedback);
+        await loadData();
+      } else {
+        setRecordFeedback({ type: 'error', text: res.message || 'Failed to restore the record.' });
+      }
+    } catch (err: any) {
+      setRecordFeedback({ type: 'error', text: err?.message || 'Unexpected error while restoring the record.' });
+    } finally {
+      setRestoringRecordId(null);
+    }
+  }
+
+  /** Discard a deleted record's snapshot so it can never be restored again. */
+  async function handlePermanentlyDelete(record: DeletedRecordEntry) {
+    if (purgingRecordId || restoringRecordId) return;
+    setPurgingRecordId(record.id);
+    setRecordFeedback(null);
+    setBannerMsg(null);
+    try {
+      const res = await permanentlyDeleteRecordAction(record.id);
+      if (res.success) {
+        setDeletedRecords((prev) => prev.filter((entry) => entry.id !== record.id));
+        setPendingPurgeId(null);
+        const feedback = { type: 'success' as const, text: res.message || 'Record permanently deleted.' };
+        setRecordFeedback(feedback);
+        setBannerMsg(feedback);
+      } else {
+        setRecordFeedback({ type: 'error', text: res.message || 'Failed to permanently delete the record.' });
+      }
+    } catch (err: any) {
+      setRecordFeedback({ type: 'error', text: err?.message || 'Unexpected error while permanently deleting the record.' });
+    } finally {
+      setPurgingRecordId(null);
+    }
+  }
 
   async function handleClearAllRecords() {
     setIsClearing(true);
@@ -384,14 +479,29 @@ export default function TreasurerPage() {
           </button>
         </div>
 
-        <button
-          onClick={() => loadData()}
-          disabled={loading}
-          className="p-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Deleted Records belongs to the Treasurer alone */}
+          {userRole === 'treasurer' && (
+            <button
+              onClick={openDeletedRecords}
+              disabled={deletedLoading}
+              className="p-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="View and restore deleted ledger records"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Deleted Records</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => loadData()}
+            disabled={loading}
+            className="p-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Search & Date Filters */}
@@ -630,6 +740,192 @@ export default function TreasurerPage() {
                 {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 {isDeleting ? 'Deleting...' : 'Delete Transaction'}
               </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Deleted Records Modal — Treasurer only, ledger records only */}
+      {showDeletedModal && userRole === 'treasurer' && (
+        <Dialog open={showDeletedModal} onOpenChange={(open) => { if (!open) setShowDeletedModal(false); }}>
+          <DialogContent
+            onClose={() => setShowDeletedModal(false)}
+            className="max-w-3xl p-6 bg-white rounded-2xl"
+          >
+            <DialogHeader>
+              <DialogTitle className="text-base font-black text-slate-800 flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-rose-600" />
+                Deleted Records
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-600 mt-1">
+                Ledger records removed from the Collections &amp; Disbursements table. Restore a record to put it back into the books with its original details, or delete it permanently when it is no longer needed.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500">
+              <span>
+                {deletedRecords.length} deleted ledger record{deletedRecords.length === 1 ? '' : 's'}
+              </span>
+              <span className="text-[10px] font-medium text-slate-400">Your association only</span>
+            </div>
+
+            {/* Deleted Entries */}
+            <div className="max-h-[55vh] overflow-y-auto space-y-2 pr-1">
+              {deletedLoading ? (
+                <div className="py-10 flex flex-col items-center justify-center text-slate-500">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-600 mb-2" />
+                  <span className="text-xs font-medium">Loading deleted records...</span>
+                </div>
+              ) : deletedRecords.length === 0 ? (
+                <div className="py-10 text-center space-y-2">
+                  <Trash2 className="w-8 h-8 mx-auto text-slate-300" />
+                  <div className="text-sm font-bold text-slate-600">No deleted records found.</div>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    Ledger records you delete from the Collections &amp; Disbursements table will appear here and can be restored.
+                  </p>
+                </div>
+              ) : (
+                deletedRecords.map((record) => (
+                  <div key={record.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide border bg-rose-50 text-rose-800 border-rose-200">
+                            Ledger Record
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-800 truncate">{record.title}</span>
+                        </div>
+                        {record.summary && <div className="text-[11px] text-slate-500">{record.summary}</div>}
+                        <div className="text-[10px] text-slate-400">
+                          Deleted by {record.deleted_by_name} &bull; {formatDeletedAt(record.deleted_at)}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        {record.amount !== null && (
+                          <span className="text-xs font-black font-mono text-rose-700 whitespace-nowrap">
+                            {formatPHP(record.amount)}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRestoreDeletedRecord(record)}
+                          disabled={Boolean(restoringRecordId)}
+                          title="Restore this record to the ledger"
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {restoringRecordId === record.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-3 h-3" />
+                          )}
+                          <span>{restoringRecordId === record.id ? 'Restoring...' : 'Restore'}</span>
+                        </button>
+
+                        {pendingPurgeId === record.id ? (
+                          <div className="flex flex-col items-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handlePermanentlyDelete(record)}
+                              disabled={Boolean(purgingRecordId)}
+                              className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {purgingRecordId === record.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3 h-3" />
+                              )}
+                              <span>{purgingRecordId === record.id ? 'Deleting...' : 'Confirm Delete'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPendingPurgeId(null)}
+                              disabled={Boolean(purgingRecordId)}
+                              className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-white text-[11px] font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRecordFeedback(null);
+                              setPendingPurgeId(record.id);
+                            }}
+                            disabled={Boolean(restoringRecordId) || Boolean(purgingRecordId)}
+                            title="Permanently delete this record — it cannot be restored afterwards"
+                            className="px-2.5 py-1.5 rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 text-[11px] font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Permanently Delete</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {pendingPurgeId === record.id && (
+                      <p className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2 py-1.5">
+                        This record will be removed from Deleted Records and can never be restored. This cannot be undone.
+                      </p>
+                    )}
+
+                    {record.snapshot && Object.keys(record.snapshot).length > 0 && (
+                      <details className="border-t border-slate-200 pt-2">
+                        <summary className="text-[10px] font-bold text-slate-500 cursor-pointer hover:text-slate-700 select-none">
+                          Show deleted record details
+                        </summary>
+                        <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                          {Object.entries(record.snapshot).map(([field, value]) => (
+                            <div key={field} className="flex items-baseline justify-between gap-2 text-[10px]">
+                              <dt className="text-slate-400 font-bold uppercase whitespace-nowrap">
+                                {labelizeFieldName(field)}
+                              </dt>
+                              <dd className="text-slate-700 font-medium text-right truncate max-w-[65%]">
+                                {value === null || value === '' ? '—' : String(value)}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </details>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {recordFeedback && (
+              <div
+                className={`p-3 rounded-xl text-xs font-bold border ${
+                  recordFeedback.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}
+              >
+                {recordFeedback.text}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+              <span className="text-[10px] text-slate-400 max-w-[55%]">
+                Covers ledger records deleted while this history was enabled.
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => loadDeletedRecords()}
+                  disabled={deletedLoading}
+                  className="px-3 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${deletedLoading ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </button>
+                <button
+                  onClick={() => setShowDeletedModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

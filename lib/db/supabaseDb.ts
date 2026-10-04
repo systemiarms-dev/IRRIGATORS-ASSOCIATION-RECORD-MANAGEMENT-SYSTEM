@@ -981,6 +981,24 @@ class SupabaseDatabaseService {
     if (error) throw new Error(error.message || 'Error fetching audit logs');
     return (data || []) as AuditLog[];
   }
+
+  public async getAuditLogById(id: string): Promise<AuditLog | undefined> {
+    const client = this.getClient();
+    const { data, error } = await client.from('audit_logs').select('*').eq('id', id).maybeSingle();
+    if (error) throw new Error(error.message || 'Error fetching audit log by ID');
+    return (data as AuditLog | null) ?? undefined;
+  }
+
+  /**
+   * Drop an audit-log row. Used when a deletion entry is undone (the record is
+   * back in the ledger, so it must stop showing up under Deleted Records).
+   */
+  public async deleteAuditLog(id: string): Promise<boolean> {
+    const client = this.getClient();
+    const { error } = await client.from('audit_logs').delete().eq('id', id);
+    if (error) throw new Error(error.message || 'Error deleting audit log');
+    return true;
+  }
 }
 
 export const supabaseDb = new SupabaseDatabaseService();

@@ -11,6 +11,7 @@ import { requireUser, requireRole, toPublicProfile, UNAUTHORIZED_RESPONSE } from
 import { hasSystemWideReadScope, canWriteFinancialData, SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE } from '@/lib/auth/roles';
 import { calculateFundBalances, getFundLabel, determineFundSource } from '@/lib/utils/fundSources';
 import { isStandardNiaAccount, seedStandardCategoriesForAssociation } from '@/lib/financial/standardAccounts';
+import { recordDeletion } from '@/lib/financial/deletionLog';
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB for receipt images
 const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10MB for PDF documents
@@ -191,6 +192,25 @@ export async function deleteBudgetCategoryAction(id: string): Promise<ActionResp
     }
 
     await localDb.deleteBudgetCategory(id);
+
+    // Snapshot the account for the Treasurer's "Deleted Records" viewer.
+    await recordDeletion({
+      userId: user.id,
+      associationId: target.association_id || user.association_id || null,
+      kind: 'chart_of_account',
+      entityId: id,
+      label: `Removed chart of account "${target.code} — ${target.name}"`,
+      snapshot: {
+        code: target.code,
+        name: target.name,
+        category_type: target.category_type,
+        account_classification: target.account_classification || null,
+        allocated_amount: Number(target.allocated_amount || 0),
+        description: target.description || null,
+        is_active: target.is_active,
+      },
+    });
+
     revalidatePath('/dashboard/chart-of-accounts');
     revalidatePath('/dashboard/treasurer');
     return { success: true, message: `Category "${target.name}" was removed from the Chart of Accounts.` };
@@ -754,6 +774,43 @@ export async function deleteTransactionAction(id: string): Promise<ActionRespons
     if (!success) {
       return { success: false, message: 'Transaction record not found.' };
     }
+
+    // Snapshot the ledger record for the Treasurer's "Deleted Records" viewer.
+    // Everything the row holds is kept so the record can be restored later.
+    await recordDeletion({
+      userId: user.id,
+      associationId: tx.association_id || user.association_id || null,
+      kind: 'transaction',
+      entityId: id,
+      label: `Removed ledger record ${tx.transaction_number}`,
+      snapshot: {
+        // Restore payload (exact column values of the removed row)
+        id: tx.id,
+        association_id: tx.association_id,
+        category_id: tx.category_id,
+        member_id: tx.member_id || null,
+        member_ids: Array.isArray(tx.member_ids) && tx.member_ids.length > 0 ? tx.member_ids : null,
+        receipt_id: tx.receipt_id || null,
+        reference_number: tx.reference_number || null,
+        created_by: tx.created_by || null,
+        created_at: tx.created_at || null,
+        updated_at: tx.updated_at || null,
+        notes: tx.notes || null,
+        transaction_number: tx.transaction_number,
+        voucher_number: tx.voucher_number || null,
+        type: tx.type,
+        amount: Number(tx.amount),
+        transaction_date: tx.transaction_date,
+        payment_method: tx.payment_method || null,
+        payee_name: tx.payee_name || null,
+        lateral_section: tx.lateral_section || null,
+        particulars: tx.particulars || null,
+        // Display-only context
+        category: tx.category?.name || tx.category_id,
+        fund_source: tx.fund_source || null,
+        association_code: tx.association?.code || null,
+      },
+    });
 
     let note = '';
     if (linkedReceiptId) {

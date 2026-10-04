@@ -4,6 +4,7 @@ import { localDb } from '@/lib/db/localDb';
 import { requireUser, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
 import { hasSystemWideReadScope, canWriteFinancialData, SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE } from '@/lib/auth/roles';
 import { ActionResponse, FixedAsset } from '@/types';
+import { recordDeletion } from '@/lib/financial/deletionLog';
 import { revalidatePath } from 'next/cache';
 
 export async function getFixedAssetsAction(
@@ -137,7 +138,41 @@ export async function deleteFixedAssetAction(id: string): Promise<ActionResponse
   }
 
   try {
+    const scope = user.role !== 'super_admin' ? user.association_id || undefined : undefined;
+    const assets = await localDb.getFixedAssets(scope);
+    const target = assets.find((asset) => asset.id === id);
+    if (!target) {
+      return { success: false, message: 'Fixed asset not found.' };
+    }
+
+    // Cross-association write protection: officers may only delete assets of their own IA.
+    if (user.role !== 'super_admin' && target.association_id && target.association_id !== user.association_id) {
+      return UNAUTHORIZED_RESPONSE;
+    }
+
     await localDb.deleteFixedAsset(id);
+
+    // Snapshot the asset for the Treasurer's "Deleted Records" viewer.
+    await recordDeletion({
+      userId: user.id,
+      associationId: target.association_id || user.association_id || null,
+      kind: 'fixed_asset',
+      entityId: id,
+      label: `Removed fixed asset "${target.name}"`,
+      snapshot: {
+        name: target.name,
+        asset_type: target.asset_type,
+        date_acquired: target.date_acquired,
+        acquisition_cost: Number(target.acquisition_cost || 0),
+        depreciation_rate: Number(target.depreciation_rate || 0),
+        useful_life_years: Number(target.useful_life_years || 0),
+        salvage_value: Number(target.salvage_value || 0),
+        net_book_value: target.net_book_value ?? null,
+        is_active: target.is_active,
+        notes: target.notes || null,
+      },
+    });
+
     revalidatePath('/dashboard/chart-of-accounts');
     revalidatePath('/dashboard/statements');
     return {

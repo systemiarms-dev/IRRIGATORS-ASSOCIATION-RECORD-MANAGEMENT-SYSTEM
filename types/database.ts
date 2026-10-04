@@ -482,3 +482,33 @@ export interface AuditLog {
   details: string;
   created_at: string;
 }
+
+/**
+ * Categories of removed rows surfaced by the Treasurer's "Deleted Records"
+ * viewer. Every hard delete in the financial modules writes an audit-log row
+ * with a JSON snapshot of the record, so the entry survives the row itself.
+ */
+export type DeletedRecordKind = 'chart_of_account' | 'fixed_asset' | 'transaction' | 'bulk_clear';
+
+export interface DeletedRecordEntry {
+  /** Audit-log row id backing this entry. */
+  id: string;
+  kind: DeletedRecordKind;
+  /** Audit-log action name (e.g. TRANSACTION_DELETED). */
+  action: string;
+  entity_id?: string | null;
+  association_id?: string | null;
+  /** Headline of the removed record (Tx #, account code + name, asset name...). */
+  title: string;
+  /** One-line context: type, category, payee, date... */
+  summary: string;
+  /** Money attached to the record, when it has one. */
+  amount: number | null;
+  deleted_by: string;
+  deleted_by_name: string;
+  deleted_at: string;
+  /** Human-readable description stored on the audit log. */
+  details: string;
+  /** Field-by-field snapshot of the row at the moment it was deleted. */
+  snapshot: Record<string, unknown> | null;
+}
