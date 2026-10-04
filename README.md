@@ -280,7 +280,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | Export Ledger to CSV | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Receipt / Voucher Management** | | | | | |
 | Upload Receipts | ✅ | ❌ | ❌ | ✅ | ❌ |
-| Review Audit Queue | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Review Audit Queue | ✅ | ❌ | ✅ | ✅ | ✅ |
 | Verify / Flag / Reject | ✅ | ❌ | ❌ | ❌ | ✅ |
 | Bulk Verify All Pending | ✅ | ❌ | ❌ | ❌ | ✅ |
 | **Dashboard** | | | | | |

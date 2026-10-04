@@ -21,8 +21,10 @@ export default function AuditorPage() {
   const [selectedAssocId, setSelectedAssocId] = useState<string>('all');
   const [associations, setAssociations] = useState<Association[]>([]);
   // Default to a view-only role so privileged actions never flash before the
-  // real profile role arrives (fail-closed rendering).
+  // real profile role arrives (fail-closed rendering). `roleLoaded` keeps the
+  // view-only copy (banner, subtitle, badge) hidden until the real role is in.
   const [userRole, setUserRole] = useState<UserRole>('bookkeeper');
+  const [roleLoaded, setRoleLoaded] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [previewImageReceipt, setPreviewImageReceipt] = useState<Receipt | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
@@ -34,10 +36,21 @@ export default function AuditorPage() {
   const [verifyingAll, setVerifyingAll] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Only the Auditor decides the Verification & Audit Queue. The Head Admin,
-  // Super Admin, and system-wide Bookkeeper (if they open this URL directly)
-  // stay strictly view-only in the Financial Suite.
+  // Only the Auditor decides the Verification & Audit Queue. The Treasurer,
+  // Head Admin, Super Admin, and system-wide Bookkeeper (if they open this URL
+  // directly) stay strictly view-only — the Treasurer opens this page to follow
+  // what the Auditor decides (status + auditor notes) for its own association.
   const canDecide = canDecideAuditQueue(userRole);
+  // The Treasurer's queue is deliberately plain: no view-only banner, no
+  // "follow the auditor" subtitle, and no read-only badge — it just shows the
+  // vouchers and the Auditor's decisions. Other read-only roles keep them.
+  const showViewOnlyCopy = roleLoaded && !canDecide && userRole !== 'treasurer';
+  const roleLabels: Partial<Record<UserRole, string>> = {
+    super_admin: 'Super Admin',
+    admin: 'Head Admin',
+    bookkeeper: 'Bookkeeper',
+    treasurer: 'Treasurer',
+  };
 
   // Auto-dismiss the action feedback banner
   useEffect(() => {
@@ -73,6 +86,7 @@ export default function AuditorPage() {
       }
       if (selfRes.success && selfRes.data) {
         setUserRole(selfRes.data.role);
+        setRoleLoaded(true);
         if (!hasSystemWideReadScope(selfRes.data.role) && selfRes.data.association_id) {
           setSelectedAssocId(selfRes.data.association_id);
         }
@@ -173,9 +187,13 @@ export default function AuditorPage() {
             <h1 className="text-xl font-black text-slate-900 leading-tight">
               Audit &amp; Receipt Verification Queue
             </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              Review, verify, flag, or reject uploaded expense receipts and transaction vouchers.
-            </p>
+            {roleLoaded && userRole !== 'treasurer' && (
+              <p className="text-xs text-slate-500 font-medium">
+                {canDecide
+                  ? 'Review, verify, flag, or reject uploaded expense receipts and transaction vouchers.'
+                  : 'Follow the Auditor\u2019s work: every decision (Verified, Flagged, Rejected) and the Auditor\u2019s notes appear on each voucher below.'}
+              </p>
+            )}
           </div>
         </div>
 
@@ -219,12 +237,12 @@ export default function AuditorPage() {
             )}
             {confirmAll ? 'Confirm — Verify All?' : `Verify All Pending (${counts.pending})`}
           </button>
-          ) : (
+          ) : showViewOnlyCopy ? (
             <div className="px-3 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <Eye className="w-4 h-4 text-amber-600" />
-              <span>Read &amp; View Only ({userRole === 'super_admin' ? 'Super Admin' : userRole === 'admin' ? 'Head Admin' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
+              <span>Read &amp; View Only ({roleLabels[userRole] || 'View Only'}) &bull; Decisions by the Auditor</span>
             </div>
-          )}
+          ) : null}
 
           <button
             onClick={() => loadData()}
@@ -237,9 +255,22 @@ export default function AuditorPage() {
         </div>
       </div>
 
+      {/* View-Only Guidance — kept for every read-only role except the Treasurer */}
+      {showViewOnlyCopy && (
+        <div className="flex items-start gap-2 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
+          <Eye className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+          <p className="font-medium leading-relaxed">
+            <span className="font-black">Following the audit:</span> only the Auditor can decide this queue. Each voucher card
+            shows the Auditor&rsquo;s decision &mdash; <span className="font-bold text-emerald-800">Verified</span>,{' '}
+            <span className="font-bold text-orange-700">Flagged</span>, or{' '}
+            <span className="font-bold text-rose-700">Rejected</span> &mdash; together with the Auditor&rsquo;s notes/findings.
+            Items still <span className="font-bold text-amber-700">Pending Review</span> are awaiting a decision.
+          </p>
+        </div>
+      )}
+
       {/* Action Feedback Banner */}
-      {actionMsg && (
-        <div
+      {actionMsg && (        <div
           className={`flex items-center gap-2 p-3 rounded-xl text-xs font-bold ${
             actionMsg.type === 'success'
               ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'

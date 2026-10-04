@@ -70,6 +70,11 @@ If anything fails, note it and tell me — I'll fix it before deployment.
 - [ ] Upload a fake file renamed to `.png` — it is REJECTED (you should not be able to).
 - [ ] Unauthorized access to another association's uploaded file returns an error (403), not the file.
 
+**Verification & Audit Queue (read-only):**
+- [ ] The **Verification & Audit Queue** link appears in the Treasurer's Financial Suite sidebar/header.
+- [ ] Treasurer opens it and sees own-association vouchers with the Auditor's decision status (Pending / Verified / Flagged / Rejected) and Auditor notes.
+- [ ] Treasurer sees NO guidance banner, NO "follow the auditor" subtitle, and NO read-only badge — and no `Audit Decision` / `Verify All Pending` buttons are available.
+
 ---
 
 ## 6. Auditor — Verification & Audit Queue

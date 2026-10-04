@@ -64,7 +64,7 @@ The system sidebar is divided into three distinct operational suites: **Core Man
 1. **Association Scope Bar (for Super Admin and the view-only Bookkeeper):** Quick-tap buttons allow switching between **`All Associations (Consolidated)`** or specific IAs (e.g. `NLFIA • Nangurisan`).
 2. **Executive Header Action Buttons:**
    - **`Log Payment / Voucher`** (Treasurer only): Directly opens the financial transaction modal. View-only roles (Super Admin, Head Admin, Bookkeeper, Auditor) see **`View Collections & Expenses`** instead.
-   - **`Open Auditor Queue`**: Navigates straight to the internal audit and receipt verification queue.
+   - **`Open Auditor Queue`** (Super Admin, Auditor, Treasurer): Navigates straight to the internal audit and receipt verification queue. The Treasurer opens it read-only to see the Auditor's decisions.
 3. **Real-Time Key KPI Metric Cards:**
    - **`Total Collections`**: Member ISF & subsidies cash inflow.
    - **`Total Disbursements`**: Canal clearing, payroll honoraria, repairs, and operational outflow.
@@ -140,7 +140,7 @@ This is the double-entry bookkeeping engine for all daily cash, bank, and vouche
    - **`Delete Record`** (Trash icon): Opens the **`Confirm Transaction Deletion`** dialog &rarr; click **`Delete Transaction`** or **`Cancel`**.
 
 ### 3.5 Verification & Audit Queue (`/dashboard/auditor`)
-> **Access note:** only the **Auditor** decides the queue (`Verify All Pending`, `Audit Decision`). The Head Admin, Super Admin, and Bookkeeper browse it read-only.
+> **Access note:** only the **Auditor** decides the queue (`Verify All Pending`, `Audit Decision`). The **Treasurer**, Head Admin, Super Admin, and Bookkeeper browse it read-only — the Treasurer uses it to follow the Auditor's decision (`Verified`, `Flagged`, `Rejected`) and read the Auditor's notes/findings on each voucher it recorded.
 1. **Header Banner Actions:**
    - Click **`Verify All Pending (N)`** (switches to **`Confirm — Verify All?`**) to batch-approve pending receipts.
    - Click **`Refresh Queue`** to update audit submissions.

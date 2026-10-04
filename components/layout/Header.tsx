@@ -41,7 +41,7 @@ export default function Header({
     { label: 'Irrigators Associations', href: '/dashboard/associations', icon: Building2, roles: ['super_admin'] },
     { label: 'Farmer Members', href: '/dashboard/members', icon: Users, roles: ['super_admin', 'admin'] },
     { label: 'Collections & Expenses', href: '/dashboard/treasurer', icon: Wallet, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer'] },
-    { label: 'Verification & Audit Queue', href: '/dashboard/auditor', icon: ShieldCheck, roles: ['super_admin', 'admin', 'auditor'] },
+    { label: 'Verification & Audit Queue', href: '/dashboard/auditor', icon: ShieldCheck, roles: ['super_admin', 'admin', 'auditor', 'treasurer'] },
     { label: 'Financial Statements', href: '/dashboard/statements', icon: FileText, roles: ['super_admin', 'admin', 'bookkeeper', 'treasurer', 'auditor'] },
     { label: 'Chart of Accounts', href: '/dashboard/chart-of-accounts', icon: BookOpen, roles: ['super_admin', 'treasurer'] },
     { label: 'User Account Manager', href: '/dashboard/admin', icon: Users, roles: ['super_admin', 'admin'] },

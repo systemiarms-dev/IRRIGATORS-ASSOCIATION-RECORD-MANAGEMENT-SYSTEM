@@ -145,7 +145,7 @@ export default function DashboardOverviewPage() {
               <Wallet className="w-4 h-4 text-emerald-400" /> {userRole === 'treasurer' ? 'Log Payment / Voucher' : 'View Collections & Expenses'}
             </Link>
           )}
-          {(userRole === 'super_admin' || userRole === 'auditor') && (
+          {(userRole === 'super_admin' || userRole === 'auditor' || userRole === 'treasurer') && (
             <Link
               href="/dashboard/auditor"
               className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 active:scale-95"

@@ -97,9 +97,9 @@ export default function Sidebar({
           label: 'Verification & Audit Queue',
           href: '/dashboard/auditor',
           icon: ShieldCheck,
-          roles: ['super_admin', 'admin', 'auditor'],
+          roles: ['super_admin', 'admin', 'auditor', 'treasurer'],
           badge: 'Audit',
-          description: 'Approve pending items',
+          description: 'Approve or follow decisions',
         },
         {
           label: 'Financial Statements',
