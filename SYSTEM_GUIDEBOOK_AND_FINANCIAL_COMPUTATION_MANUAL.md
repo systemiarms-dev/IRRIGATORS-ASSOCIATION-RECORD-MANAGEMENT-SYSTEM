@@ -168,7 +168,7 @@ This is the double-entry bookkeeping engine for all daily cash, bank, and vouche
      - **`Comparative Prior Year *`** is automatically locked to `CY 2025 (Prior Year)`.
    - Enter **`Report Title`** (e.g. `Annual Financial Statement CY 2026`).
    - Review or modify **`Period Start Date *`** and **`Period End Date *`**.
-   - Input **`Authorized Signatories`**: **`IA President`**, **`IA Treasurer`**, and **`IA Auditor`**.
+   - **`Authorized Signatories`**: **`IA President`**, **`IA Treasurer`**, and **`IA Auditor`** are **auto-filled** with the current officers of the targeted Irrigators Association (refreshed whenever the modal opens or the target IA is switched). All three fields remain **editable** — override any name before compiling.
    - Action buttons: Click **`Generate FS Report`** (or **`Cancel`**).
 3. **Exploring the 4 Official Statements:** Use the top sub-tabs:
    - **`FS1: Receipts & Expenses`**: Comparative Statement of Cash Receipts & Disbursements.

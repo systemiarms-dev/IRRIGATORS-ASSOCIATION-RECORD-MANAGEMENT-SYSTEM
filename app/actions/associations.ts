@@ -3,7 +3,7 @@
 import { localDb } from '@/lib/db/localDb';
 import { ActionResponse, Association } from '@/types';
 import { revalidatePath } from 'next/cache';
-import { requireUser, requireSuperAdmin, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
+import { requireUser, requireRole, requireSuperAdmin, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
 import { hasSystemWideReadScope } from '@/lib/auth/roles';
 import { hashPassword, generateRandomPassword } from '@/lib/auth/password';
 import { isValidPhilippineMobile, normalizePhilippineMobile } from '@/lib/utils/phone';
@@ -49,6 +49,58 @@ export async function getAssociationByIdAction(id: string): Promise<ActionRespon
     return { success: true, message: 'Association details fetched.', data: association };
   } catch (error: any) {
     return { success: false, message: error.message || 'Error fetching association from Supabase.' };
+  }
+}
+
+/**
+ * Fetch the Authorized Signatories (IA President, IA Treasurer, IA Auditor) of an
+ * Irrigators Association. The Generate FS Report form auto-fills these three
+ * names for the selected IA — they stay editable by the user afterwards.
+ *
+ * Sources:
+ * - IA President  → the association record (`president_name`), falling back to
+ *                   the association's Head Admin (President) account.
+ * - IA Treasurer  → the single `treasurer` officer account of the association.
+ * - IA Auditor    → the single `auditor` officer account of the association.
+ *
+ * Access: every role that can compile an FS report (Super Admin, Head Admin,
+ * Bookkeeper, Treasurer, Auditor). Association officers may only read their own
+ * association; Super Admin and the system-wide Bookkeeper may read any of them.
+ */
+export async function getAssociationSignatoriesAction(
+  associationId: string
+): Promise<ActionResponse<{ presidentName: string; treasurerName: string; auditorName: string }>> {
+  const user = await requireRole('admin', 'bookkeeper', 'treasurer', 'auditor');
+  if (!user) return UNAUTHORIZED_RESPONSE;
+
+  if (!associationId || associationId === 'all') {
+    return { success: false, message: 'An Irrigators Association must be selected to load its authorized signatories.' };
+  }
+  if (!hasSystemWideReadScope(user.role) && associationId !== user.association_id) {
+    return UNAUTHORIZED_RESPONSE;
+  }
+
+  try {
+    const association = await localDb.getAssociationById(associationId);
+    if (!association) {
+      return { success: false, message: 'Association not found.' };
+    }
+
+    const officers = await localDb.getUsers(associationId);
+    const officerOf = (role: 'admin' | 'treasurer' | 'auditor') =>
+      officers.find((o) => o.role === role && o.association_id === associationId)?.full_name?.trim() || '';
+
+    return {
+      success: true,
+      message: 'Authorized signatories retrieved.',
+      data: {
+        presidentName: association.president_name?.trim() || officerOf('admin'),
+        treasurerName: officerOf('treasurer'),
+        auditorName: officerOf('auditor'),
+      },
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Error fetching authorized signatories.' };
   }
 }
 

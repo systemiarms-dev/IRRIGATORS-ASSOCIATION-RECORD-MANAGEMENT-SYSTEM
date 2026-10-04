@@ -81,11 +81,23 @@ export async function generateStatementAction(
   }
   const targetAssoc = await localDb.getAssociationById(targetAssociationId);
 
+  // Officer names the caller did not supply are resolved from THIS association's
+  // own officer accounts (never from another IA's hardcoded values — see
+  // AUDIT_REPORT H-10), so the Authorized Signatories always match the IA the
+  // report is being compiled for.
+  const missingOfficers = !officers?.treasurerName?.trim() || !officers?.auditorName?.trim() ||
+    (!officers?.presidentName?.trim() && !targetAssoc?.president_name);
+  const assocOfficers = missingOfficers
+    ? await localDb.getUsers(targetAssociationId).catch(() => [])
+    : [];
+  const officerOf = (role: 'admin' | 'treasurer' | 'auditor') =>
+    assocOfficers.find((o) => o.role === role && o.association_id === targetAssociationId)?.full_name?.trim() || '';
+
   const assocName = officers?.associationName?.trim() || targetAssoc?.name || 'NANGURISAN LAYA FARMERS IRRIGATORS ASSOCIATION, INC.';
   const assocAddress = officers?.address?.trim() || targetAssoc?.mailing_address || 'STA. CRUZ, GONZAGA, CAGAYAN';
-  const president = officers?.presidentName?.trim() || targetAssoc?.president_name || 'MEYNARD A. TOMANENG';
-  const treasurer = officers?.treasurerName?.trim() || 'RIC UNDAY';
-  const auditor = officers?.auditorName?.trim() || 'ARTUR GUIANG';
+  const president = officers?.presidentName?.trim() || targetAssoc?.president_name || officerOf('admin') || 'MEYNARD A. TOMANENG';
+  const treasurer = officers?.treasurerName?.trim() || officerOf('treasurer') || 'RIC UNDAY';
+  const auditor = officers?.auditorName?.trim() || officerOf('auditor') || 'ARTUR GUIANG';
   const treasurerTin = officers?.treasurerTin?.trim() || '440-615-026-000';
   const secRegNo = officers?.secRegNo?.trim() || targetAssoc?.sec_registration_number || 'CN202060557';
   const associationTin = officers?.associationTin?.trim() || targetAssoc?.tin_number || '769-207-601-000';

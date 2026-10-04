@@ -7,7 +7,7 @@ import {
   deleteFinancialStatementAction, updateFinancialStatementAction, renameFinancialStatementAction,
   resyncStatementWithLedgerAction, deleteMultipleFinancialStatementsAction,
 } from '@/app/actions/statements';
-import { getAssociationsAction } from '@/app/actions/associations';
+import { getAssociationsAction, getAssociationSignatoriesAction } from '@/app/actions/associations';
 import { getSelfProfileAction } from '@/app/actions/auth';
 import {
   FinancialStatement, StatementType, FS1Data, FS2Data, FS3Data, FS4Data,
@@ -413,9 +413,12 @@ export default function FinancialStatementsPage() {
         {
           associationName: targetAssoc?.name,
           address: targetAssoc?.mailing_address,
+          // Signatories default to this IA's own officers (auto-filled above);
+          // whatever is left blank is re-resolved server-side from the target
+          // association's officer accounts — never another IA's names.
           presidentName: genOfficerPresident.trim() || targetAssoc?.president_name,
-          treasurerName: genOfficerTreasurer.trim() || 'RIC UNDAY',
-          auditorName: genOfficerAuditor.trim() || 'ARTUR GUIANG',
+          treasurerName: genOfficerTreasurer.trim(),
+          auditorName: genOfficerAuditor.trim(),
           secRegNo: targetAssoc?.sec_registration_number,
           associationTin: targetAssoc?.tin_number,
         }
@@ -439,13 +442,43 @@ export default function FinancialStatementsPage() {
 
   const [isResyncing, setIsResyncing] = useState(false);
 
+  // ── Authorized Signatories auto-fill ───────────────────────────────────────
+  // The IA President, IA Treasurer and IA Auditor of the targeted Irrigators
+  // Association are fetched automatically whenever the modal opens or the target
+  // IA changes. The three inputs stay fully editable afterwards.
+  const signatoryReqRef = useRef(0);
+  const signatoryEditedRef = useRef(false);
+  const [signatoriesLoading, setSignatoriesLoading] = useState(false);
+
+  const loadSignatories = useCallback(async (assocId: string) => {
+    if (!assocId) return;
+    const requestId = ++signatoryReqRef.current;
+    signatoryEditedRef.current = false;
+    setSignatoriesLoading(true);
+    try {
+      const res = await getAssociationSignatoriesAction(assocId);
+      // Drop stale/late responses (the target IA may have been switched again)
+      // and never overwrite names the user already typed by hand.
+      if (requestId !== signatoryReqRef.current || signatoryEditedRef.current) return;
+      if (res.success && res.data) {
+        setGenOfficerPresident(res.data.presidentName || '');
+        setGenOfficerTreasurer(res.data.treasurerName || '');
+        setGenOfficerAuditor(res.data.auditorName || '');
+      }
+    } catch {
+      // Non-fatal: the fields simply keep their current (editable) values.
+    } finally {
+      if (requestId === signatoryReqRef.current) setSignatoriesLoading(false);
+    }
+  }, []);
+
   function openGenerateModal() {
     const currentAssoc = selectedStatement?.association_id || (selectedAssocId !== 'all' ? selectedAssocId : undefined) || genAssocId;
     if (currentAssoc) {
       setGenAssocId(currentAssoc);
       const a = associations.find((x) => x.id === currentAssoc);
-      if (a?.president_name) setGenOfficerPresident(a.president_name);
       if (a?.name) setGenTitle(`${a.name} Financial Statement (${selectedYear})`);
+      loadSignatories(currentAssoc);
     }
     setShowGenerateModal(true);
   }
@@ -1073,8 +1106,9 @@ export default function FinancialStatementsPage() {
                       value={genAssocId}
                       onChange={(e) => {
                         setGenAssocId(e.target.value);
-                        const a = associations.find((x) => x.id === e.target.value);
-                        if (a?.president_name) setGenOfficerPresident(a.president_name);
+                        // Re-fill the Authorized Signatories with the new IA's
+                        // President / Treasurer / Auditor (still editable).
+                        loadSignatories(e.target.value);
                       }}
                       className="w-full text-xs p-2.5 border rounded-xl border-slate-300 font-bold bg-white text-slate-800"
                     >
@@ -1169,9 +1203,17 @@ export default function FinancialStatementsPage() {
 
                 {/* Authorized Signatories */}
                 <div className="p-3.5 bg-amber-50/50 border border-amber-200 rounded-xl space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900">
+                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900 flex-wrap">
                     <Users className="w-4 h-4 text-amber-700" />
                     Authorized Signatories (editable)
+                    <span className="text-[10px] font-semibold text-amber-700 normal-case">
+                      &mdash; auto-filled from this IA&rsquo;s President, Treasurer &amp; Auditor
+                    </span>
+                    {signatoriesLoading && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Loading officers…
+                      </span>
+                    )}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="space-y-1">
@@ -1180,7 +1222,10 @@ export default function FinancialStatementsPage() {
                         type="text"
                         placeholder="e.g. MEYNARD A. TOMANENG"
                         value={genOfficerPresident}
-                        onChange={(e) => setGenOfficerPresident(e.target.value)}
+                        onChange={(e) => {
+                          signatoryEditedRef.current = true;
+                          setGenOfficerPresident(e.target.value);
+                        }}
                         className="w-full text-xs p-2 border rounded-lg border-amber-300 bg-white font-bold uppercase"
                       />
                     </div>
@@ -1190,7 +1235,10 @@ export default function FinancialStatementsPage() {
                         type="text"
                         placeholder="e.g. RIC UNDAY"
                         value={genOfficerTreasurer}
-                        onChange={(e) => setGenOfficerTreasurer(e.target.value)}
+                        onChange={(e) => {
+                          signatoryEditedRef.current = true;
+                          setGenOfficerTreasurer(e.target.value);
+                        }}
                         className="w-full text-xs p-2 border rounded-lg border-amber-300 bg-white font-bold uppercase"
                       />
                     </div>
@@ -1200,7 +1248,10 @@ export default function FinancialStatementsPage() {
                         type="text"
                         placeholder="e.g. ARTUR GUIANG"
                         value={genOfficerAuditor}
-                        onChange={(e) => setGenOfficerAuditor(e.target.value)}
+                        onChange={(e) => {
+                          signatoryEditedRef.current = true;
+                          setGenOfficerAuditor(e.target.value);
+                        }}
                         className="w-full text-xs p-2 border rounded-lg border-amber-300 bg-white font-bold uppercase"
                       />
                     </div>
