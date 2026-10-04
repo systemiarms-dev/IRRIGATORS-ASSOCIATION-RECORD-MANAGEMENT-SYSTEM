@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { FS4Data, FinancialStatementEdits } from '@/types';
+import { FS4Data, FS4LiabilityLine, FinancialStatementEdits } from '@/types';
+import { resolveFS4LiabilityLines } from '@/lib/financial/recompute';
 import { NumberField, TextField } from './editable';
 
 interface FS4ViewProps {
@@ -31,6 +32,33 @@ export default function FS4View({ data, editable = false, edits, onFieldChange }
   const set = (p: string) => (v: number | string) => onFieldChange?.(`${P}${p}`, v);
   const unpin = (p: string) => () => onFieldChange?.(`${P}${p}:unpin`, '');
   const cellEditable = (p: string) => editable && !locked(p);
+
+  // Dynamic liability accounts: Current Liabilities first, then Non-Current.
+  const allLines: FS4LiabilityLine[] = resolveFS4LiabilityLines(l);
+  const lines = allLines.filter((x) => x && typeof x === 'object');
+  const currentLines = lines.filter((x) => x.classification === 'current_liability');
+  const nonCurrentLines = lines.filter((x) => x.classification === 'non_current_liability');
+  const liabPath = (line: FS4LiabilityLine) => `liabilities.lines.${allLines.indexOf(line)}.amount`;
+
+  const liabilityGroup = (title: string, group: FS4LiabilityLine[]) =>
+    group.length === 0 ? null : (
+      <div className="pt-1">
+        <div className="font-semibold text-slate-900 uppercase text-[11px]">{title}</div>
+        <div className="pl-4 space-y-1.5 pt-1">
+          {group.map((line, idx) => {
+            const path = liabPath(line);
+            return (
+              <div key={`${line.id}-${idx}`} className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1 border-b border-slate-100 min-w-0">
+                <span>{line.name}</span>
+                <span className="font-mono shrink-0">
+                  <NumberField value={line.amount} editable={cellEditable(path)} hasOverride={forced(path)} onCommit={set(path)} onRemove={unpin(path)} emptyWhenZero />
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
 
   const row = (label: string, path: string, value: number) => (
     <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1 border-b border-slate-100 min-w-0">
@@ -118,9 +146,18 @@ export default function FS4View({ data, editable = false, edits, onFieldChange }
         </div>
 
         <div className="space-y-1.5 text-xs pl-4">
-          {row('Notarial Services, Permit Fees, etc.', 'liabilities.notarialPermitFees', l.notarialPermitFees)}
-          {row('Honorarium/wages payables', 'liabilities.honorariumWagesPayable', l.honorariumWagesPayable)}
-          {row('Other Accounts Payables', 'liabilities.otherAccountsPayable', l.otherAccountsPayable)}
+          {lines.length === 0 ? (
+            <div className="italic text-slate-500 py-1">
+              No liability transactions yet. A liability account (Current or
+              Non-Current) is listed here once it has at least one recorded
+              transaction.
+            </div>
+          ) : (
+            <>
+              {liabilityGroup('CURRENT LIABILITIES', currentLines)}
+              {liabilityGroup('NON-CURRENT LIABILITIES', nonCurrentLines)}
+            </>
+          )}
 
           {totalRow('TOTAL LIABILITIES', 'liabilities.totalLiabilities', l.totalLiabilities)}
         </div>

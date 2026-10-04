@@ -294,6 +294,24 @@ export interface FS3Data {
   };
 }
 
+/**
+ * One liability line on the FS4 Balance Sheet.
+ *
+ * Lines are sourced from the Chart of Accounts: every account classified as a
+ * Current or Non-Current Liability is listed **by name**, so an account added
+ * by the Treasurer shows up on the Balance Sheet automatically. The array is
+ * always ordered CURRENT LIABILITIES first, then NON-CURRENT LIABILITIES.
+ */
+export interface FS4LiabilityLine {
+  /** Chart-of-accounts category id (stable key for inline edits). */
+  id: string;
+  code: string;
+  name: string;
+  classification: 'current_liability' | 'non_current_liability';
+  /** Period ledger balance: money owed on this account. */
+  amount: number;
+}
+
 export interface FS4Data {
   associationName: string;
   address: string;
@@ -309,10 +327,15 @@ export interface FS4Data {
     totalAssets: number;
   };
   liabilities: {
-    notarialPermitFees: number;
-    honorariumWagesPayable: number;
-    otherAccountsPayable: number;
+    /** Dynamic account lines — Current Liabilities first, then Non-Current. */
+    lines: FS4LiabilityLine[];
     totalLiabilities: number;
+    /** @deprecated Legacy fixed rows — permanently removed from the Balance Sheet. */
+    notarialPermitFees?: number;
+    /** @deprecated Legacy fixed row — permanently removed from the Balance Sheet. */
+    honorariumWagesPayable?: number;
+    /** @deprecated Legacy fixed row — permanently removed from the Balance Sheet. */
+    otherAccountsPayable?: number;
   };
   netWorth: number;
   officer: {
@@ -427,11 +450,6 @@ export interface StatementFinancialOverrides {
   receivables?: number;
   materialsSuppliesInventory?: number;
   officeBuilding?: number;
-
-  // FS4 balance sheet liabilities
-  notarialPermitFees?: number;
-  honorariumWagesPayable?: number;
-  otherAccountsPayable?: number;
 }
 
 export interface FinancialStatement {

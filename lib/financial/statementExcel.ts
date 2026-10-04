@@ -6,6 +6,7 @@ import type {
   FS3Data,
   FS4Data,
 } from '@/types';
+import { resolveFS4LiabilityLines } from '@/lib/financial/recompute';
 
 /**
  * Builds an Excel-ready payload (metadata + header row + data rows) for the
@@ -363,9 +364,16 @@ function buildFS4(bd: FinancialStatementBreakdown): StatementExcelPayload | null
 
   b.blank();
   b.section('II. LIABILITIES');
-  b.line('Notarial Services, Permit Fees, etc.', num(l.notarialPermitFees));
-  b.line('Honorarium/wages payables', num(l.honorariumWagesPayable));
-  b.line('Other Accounts Payables', num(l.otherAccountsPayable));
+  // Dynamic liability accounts from the Chart of Accounts: Current Liabilities
+  // first, then Non-Current Liabilities (mirrors what FS4View renders).
+  const liabLines = resolveFS4LiabilityLines(l).filter((x) => x && typeof x === 'object');
+  const pushLiabilityGroup = (title: string, group: typeof liabLines) => {
+    if (group.length === 0) return;
+    b.line(title, '');
+    for (const line of group) b.line(line.name || line.code, num(line.amount));
+  };
+  pushLiabilityGroup('CURRENT LIABILITIES', liabLines.filter((x) => x.classification === 'current_liability'));
+  pushLiabilityGroup('NON-CURRENT LIABILITIES', liabLines.filter((x) => x.classification !== 'current_liability'));
   b.line('TOTAL LIABILITIES', num(l.totalLiabilities));
 
   b.blank();

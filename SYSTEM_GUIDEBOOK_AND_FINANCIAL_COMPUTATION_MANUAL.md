@@ -174,7 +174,7 @@ This is the double-entry bookkeeping engine for all daily cash, bank, and vouche
    - **`FS1: Receipts & Expenses`**: Comparative Statement of Cash Receipts & Disbursements.
    - **`FS2: Cash Flows`**: Statement of Financial Condition & Cash Flows.
    - **`FS3: Cash Statement`**: Statement of Cash Receipts, Disbursements & Section F Composition.
-   - **`FS4: Balance Sheet`**: Statement of Net Worth & Balance Sheet.
+   - **`FS4: Balance Sheet`**: Statement of Net Worth & Balance Sheet. Its **Liabilities** section is fully dynamic: each liability account (Current or Non-Current) with **at least one recorded transaction** is listed **by name** — ordered **Current Liabilities** first, then **Non-Current Liabilities**. An account with no transactions yet does **not** appear (no ₱0 placeholder rows). The three legacy hardcoded rows (Notarial Services/Permit Fees, Honorarium/Wages Payable, Other Accounts Payables) are gone; re-sync or regenerate to rebuild the list from the ledger.
 4. **Active Statement Management (Left Panel):**
    - Displays all compiled statements under **`Active Statement`**.
    - **Treasurer only:** Click **`Rename statement`** (Pencil icon) to edit statement title inline (press Enter to confirm), or **`Delete statement`** (Trash icon) to open the **`Confirm Statement Deletion`** dialog &rarr; click **`Delete Statement`** or **`Cancel`**. All other roles see the list without these controls.
@@ -292,7 +292,7 @@ The table below provides a complete audit of every single field across the finan
 | **FS-3** | **Sec. F: Total Cash Composition** | **Automated** | Cash on Hand + Bank Regular + Bank CBU | **Must exactly equal Section E.** |
 | **FS-4** | Cash on Hand & in Bank | **Automated** | Transferred directly from FS-3 Section F | Liquid assets transferred to the Balance Sheet. |
 | **FS-4** | Non-Current Assets (Fixed Assets NBV) | **Automated** | Transferred directly from Fixed Asset Registry | Net book value of IA office building, pump stations, and tools. |
-| **FS-4** | Current & Long-Term Liabilities | **Automated** | Sum of Current & Non-Current Liabilities from Ledger | Total debt obligations owed to third parties. |
+| **FS-4** | Liabilities (one row per ledger account) | **Automated** | One line per Current/Non-Current liability account **with at least one transaction in the period**, ordered Current then Non-Current | Listed by name only when it has transactions — no ₱0 placeholder rows, no hardcoded rows. Totals tie to FS-2. |
 | **FS-4** | **Net Worth** | **Automated** | Total Assets minus Total Liabilities | True legal net worth of the association. |
 | **FS-4** | Treasurer Certification Block | **Automated** | Pulled from Association Profile (Name, TIN) | Verified officer credentials. |
 | **FS-4** | **Community Tax Certificate (CTC) #** | **MANUAL** | User typed in modal during notary filing | **LEGAL REQUIREMENT:** Philippine Notarial Law (A.M. No. 02-8-13-SC) requires the physical Community Tax Certificate (Cedula) or Government Passport/Driver's License presented in person before the Notary Public. Software cannot fabricate legal identity documents. |

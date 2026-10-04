@@ -1,4 +1,4 @@
-import { FinancialStatementBreakdown, FinancialStatementEdits } from '@/types';
+import { FinancialStatementBreakdown, FinancialStatementEdits, FS4LiabilityLine } from '@/types';
 
 /**
  * Derived cells that are auto-computed and must never be pinned by the user
@@ -74,6 +74,37 @@ const hashPair = (parent: any, key: string): { current: number; prior: number } 
   if (!section || typeof section !== 'object') return { current: 0, prior: 0 };
   return { current: n0(section.current), prior: n0(section.prior) };
 };
+
+/**
+ * Resolves the FS4 Balance Sheet liability lines — CURRENT LIABILITIES first,
+ * then NON-CURRENT LIABILITIES.
+ *
+ * Statements compiled after the Balance Sheet became dynamic already carry
+ * `lines` built from the Chart of Accounts (every liability account listed by
+ * name) and are returned untouched. Older statements still store the retired
+ * fixed buckets, so their total is folded into one line to keep the section —
+ * and its figure — intact.
+ */
+export function resolveFS4LiabilityLines(liabilities: any): FS4LiabilityLine[] {
+  const lines: FS4LiabilityLine[] = Array.isArray(liabilities?.lines) ? liabilities.lines : [];
+  if (lines.length > 0) return lines;
+
+  const legacyTotal =
+    n0(liabilities?.notarialPermitFees) +
+    n0(liabilities?.honorariumWagesPayable) +
+    n0(liabilities?.otherAccountsPayable);
+  if (legacyTotal === 0) return lines;
+
+  return [
+    {
+      id: 'legacy-liabilities',
+      code: 'LIAB-OTHER',
+      name: 'Other Liabilities',
+      classification: 'current_liability',
+      amount: legacyTotal,
+    },
+  ];
+}
 
 /**
  * Recalculates all derived figures across FS1-FS4 after an inline edit.
@@ -329,9 +360,10 @@ export function recomputeBreakdown(rd: FinancialStatementBreakdown): FinancialSt
     }
 
     const l = ensure(fs4, 'liabilities');
+    l.lines = resolveFS4LiabilityLines(l);
+
     if (!pinned('fs4.liabilities.totalLiabilities')) {
-      l.totalLiabilities =
-        n0(l.notarialPermitFees) + n0(l.honorariumWagesPayable) + n0(l.otherAccountsPayable);
+      l.totalLiabilities = l.lines.reduce((sum: number, x: any) => sum + n0(x?.amount), 0);
     }
 
     if (!pinned('fs4.netWorth')) fs4.netWorth = n0(assets.totalAssets) - n0(l.totalLiabilities);
@@ -373,7 +405,10 @@ function setPath(root: any, path: string, value: number | string): void {
   for (let i = 0; i < parts.length - 1; i++) {
     const key = parts[i];
     if (cursor[key] === undefined || cursor[key] === null || typeof cursor[key] !== 'object') {
-      cursor[key] = {};
+      // A numeric next key means the path walks into an array (e.g.
+      // `fs4.liabilities.lines.0.amount`) — create it as one so the pinned
+      // value lands on the real element instead of a string-keyed object.
+      cursor[key] = /^\d+$/.test(parts[i + 1]) ? [] : {};
     }
     cursor = cursor[key];
   }

@@ -1,7 +1,7 @@
 'use server';
 
 import { localDb } from '@/lib/db/localDb';
-import { ActionResponse, FinancialStatement, StatementType, FinancialStatementBreakdown, FS1Data, FS2Data, FS3Data, FS4Data, StatementFinancialOverrides, FinancialStatementEdits } from '@/types';
+import { ActionResponse, FinancialStatement, StatementType, FinancialStatementBreakdown, FS1Data, FS2Data, FS3Data, FS4Data, FS4LiabilityLine, StatementFinancialOverrides, FinancialStatementEdits } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireRole, UNAUTHORIZED_RESPONSE } from '@/lib/auth/session';
 import { hasSystemWideReadScope, canWriteFinancialData, SUPER_ADMIN_FINANCIAL_VIEW_ONLY_MESSAGE } from '@/lib/auth/roles';
@@ -375,28 +375,59 @@ export async function generateStatementAction(
   // Build FS2 Model (Interconnected)
   const officeBuildingValue = overrides?.officeBuilding !== undefined ? Number(overrides.officeBuilding) : totalNetBookValue;
 
-  const calcLiabilities = (txList: any[], type: 'current' | 'non_current') => {
-    return (txList || [])
-      .filter((t) => {
-        const cls = t.category?.account_classification;
-        const code = t.category?.code?.toUpperCase() || '';
-        if (type === 'current') {
-          return cls === 'current_liability' || code.includes('LIAB-CUR') || (code.includes('LIAB') && !code.includes('NONCUR'));
-        } else {
-          return cls === 'non_current_liability' || code.includes('LIAB-NONCUR');
-        }
-      })
-      .reduce((sum, t) => {
-        const amt = Number(t.amount || 0);
-        return sum + (t.type === 'collection' ? amt : -amt);
-      }, 0);
+  /**
+   * Which side of the Balance Sheet a liability account belongs to.
+   *
+   * The Chart of Accounts classification always wins; the code heuristics are
+   * only a fallback for legacy accounts created before `account_classification`
+   * existed. This single rule feeds BOTH the FS2 liability totals and the FS4
+   * Balance Sheet lines, so the two statements can never disagree.
+   */
+  const liabilityClassOf = (
+    cat?: { account_classification?: string; code?: string } | null
+  ): 'current' | 'non_current' | null => {
+    const cls = cat?.account_classification;
+    if (cls === 'current_liability') return 'current';
+    if (cls === 'non_current_liability') return 'non_current';
+    const code = (cat?.code || '').toUpperCase();
+    if (code.includes('LIAB-NONCUR')) return 'non_current';
+    if (code.includes('LIAB-CUR') || (code.includes('LIAB') && !code.includes('NONCUR'))) return 'current';
+    return null;
   };
 
-  const currentLiabilitiesFromCurrentTxs = calcLiabilities(currentTxs, 'current');
-  const currentLiabilitiesFromPriorTxs = calcLiabilities(priorTxs, 'current');
+  /**
+   * How one ledger voucher moves a liability account.
+   *
+   * A voucher posted on the account's OWN side (transaction type == the
+   * account's `category_type`) grows the obligation; the opposite side settles
+   * it. Standard liability accounts are disbursement-type — an accrued payable
+   * or a loan is recorded as a disbursement voucher — so obligations come out
+   * POSITIVE, exactly as the SYSTEM_GUIDEBOOK worked example states
+   * (₱16,500 accrued wages + ₱35,000 loan payable = ₱51,500).
+   *
+   * Shared by FS2 liability totals and the FS4 Balance Sheet lines so the two
+   * statements always report the same figure.
+   */
+  const liabilityDelta = (t: any): number => {
+    const amt = Number(t.amount || 0);
+    const naturalSide = t?.category?.category_type;
+    if (naturalSide === 'collection' || naturalSide === 'disbursement') {
+      return t.type === naturalSide ? amt : -amt;
+    }
+    // Legacy categories without a type: money IN grows the debt.
+    return t.type === 'collection' ? amt : -amt;
+  };
 
-  const nonCurrentLiabilitiesFromCurrentTxs = calcLiabilities(currentTxs, 'non_current');
-  const nonCurrentLiabilitiesFromPriorTxs = calcLiabilities(priorTxs, 'non_current');
+  const sumLiabilities = (txList: any[], type: 'current' | 'non_current') =>
+    (txList || [])
+      .filter((t) => liabilityClassOf(t.category) === type)
+      .reduce((sum, t) => sum + liabilityDelta(t), 0);
+
+  const currentLiabilitiesFromCurrentTxs = sumLiabilities(currentTxs, 'current');
+  const currentLiabilitiesFromPriorTxs = sumLiabilities(priorTxs, 'current');
+
+  const nonCurrentLiabilitiesFromCurrentTxs = sumLiabilities(currentTxs, 'non_current');
+  const nonCurrentLiabilitiesFromPriorTxs = sumLiabilities(priorTxs, 'non_current');
 
   // Equity transactions: Money IN increases equity, Money OUT decreases equity
   const isEquityTx = (t: any) => {
@@ -433,11 +464,9 @@ export async function generateStatementAction(
   const totalEquityTxsCurrent = equityLines.reduce((s, x) => s + x.current, 0);
   const totalEquityTxsPrior = equityLines.reduce((s, x) => s + x.prior, 0);
 
-  const totalCurrentLiabilitiesCurrent =
-    (overrides?.notarialPermitFees ?? 0) +
-    (overrides?.honorariumWagesPayable ?? 0) +
-    (overrides?.otherAccountsPayable ?? 0) +
-    currentLiabilitiesFromCurrentTxs;
+  // Liability totals come straight from the ledger classification (the old
+  // hardcoded Notarial/Honorarium/Other-Accounts-Payable buckets are gone).
+  const totalCurrentLiabilitiesCurrent = currentLiabilitiesFromCurrentTxs;
   const totalCurrentLiabilitiesPrior = currentLiabilitiesFromPriorTxs;
 
   const totalNonCurrentLiabilitiesCurrent = nonCurrentLiabilitiesFromCurrentTxs;
@@ -608,10 +637,66 @@ export async function generateStatementAction(
   const officeBuilding = officeBuildingValue;
   const totalAssets = cashOnHand + cashInBank + receivables + materialsSuppliesInventory + officeBuilding;
 
-  const notarialPermitFees = Number(overrides?.notarialPermitFees || 0);
-  const honorariumWagesPayable = Number(overrides?.honorariumWagesPayable || 0) + currentLiabilitiesFromCurrentTxs;
-  const otherAccountsPayable = Number(overrides?.otherAccountsPayable || 0) + nonCurrentLiabilitiesFromCurrentTxs;
-  const totalLiabilities = notarialPermitFees + honorariumWagesPayable + otherAccountsPayable;
+  /**
+   * FS4 · II. LIABILITIES — built from the Chart of Accounts.
+   *
+   * Liability accounts are listed BY NAME, but only once the Treasurer has
+   * recorded at least one transaction against them: an account with no
+   * transactions yet stays OFF the Balance Sheet instead of showing a ₱0 row.
+   * Lines are ordered Current Liabilities first, then Non-Current Liabilities.
+   *
+   * Lines are seeded only from the period ledger below, so no account is
+   * pre-listed from the chart of accounts.
+   */
+  const liabilityLinesById = new Map<string, FS4LiabilityLine>();
+
+  const newLiabilityLine = (
+    key: string,
+    code: string | undefined,
+    name: string | undefined,
+    cls: 'current' | 'non_current'
+  ): FS4LiabilityLine => ({
+    id: key,
+    code: code || '',
+    name: (name || '').trim() || code || 'Liability Account',
+    classification: cls === 'current' ? 'current_liability' : 'non_current_liability',
+    amount: 0,
+  });
+
+  const findLiabilityLine = (cat: any): FS4LiabilityLine | undefined => {
+    if (cat?.id && liabilityLinesById.has(cat.id)) return liabilityLinesById.get(cat.id);
+    const code = (cat?.code || '').toUpperCase();
+    if (code) {
+      for (const line of liabilityLinesById.values()) {
+        if ((line.code || '').toUpperCase() === code) return line;
+      }
+    }
+    return undefined;
+  };
+
+  // Post the period ledger to each line (see `liabilityDelta` for the sign
+  // rule). A ledger entry whose account was removed from the chart still gets
+  // its own line so the Balance Sheet keeps tying out.
+  for (const t of currentTxs) {
+    const cat = t.category;
+    const cls = liabilityClassOf(cat);
+    if (!cls) continue;
+    const line = findLiabilityLine(cat) || newLiabilityLine(
+      cat?.id || `${cat?.code || 'LIAB'}|${cat?.name || ''}`,
+      cat?.code,
+      cat?.name,
+      cls
+    );
+    if (!liabilityLinesById.has(line.id)) liabilityLinesById.set(line.id, line);
+    line.amount += liabilityDelta(t);
+  }
+
+  const liabilityLines = Array.from(liabilityLinesById.values()).sort((a, b) => {
+    const group = (x: FS4LiabilityLine) => (x.classification === 'current_liability' ? 0 : 1);
+    return group(a) - group(b) || a.name.localeCompare(b.name);
+  });
+
+  const totalLiabilities = liabilityLines.reduce((sum, x) => sum + Number(x.amount || 0), 0);
   const netWorth = totalAssets - totalLiabilities;
 
   const fs4: FS4Data = {
@@ -629,9 +714,7 @@ export async function generateStatementAction(
       totalAssets,
     },
     liabilities: {
-      notarialPermitFees,
-      honorariumWagesPayable,
-      otherAccountsPayable,
+      lines: liabilityLines,
       totalLiabilities,
     },
     netWorth,

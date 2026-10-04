@@ -351,9 +351,27 @@ async function generateNLFIAStatement() {
       totalAssets,
     },
     liabilities: {
-      notarialPermitFees: 0,
-      honorariumWagesPayable: currentLiabilitiesFromTxs,
-      otherAccountsPayable: nonCurrentLiabilitiesFromTxs,
+      // Dynamic Balance Sheet lines: Current Liabilities first, then Non-Current.
+      lines: [
+        ...(currentLiabilitiesFromTxs !== 0
+          ? [{
+              id: 'nlfia-current-liabilities',
+              code: 'LIAB-CUR',
+              name: 'Current Liabilities',
+              classification: 'current_liability',
+              amount: currentLiabilitiesFromTxs,
+            }]
+          : []),
+        ...(nonCurrentLiabilitiesFromTxs !== 0
+          ? [{
+              id: 'nlfia-non-current-liabilities',
+              code: 'LIAB-NONCUR',
+              name: 'Non-Current Liabilities',
+              classification: 'non_current_liability',
+              amount: nonCurrentLiabilitiesFromTxs,
+            }]
+          : []),
+      ],
       totalLiabilities,
     },
     netWorth,
