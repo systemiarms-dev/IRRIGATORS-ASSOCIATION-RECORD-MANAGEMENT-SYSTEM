@@ -48,7 +48,9 @@ async function ensureMemberRoleSchema(): Promise<void> {
 
 /**
  * Fetch farmer members (role='member') scoped to an association.
- * - Super Admin: any association (or all).
+ * - Super Admin: one association at a time — the roster is never returned
+ *   across associations ("all" scope is rejected).
+ * - Bookkeeper: any association (or all) — read-only, system-wide oversight.
  * - Officers (admin/auditor): strictly their own association.
  * - Treasurer: denied — the Farmer Members Registry is not part of that account.
  */
@@ -59,6 +61,12 @@ export async function getMembersAction(associationId?: string): Promise<ActionRe
     return {
       success: false,
       message: 'The Farmer Members Registry is not available for Treasurer accounts. Ask your Head Admin or Super Admin for the member roster.',
+    };
+  }
+  if (user.role === 'super_admin' && (!associationId || associationId === 'all')) {
+    return {
+      success: false,
+      message: 'Select an Irrigators Association to view its registered farmer members.',
     };
   }
 

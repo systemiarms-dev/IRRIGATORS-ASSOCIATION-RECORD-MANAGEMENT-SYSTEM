@@ -38,7 +38,10 @@ export default function MembersPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
 
-  const canWrite = userRole === 'super_admin' || userRole === 'admin';
+  // Only the Head Admin manages the registry here. The Super Admin browses the
+  // registered farmers per association and exports them — it never registers,
+  // imports, edits, or removes member records from this interface.
+  const canWrite = userRole === 'admin';
 
   const [formName, setFormName] = useState('');
   const [formLocation, setFormLocation] = useState('');
@@ -50,20 +53,34 @@ export default function MembersPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [memRes, assocRes, selfRes] = await Promise.all([
-        getMembersAction(selectedAssocId),
+      const [assocRes, selfRes] = await Promise.all([
         getAssociationsAction(),
         getSelfProfileAction(),
       ]);
-      if (memRes.success && memRes.data) setMembers(memRes.data);
+
+      const assocList = assocRes.success && assocRes.data ? assocRes.data : [];
       if (assocRes.success && assocRes.data) setAssociations(assocRes.data);
+
+      let effectiveAssoc = selectedAssocId;
       if (selfRes.success && selfRes.data) {
         setUserRole(selfRes.data.role);
         if (selfRes.data.association_id) setUserAssocId(selfRes.data.association_id);
-        if (!hasSystemWideReadScope(selfRes.data.role) && selfRes.data.association_id) {
-          setSelectedAssocId(selfRes.data.association_id);
+
+        if (!hasSystemWideReadScope(selfRes.data.role)) {
+          // Association officers only ever see their own association's roster.
+          if (selfRes.data.association_id) effectiveAssoc = selfRes.data.association_id;
+        } else if (selfRes.data.role === 'super_admin') {
+          // Super Admin browses one association at a time: never an "all" scope.
+          if (effectiveAssoc === 'all' || !assocList.some((a) => a.id === effectiveAssoc)) {
+            effectiveAssoc = assocList[0]?.id || 'all';
+          }
         }
       }
+      if (effectiveAssoc !== selectedAssocId) setSelectedAssocId(effectiveAssoc);
+
+      const memRes = await getMembersAction(effectiveAssoc);
+      if (memRes.success && memRes.data) setMembers(memRes.data);
+      else setMembers([]);
     } catch (err) {
       console.error('Failed to load farmer members:', err);
     } finally {
@@ -311,14 +328,16 @@ export default function MembersPage() {
             <span className="text-xs font-bold text-slate-700">Scope Members by Association:</span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              onClick={() => setSelectedAssocId('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                selectedAssocId === 'all' ? 'bg-emerald-800 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              All Associations
-            </button>
+            {userRole !== 'super_admin' && (
+              <button
+                onClick={() => setSelectedAssocId('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  selectedAssocId === 'all' ? 'bg-emerald-800 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                All Associations
+              </button>
+            )}
             {associations.map((assoc) => (
               <button
                 key={assoc.id}
@@ -378,7 +397,7 @@ export default function MembersPage() {
           ) : (
             <div className="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <Eye className="w-4 h-4 text-amber-600" />
-              <span>Read &amp; View Only ({userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
+              <span>Read &amp; View Only ({userRole === 'super_admin' ? 'Super Admin' : userRole === 'auditor' ? 'Auditor' : userRole === 'bookkeeper' ? 'Bookkeeper' : 'View Only'})</span>
             </div>
           )}
           <button

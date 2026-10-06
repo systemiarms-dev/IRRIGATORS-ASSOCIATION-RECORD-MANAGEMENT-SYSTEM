@@ -358,7 +358,7 @@ export default function TreasurerPage() {
             </div>
           )}
 
-          {(userRole === 'treasurer' || userRole === 'super_admin') && (
+          {userRole === 'treasurer' && (
             <Link
               href="/dashboard/chart-of-accounts"
               className="px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
